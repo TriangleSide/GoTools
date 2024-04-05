@@ -1,13 +1,12 @@
 package config_test
 
 import (
+	"intelligence/pkg/config"
 	"os"
 	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"intelligence/config"
 )
 
 var _ = Describe("config", func() {

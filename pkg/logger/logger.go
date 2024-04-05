@@ -2,11 +2,10 @@ package logger
 
 import (
 	"context"
+	config2 "intelligence/pkg/config"
 	"os"
 
 	"github.com/sirupsen/logrus"
-
-	"intelligence/config"
 )
 
 var (
@@ -16,7 +15,7 @@ var (
 func init() {
 	logger = logrus.New()
 	logger.SetOutput(os.Stdout)
-	if conf, confErr := config.ProcessConfiguration[config.LoggerConf](); confErr == nil {
+	if conf, confErr := config2.ProcessConfiguration[config2.LoggerConf](); confErr == nil {
 		if level, parseLevelErr := logrus.ParseLevel(conf.LogLevel); parseLevelErr == nil {
 			logger.SetLevel(level)
 		} else {

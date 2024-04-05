@@ -3,8 +3,7 @@ package validation_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"intelligence/validation"
+	"intelligence/pkg/validation"
 )
 
 var _ = Describe("validation", func() {

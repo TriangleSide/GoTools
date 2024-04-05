@@ -2,11 +2,10 @@ package logger_test
 
 import (
 	"context"
+	"intelligence/pkg/logger"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"intelligence/logger"
 )
 
 var _ = Describe("logger", func() {

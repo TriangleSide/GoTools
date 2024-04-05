@@ -2,8 +2,7 @@ package config
 
 import (
 	"github.com/kelseyhightower/envconfig"
-
-	"intelligence/validation"
+	"intelligence/pkg/validation"
 )
 
 // ProcessConfiguration fills out the member fields of a struct from environment variables.
