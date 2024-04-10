@@ -15,7 +15,7 @@ var (
 
 // init will create the validator and configure it. The default translation error
 func init() {
-	validate = validator.New()
+	validate = validator.New(validator.WithRequiredStructEnabled(), validator.WithPrivateFieldValidation())
 	customValidationErrorMessages = make(map[string]func(err validator.FieldError) string)
 }
 
