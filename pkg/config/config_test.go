@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("config", func() {
-	When("a struct has a field called Value with a default of 0, a validation rule of gte 0, and is required", func() {
+	When("a struct has a field called Value with a default of 0, a validation rule of gte=0, and is required", func() {
 		const (
 			EnvName      = "VALUE"
 			DefaultValue = 0
@@ -35,12 +35,44 @@ var _ = Describe("config", func() {
 			})
 
 			It("should be set in the Value field of the struct", func() {
-				conf, err := config.ProcessConfiguration[testStruct]()
+				conf, err := config.ProcessAndValidate[testStruct]()
 				Expect(err).To(Not(HaveOccurred()))
 				Expect(conf).To(Not(BeNil()))
 				intValue, err := strconv.Atoi(EnvValueStr)
 				Expect(err).To(Not(HaveOccurred()))
 				Expect(conf.Value).To(Equal(intValue))
+			})
+
+			It("should use the default value if a prefix of NOT_EXIST is used", func() {
+				conf, err := config.ProcessAndValidate[testStruct](config.WithPrefix("NOT_EXIST"))
+				Expect(err).To(Not(HaveOccurred()))
+				Expect(conf).To(Not(BeNil()))
+				Expect(conf.Value).To(Equal(DefaultValue))
+			})
+
+			When("an environment variable called TEST_VALUE is set with a value of 2", func() {
+				const (
+					Prefix            = "TEST"
+					PrefixEnvName     = Prefix + "_" + EnvName
+					PrefixEnvValueStr = "2"
+				)
+
+				BeforeEach(func() {
+					Expect(os.Setenv(PrefixEnvName, PrefixEnvValueStr)).To(Succeed())
+				})
+
+				AfterEach(func() {
+					Expect(os.Unsetenv(PrefixEnvName)).To(Succeed())
+				})
+
+				It("should be set in the Value field of the struct if the TEST prefix is used with the processor", func() {
+					conf, err := config.ProcessAndValidate[testStruct](config.WithPrefix(Prefix))
+					Expect(err).To(Not(HaveOccurred()))
+					Expect(conf).To(Not(BeNil()))
+					intValue, err := strconv.Atoi(PrefixEnvValueStr)
+					Expect(err).To(Not(HaveOccurred()))
+					Expect(conf.Value).To(Equal(intValue))
+				})
 			})
 		})
 
@@ -57,16 +89,17 @@ var _ = Describe("config", func() {
 				Expect(os.Unsetenv(EnvName)).To(Succeed())
 			})
 
-			It("should return an error when processing the configuration", func() {
-				conf, err := config.ProcessConfiguration[testStruct]()
+			It("should return a validation error when processing the configuration", func() {
+				conf, err := config.ProcessAndValidate[testStruct]()
 				Expect(err).To(HaveOccurred())
 				Expect(conf).To(BeNil())
+				Expect(err.Error()).To(ContainSubstring("validation failed"))
 			})
 		})
 
-		When("no environment variable is set for the struct field", func() {
+		When("no environment variable is set", func() {
 			It("should set the value to the default", func() {
-				conf, err := config.ProcessConfiguration[testStruct]()
+				conf, err := config.ProcessAndValidate[testStruct]()
 				Expect(err).To(Not(HaveOccurred()))
 				Expect(conf).To(Not(BeNil()))
 				Expect(conf.Value).To(Equal(DefaultValue))
@@ -80,7 +113,7 @@ var _ = Describe("config", func() {
 		}
 
 		It("should set the field to nil when processing the configuration", func() {
-			conf, err := config.ProcessConfiguration[testStruct]()
+			conf, err := config.ProcessAndValidate[testStruct]()
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(conf).To(Not(BeNil()))
 			Expect(conf.Value).To(BeNil())
@@ -92,10 +125,11 @@ var _ = Describe("config", func() {
 			Value *int `required:"true"`
 		}
 
-		It("should return an error when processing the configuration", func() {
-			conf, err := config.ProcessConfiguration[testStruct]()
+		It("should return a validation error when processing the configuration", func() {
+			conf, err := config.ProcessAndValidate[testStruct]()
 			Expect(err).To(HaveOccurred())
 			Expect(conf).To(BeNil())
+			Expect(err.Error()).To(ContainSubstring("required key VALUE"))
 		})
 	})
 })

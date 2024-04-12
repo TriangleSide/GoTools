@@ -13,10 +13,11 @@ var (
 	logger *logrus.Logger
 )
 
+// init configures the applications logger.
 func init() {
 	logger = logrus.New()
 	logger.SetOutput(os.Stdout)
-	if conf, confErr := config.ProcessConfiguration[config.LoggerConf](); confErr == nil {
+	if conf, confErr := config.ProcessAndValidate[config.Logger](); confErr == nil {
 		if level, parseLevelErr := logrus.ParseLevel(conf.LogLevel); parseLevelErr == nil {
 			logger.SetLevel(level)
 		} else {
@@ -28,7 +29,7 @@ func init() {
 	logger.SetFormatter(&customFormatter{
 		JSONFormatter: logrus.JSONFormatter{
 			// UTC is enforced in the customFormatter.
-			TimestampFormat: "2006-01-02 15:04:05",
+			TimestampFormat: "2001-02-03 19:34:56",
 			PrettyPrint:     logger.Level >= logrus.DebugLevel,
 		},
 	})
