@@ -37,7 +37,7 @@ func ProcessAndValidate[T any](options ...Option) (*T, error) {
 	if err := envconfig.Process(config.prefix, conf); err != nil {
 		return nil, fmt.Errorf("failed while reading the environment variables for the configuration (%s)", err.Error())
 	}
-	if err := validation.Validate(conf); err != nil {
+	if err := validation.Struct(conf); err != nil {
 		return nil, fmt.Errorf("failed while validating the configuration (%s)", err.Error())
 	}
 

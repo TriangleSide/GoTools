@@ -27,12 +27,12 @@ var _ = Describe("validation", func() {
 				test.Value = 1
 			})
 
-			It("should succeed when using the Validate method when passed by value", func() {
-				Expect(validation.Validate(test)).To(Succeed())
+			It("should succeed when using the Struct method when passed by value", func() {
+				Expect(validation.Struct(test)).To(Succeed())
 			})
 
-			It("should succeed when using the Validate method when passed by reference", func() {
-				Expect(validation.Validate(&test)).To(Succeed())
+			It("should succeed when using the Struct method when passed by reference", func() {
+				Expect(validation.Struct(&test)).To(Succeed())
 			})
 		})
 
@@ -41,16 +41,16 @@ var _ = Describe("validation", func() {
 				test.Value = -1
 			})
 
-			It("should return an error when using the Validate method when passed by value", func() {
-				err := validation.Validate(test)
+			It("should return an error when using the Struct method when passed by value", func() {
+				err := validation.Struct(test)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("validation failed on field 'Value' with validator 'gte' with parameter(s) '0'"))
+				Expect(err.Error()).To(Equal("validation failed on field 'Value' with validator 'gte' and parameter(s) '0'"))
 			})
 
-			It("should return an error when using the Validate method when passed by reference", func() {
-				err := validation.Validate(&test)
+			It("should return an error when using the Struct method when passed by reference", func() {
+				err := validation.Struct(&test)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("validation failed on field 'Value' with validator 'gte' with parameter(s) '0'"))
+				Expect(err.Error()).To(Equal("validation failed on field 'Value' with validator 'gte' and parameter(s) '0'"))
 			})
 		})
 	})
@@ -70,12 +70,12 @@ var _ = Describe("validation", func() {
 			}
 		})
 
-		It("should succeed when using the Validate method when passed by value", func() {
-			Expect(validation.Validate(test)).To(Succeed())
+		It("should succeed when using the Struct method when passed by value", func() {
+			Expect(validation.Struct(test)).To(Succeed())
 		})
 
-		It("should succeed when using the Validate method when passed by reference", func() {
-			Expect(validation.Validate(&test)).To(Succeed())
+		It("should succeed when using the Struct method when passed by reference", func() {
+			Expect(validation.Struct(&test)).To(Succeed())
 		})
 	})
 
@@ -88,18 +88,18 @@ var _ = Describe("validation", func() {
 			test = 0
 		})
 
-		It("should return an error when using the Validate method when passed by value", func() {
-			Expect(validation.Validate(test)).To(HaveOccurred())
+		It("should return an error when using the Struct method when passed by value", func() {
+			Expect(validation.Struct(test)).To(HaveOccurred())
 		})
 
-		It("should return an error when using the Validate method when passed by reference", func() {
-			Expect(validation.Validate(&test)).To(HaveOccurred())
+		It("should return an error when using the Struct method when passed by reference", func() {
+			Expect(validation.Struct(&test)).To(HaveOccurred())
 		})
 	})
 
 	When("nil passed to the Validate function", func() {
 		It("should return an error", func() {
-			Expect(validation.Validate(nil)).To(HaveOccurred())
+			Expect(validation.Struct(nil)).To(HaveOccurred())
 		})
 	})
 
@@ -132,8 +132,8 @@ var _ = Describe("validation", func() {
 				}
 			})
 
-			It("should return an error when using the Validate method", func() {
-				err := validation.Validate(test)
+			It("should return an error when using the Struct method", func() {
+				err := validation.Struct(test)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal(errMsg))
 			})
@@ -155,8 +155,74 @@ var _ = Describe("validation", func() {
 			})
 
 			It("should validate without errors", func() {
-				Expect(validation.Validate(test)).To(Succeed())
+				Expect(validation.Struct(test)).To(Succeed())
 			})
+		})
+	})
+
+	When("a struct has multiple fields with validation rules", func() {
+		type testStruct struct {
+			IntValue int    `validate:"gte=0"`
+			StrValue string `validate:"required"`
+		}
+
+		var (
+			test testStruct
+		)
+
+		BeforeEach(func() {
+			test = testStruct{}
+		})
+
+		When("all the struct values fail validation", func() {
+			BeforeEach(func() {
+				test.IntValue = -1
+				test.StrValue = ""
+			})
+
+			It("should return an error that has a message for both fields when using the Struct method", func() {
+				err := validation.Struct(test)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("validation failed on field 'IntValue' with validator 'gte' and parameter(s) '0'"))
+				Expect(err.Error()).To(ContainSubstring("validation failed on field 'StrValue' with validator 'required'"))
+			})
+		})
+	})
+
+	When("validation is done on a standalone variable", func() {
+		It("should return an error when the variable is nil and has a required tag", func() {
+			err := validation.Var(nil, "required")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("validation failed with validator 'required'"))
+		})
+
+		It("should succeed when the variable is nil and has no tag", func() {
+			Expect(validation.Var(nil, "")).To(Succeed())
+		})
+	})
+
+	When("validation is done on a standalone integer pointer variable", func() {
+		var (
+			testVar *int
+		)
+
+		BeforeEach(func() {
+			testVar = new(int)
+			*testVar = 1
+		})
+
+		It("should succeed if there are no validation violations", func() {
+			Expect(validation.Var(testVar, "required,gt=0")).To(Succeed())
+		})
+
+		It("should fail if there is a validation violation", func() {
+			err := validation.Var(testVar, "required,lt=0")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("validation failed with validator 'lt' and parameter(s) '0'"))
+		})
+
+		It("should succeed when there are no validators", func() {
+			Expect(validation.Var(testVar, "")).To(Succeed())
 		})
 	})
 })

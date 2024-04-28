@@ -44,7 +44,7 @@ func Decode[T any](request *http.Request) (*T, error) {
 		return nil, fmt.Errorf("failed to parse path parameters (%s)", err.Error())
 	}
 
-	if err := validation.Validate(params); err != nil {
+	if err := validation.Struct(params); err != nil {
 		return nil, fmt.Errorf("validation failed for request parameters (%s)", err.Error())
 	}
 

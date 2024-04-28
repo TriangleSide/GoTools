@@ -22,12 +22,12 @@ var _ = Describe("path", func() {
 			type testStructRef struct {
 				Path string `validate:"api_path"`
 			}
-			errCheck(validation.Validate(&testStructRef{Path: path}))
+			errCheck(validation.Struct(&testStructRef{Path: path}))
 
 			type testStructPtr struct {
 				Path *string `validate:"api_path"`
 			}
-			errCheck(validation.Validate(&testStructPtr{Path: &path}))
+			errCheck(validation.Struct(&testStructPtr{Path: &path}))
 		},
 		Entry("root path", "/", ""),
 		Entry("sub paths", "/a/b/c/1/2/3", ""),
@@ -67,7 +67,7 @@ var _ = Describe("path", func() {
 		})
 
 		It("should fail the validation", func() {
-			err := validation.Validate(&test)
+			err := validation.Struct(&test)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("path must be a string"))
 		})
@@ -90,7 +90,7 @@ var _ = Describe("path", func() {
 		})
 
 		It("should fail the validation", func() {
-			err := validation.Validate(&test)
+			err := validation.Struct(&test)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("path must be a string"))
 		})

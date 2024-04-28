@@ -18,7 +18,7 @@ func NewMethod(method string) Method {
 	httpMethod := Method{
 		value: method,
 	}
-	err := validation.Validate(httpMethod)
+	err := validation.Struct(httpMethod)
 	if err != nil {
 		panic(fmt.Sprintf("HTTP method '%s' is invalid (%s).", method, err.Error()))
 	}

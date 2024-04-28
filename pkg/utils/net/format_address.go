@@ -19,15 +19,8 @@ func FormatNetworkAddress(host string, port uint16) (string, error) {
 		}
 	}
 
-	type HostnameValidator struct {
-		Hostname string `validate:"required,hostname"`
-	}
-	hostnameValidator := HostnameValidator{
-		Hostname: host,
-	}
-	err := validation.Validate(hostnameValidator)
-	if err != nil {
-		return "", fmt.Errorf("invalid hostname %s", host)
+	if err := validation.Var(&host, "required,hostname"); err != nil {
+		return "", fmt.Errorf("invalid hostname '%s'", host)
 	}
 	return fmt.Sprintf("%s:%d", host, port), nil
 }

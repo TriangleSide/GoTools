@@ -9,7 +9,7 @@ TARBALL_LOCATION=".tarballs"
 mkdir -p "$TARBALL_LOCATION"
 
 CURRENT_DATETIME=$(date -u +'%Y-%m-%d-%H-%M-%S-UTC')
-TARBALL_FILE="$TARBALL_LOCATION/intelligence_repo.$CURRENT_DATETIME.tar.gz"
+TARBALL_FILE="$TARBALL_LOCATION/intelligence-repo.$CURRENT_DATETIME.tar.gz"
 ENCRYPTED_FILE="$TARBALL_LOCATION/intelligence-repo.$CURRENT_DATETIME.tar.gz.gpg"
 PASSWORD_FILE=".enc_key.txt"
 

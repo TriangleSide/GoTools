@@ -58,7 +58,7 @@ var _ = Describe("format network address", func() {
 			It("should fail", func() {
 				formatted, err := net.FormatNetworkAddress("256.100.50.25", port)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("invalid hostname"))
+				Expect(err.Error()).To(ContainSubstring("invalid hostname '256.100.50.25'"))
 				Expect(formatted).To(BeEmpty())
 			})
 		})

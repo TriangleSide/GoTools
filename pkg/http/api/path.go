@@ -86,7 +86,7 @@ func NewPath(apiPath string) Path {
 	path := Path{
 		value: apiPath,
 	}
-	err := validation.Validate(path)
+	err := validation.Struct(path)
 	if err != nil {
 		panic(fmt.Sprintf("Path '%s' is invalid (%s).", path, err.Error()))
 	}

@@ -236,7 +236,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			}
 
 			params := &parameterFields{}
-			Expect(validation.Validate(params)).To(HaveOccurred())
+			Expect(validation.Struct(params)).To(HaveOccurred())
 
 			serverPath := "/{PathStringField}/{PathPtrStringField}"
 			clientPath := "/pathStringField/pathPtrStringField"
@@ -303,7 +303,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(decodeErr).To(Not(HaveOccurred()))
-			Expect(validation.Validate(params)).To(Not(HaveOccurred()))
+			Expect(validation.Struct(params)).To(Not(HaveOccurred()))
 
 			Expect(params.QueryStringField).To(Equal("value"))
 			Expect(params.QueryIntField).To(Equal(123))
