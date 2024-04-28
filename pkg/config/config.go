@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/kelseyhightower/envconfig"
 
 	"intelligence/pkg/validation"
@@ -33,10 +35,10 @@ func ProcessAndValidate[T any](options ...Option) (*T, error) {
 
 	conf := new(T)
 	if err := envconfig.Process(config.prefix, conf); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed while reading the environment variables for the configuration (%s)", err.Error())
 	}
 	if err := validation.Validate(conf); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed while validating the configuration (%s)", err.Error())
 	}
 
 	return conf, nil

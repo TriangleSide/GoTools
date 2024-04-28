@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 
@@ -16,6 +15,7 @@ import (
 	"intelligence/pkg/http/api"
 	"intelligence/pkg/http/middleware"
 	"intelligence/pkg/logger"
+	netutils "intelligence/pkg/utils/net"
 )
 
 // Server handles requests via the Hypertext Transfer Protocol (HTTP) and sends back responses.
@@ -61,14 +61,11 @@ func (server *Server) Run(ctx context.Context, commonMiddleware []middleware.Mid
 		}
 	}
 
-	// Create the address to bind to. IPv4 and IPv6 have different formats.
-	var host string
-	if strings.Contains(server.conf.ServerBindIP, ":") {
-		host = fmt.Sprintf("[%s]", server.conf.ServerBindIP)
-	} else {
-		host = server.conf.ServerBindIP
+	// Create the address to bind to.
+	addr, err := netutils.FormatNetworkAddress(server.conf.ServerBindIP, server.conf.ServerBindPort)
+	if err != nil {
+		return err
 	}
-	addr := fmt.Sprintf("%s:%d", host, server.conf.ServerBindPort)
 	logEntry.Debugf("The server bind address is %s.", addr)
 
 	// Configure TLS.

@@ -12,7 +12,7 @@ type Server struct {
 
 	// ServerBindPort designates a specific port number for an application to listen on,
 	// uniquely identifying the service and managing incoming data traffic.
-	ServerBindPort int `split_words:"true" default:"36963" validate:"required,number,gte=0,lte=65535"`
+	ServerBindPort uint16 `split_words:"true" default:"36963" validate:"required,gt=0"`
 
 	// ServerReadTimeout is the maximum duration for reading the entire request,
 	// including the body. A zero or negative value means there will be no timeout.

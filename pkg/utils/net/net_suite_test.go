@@ -1,4 +1,4 @@
-package reflect_test
+package net_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func Test(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Reflect utilities test suite.")
+	RunSpecs(t, "Net utilities test suite.")
 }

@@ -146,7 +146,7 @@ var _ = Describe("server", func() {
 					Expect(os.RemoveAll(tempDir)).To(Succeed())
 				})
 
-				generateClientTests := func(host string, port int) {
+				generateClientTests := func(host string, port uint16) {
 					When("an HTTP client is created that verifies the server certificate without trusting it", func() {
 						var (
 							strictHttpClient *http.Client
@@ -276,8 +276,8 @@ var _ = Describe("server", func() {
 					})
 				}
 
-				generateServerTests := func(host string, port int) {
-					When("an HTTP server is bound to IP "+host+" and port "+strconv.Itoa(port)+" with common middleware is started", func() {
+				generateServerTests := func(host string, port uint16) {
+					When("an HTTP server is bound to IP "+host+" and port "+strconv.Itoa(int(port))+" with common middleware is started", func() {
 						var (
 							conf config.Server
 							srv  *server.Server
