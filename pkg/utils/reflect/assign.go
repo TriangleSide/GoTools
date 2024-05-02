@@ -8,12 +8,12 @@ import (
 	"strconv"
 )
 
-// SetStructFieldWithStringValue sets a struct field specified by its name to a provided value encoded as a string.
+// AssignToField sets a struct field specified by its name to a provided value encoded as a string.
 // The function handles various data types including basic types (string, int, etc.),
 // complex types (structs, slices, maps) and types implementing the encoding.TextUnmarshaler interface.
 // The conversion from string to the appropriate type is performed based on the field's underlying type.
 // JSON format is expected for complex types. This function supports setting both direct values and pointers to the values.
-func SetStructFieldWithStringValue(obj any, fieldName string, stringEncodedValue string) error {
+func AssignToField(obj any, fieldName string, stringEncodedValue string) error {
 	structValue := reflect.ValueOf(obj)
 	if structValue.Kind() != reflect.Ptr || structValue.Elem().Kind() != reflect.Struct {
 		return fmt.Errorf("obj must be a pointer to a struct")

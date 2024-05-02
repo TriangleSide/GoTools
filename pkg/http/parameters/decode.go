@@ -84,7 +84,7 @@ func decodeQueryParameters(params any, tagToLookupKeyToFieldName map[Tag]map[str
 		if len(queryParameterValues) != 1 {
 			return fmt.Errorf("expecting one value for query parameter %s but found %v", queryParameterName, queryParameterValues)
 		}
-		if err := reflectutils.SetStructFieldWithStringValue(params, matchedFieldName.Name, queryParameterValues[0]); err != nil {
+		if err := reflectutils.AssignToField(params, matchedFieldName.Name, queryParameterValues[0]); err != nil {
 			return fmt.Errorf("failed to set value for query parameter %s with values of %v (%s)", queryParameterName, queryParameterValues, err.Error())
 		}
 	}
@@ -109,7 +109,7 @@ func decodeHeaderParameters(params any, tagToLookupKeyToFieldName map[Tag]map[st
 		if len(headerValues) != 1 {
 			return fmt.Errorf("expecting one value for header parameter %s but found %v", headerName, headerValues)
 		}
-		if err := reflectutils.SetStructFieldWithStringValue(params, matchedFieldName.Name, headerValues[0]); err != nil {
+		if err := reflectutils.AssignToField(params, matchedFieldName.Name, headerValues[0]); err != nil {
 			return fmt.Errorf("failed to set value for header parameter %s with values of %v (%s)", headerName, headerValues, err.Error())
 		}
 	}
@@ -129,7 +129,7 @@ func decodePathParameters(params any, tagToLookupKeyToFieldName map[Tag]map[stri
 		if pathValue == "" {
 			continue
 		}
-		if err := reflectutils.SetStructFieldWithStringValue(params, field.Name, pathValue); err != nil {
+		if err := reflectutils.AssignToField(params, field.Name, pathValue); err != nil {
 			return err
 		}
 	}
