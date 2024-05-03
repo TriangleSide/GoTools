@@ -21,10 +21,11 @@ type FieldMetadata struct {
 }
 
 // FieldsToMetadata returns a map of a structs field names to their respective metadata.
-func FieldsToMetadata[T any]() (map[string]*FieldMetadata, error) {
+// The returned map should not be written to under any circumstances since it can be shared among many threads.
+func FieldsToMetadata[T any]() map[string]*FieldMetadata {
 	reflectType := reflect.TypeOf(*new(T))
-	if fieldsToMetadata, ok := fieldsToMetadataMemo.Load(reflectType); ok {
-		return fieldsToMetadata.(map[string]*FieldMetadata), nil
+	if memoData, ok := fieldsToMetadataMemo.Load(reflectType); ok {
+		return memoData.(map[string]*FieldMetadata)
 	}
 
 	if reflectType.Kind() != reflect.Struct {
@@ -52,5 +53,5 @@ func FieldsToMetadata[T any]() (map[string]*FieldMetadata, error) {
 	}
 
 	fieldsToMetadataMemo.Store(reflectType, fieldsToMetadata)
-	return fieldsToMetadata, nil
+	return fieldsToMetadata
 }

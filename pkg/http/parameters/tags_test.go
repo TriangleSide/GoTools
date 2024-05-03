@@ -39,17 +39,24 @@ var _ = Describe("parameter tags", func() {
 
 	When("a structs tags are extracted and validated", func() {
 		It("should succeed when the tags are properly formatted", func() {
-			tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[struct {
-				QueryField1  string `urlQuery:"Query1" json:"-"`
-				QueryField2  string `urlQuery:"Query2" json:"-"`
-				HeaderField1 string `httpHeader:"Header1" json:"-"`
-				HeaderField2 string `httpHeader:"Header2" json:"-"`
-				PathField1   string `urlPath:"Path1" json:"-"`
-				PathField2   string `urlPath:"Path2" json:"-"`
+			type testStruct struct {
+				QueryField1  string `urlQuery:"Query1" json:"-" otherTag1:"value"`
+				QueryField2  string `urlQuery:"Query2" json:"-" otherTag1:"value"`
+				HeaderField1 string `httpHeader:"Header1" json:"-" otherTag2:"value1"`
+				HeaderField2 string `httpHeader:"Header2" json:"-" otherTag2:"value2"`
+				PathField1   string `urlPath:"Path1" json:"-" otherTag3:""`
+				PathField2   string `urlPath:"Path2" json:"-" otherTag4:"!@#$%^&*()"`
 				JSONField1   string `json:"JSON1,omitempty"`
 				JSONField2   string `json:"JSON2,omitempty"`
-			}]()
-			Expect(err).To(Not(HaveOccurred()))
+			}
+
+			var err error
+			var tagToLookupKeyToFieldName map[parameters.Tag]map[string]string
+
+			for i := 0; i < 3; i++ {
+				tagToLookupKeyToFieldName, err = parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()
+				Expect(err).To(Not(HaveOccurred()))
+			}
 
 			Expect(tagToLookupKeyToFieldName).To(HaveLen(3))
 
@@ -59,21 +66,21 @@ var _ = Describe("parameter tags", func() {
 
 			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]).To(HaveLen(2))
 			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]).To(HaveKey("query1"))
-			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]["query1"].Name).To(Equal("QueryField1"))
+			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]["query1"]).To(Equal("QueryField1"))
 			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]).To(HaveKey("query2"))
-			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]["query2"].Name).To(Equal("QueryField2"))
+			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]["query2"]).To(Equal("QueryField2"))
 
 			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]).To(HaveLen(2))
 			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]).To(HaveKey("header1"))
-			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]["header1"].Name).To(Equal("HeaderField1"))
+			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]["header1"]).To(Equal("HeaderField1"))
 			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]).To(HaveKey("header2"))
-			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]["header2"].Name).To(Equal("HeaderField2"))
+			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]["header2"]).To(Equal("HeaderField2"))
 
 			Expect(tagToLookupKeyToFieldName[parameters.PathTag]).To(HaveLen(2))
 			Expect(tagToLookupKeyToFieldName[parameters.PathTag]).To(HaveKey("Path1"))
-			Expect(tagToLookupKeyToFieldName[parameters.PathTag]["Path1"].Name).To(Equal("PathField1"))
+			Expect(tagToLookupKeyToFieldName[parameters.PathTag]["Path1"]).To(Equal("PathField1"))
 			Expect(tagToLookupKeyToFieldName[parameters.PathTag]).To(HaveKey("Path2"))
-			Expect(tagToLookupKeyToFieldName[parameters.PathTag]["Path2"].Name).To(Equal("PathField2"))
+			Expect(tagToLookupKeyToFieldName[parameters.PathTag]["Path2"]).To(Equal("PathField2"))
 		})
 
 		It("should fail when validating a struct that has two fields with the same tag", func() {
@@ -116,37 +123,35 @@ var _ = Describe("parameter tags", func() {
 
 		It("should fail when validating a struct that has an accompanying json tag with the wrong format", func() {
 			tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[struct {
-				Field string `urlQuery:"QueryField" json:"notRight"`
+				Field string `httpHeader:"QueryField" json:"notRight"`
 			}]()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("struct field 'Field' with tag 'urlQuery' must have accompanying tag json:\"-\""))
+			Expect(err.Error()).To(ContainSubstring("struct field 'Field' with tag 'httpHeader' must have accompanying tag json:\"-\""))
 			Expect(tagToLookupKeyToFieldName).To(BeNil())
 		})
 
 		It("should fail when validating a struct that has a tag that is empty", func() {
 			tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[struct {
-				Field string `urlQuery:"" json:"-"`
+				Field string `urlPath:"" json:"-"`
 			}]()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("tag 'urlQuery' with lookup key '' must adhere to the naming convention"))
+			Expect(err.Error()).To(ContainSubstring("tag 'urlPath' with lookup key '' must adhere to the naming convention"))
 			Expect(tagToLookupKeyToFieldName).To(BeNil())
 		})
 
-		It("should fail when the generic isn't a struct", func() {
-			tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[string]()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("the generic must be a struct"))
-			Expect(tagToLookupKeyToFieldName).To(BeNil())
+		It("should panic when the generic isn't a struct", func() {
+			Expect(func() {
+				_, _ = parameters.ExtractAndValidateFieldTagLookupKeys[string]()
+			}).Should(Panic())
 		})
 
 		It("should fail when the generic is a struct pointer", func() {
 			type parameterStruct struct {
 				Field string `urlQuery:"" json:"-"`
 			}
-			tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[*parameterStruct]()
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("the generic must be a struct"))
-			Expect(tagToLookupKeyToFieldName).To(BeNil())
+			Expect(func() {
+				_, _ = parameters.ExtractAndValidateFieldTagLookupKeys[*parameterStruct]()
+			}).Should(Panic())
 		})
 	})
 })

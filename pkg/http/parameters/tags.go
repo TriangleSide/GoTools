@@ -5,6 +5,9 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
+
+	reflectutils "intelligence/pkg/utils/reflect"
 )
 
 // Tag is a string of metadata associated at compile time with a field of a struct.
@@ -43,6 +46,9 @@ var (
 
 	// lookupKeyFollowsNamingConvention is used to verify that a tags lookup key follow the naming convention as defined by TagLookupKeyNamingConvention.
 	lookupKeyFollowsNamingConvention func(lookupKey string) bool
+
+	// lookupKeyExtractMemo stores the results of the ExtractAndValidateFieldTagLookupKeys function.
+	lookupKeyExtractMemo = sync.Map{}
 )
 
 // init creates the variables needed by the processor.
@@ -56,33 +62,34 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 }
 
 // ExtractAndValidateFieldTagLookupKeys validates the struct tags and returns a map of unique tag lookup keys for each field in the struct.
-func ExtractAndValidateFieldTagLookupKeys[T any]() (map[Tag]map[string]reflect.StructField, error) {
-	paramsType := reflect.TypeOf(new(T)).Elem()
-	if paramsType.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("the generic must be a struct")
+// The returned map should not be written to under any circumstances since it can be shared among many threads.
+func ExtractAndValidateFieldTagLookupKeys[T any]() (map[Tag]map[string]string, error) {
+	reflectType := reflect.TypeOf(*new(T))
+	if memoData, ok := lookupKeyExtractMemo.Load(reflectType); ok {
+		return memoData.(map[Tag]map[string]string), nil
 	}
 
-	tagToLookupKeyToFieldName := map[Tag]map[string]reflect.StructField{}
+	fieldsMetadata := reflectutils.FieldsToMetadata[T]()
+
+	tagToLookupKeyToFieldName := make(map[Tag]map[string]string)
 	for customTag := range tagToLookupKeyNormalizer {
-		tagToLookupKeyToFieldName[customTag] = map[string]reflect.StructField{}
+		tagToLookupKeyToFieldName[customTag] = make(map[string]string)
 	}
 
-	for fieldIndex := 0; fieldIndex < paramsType.NumField(); fieldIndex++ {
-		field := paramsType.Field(fieldIndex)
-
+	for fieldName, fieldMetadata := range fieldsMetadata {
 		customTagFound := false
 		for customTag, lookupKeyNormalizer := range tagToLookupKeyNormalizer {
-			originalLookupKeyForTag, customTagFoundOnField := field.Tag.Lookup(string(customTag))
+			originalLookupKeyForTag, customTagFoundOnField := fieldMetadata.Tags[string(customTag)]
 			if !customTagFoundOnField {
 				continue
 			}
-			normalizedLookupKeyForTag := lookupKeyNormalizer(originalLookupKeyForTag)
 
 			if customTagFound {
-				return nil, fmt.Errorf("there can only be one encoding tag on the field '%s'", field.Name)
+				return nil, fmt.Errorf("there can only be one encoding tag on the field '%s'", fieldName)
 			}
 			customTagFound = true
 
+			normalizedLookupKeyForTag := lookupKeyNormalizer(originalLookupKeyForTag)
 			if !TagLookupKeyFollowsNamingConvention(normalizedLookupKeyForTag) {
 				return nil, fmt.Errorf("tag '%s' with lookup key '%s' must adhere to the naming convention", customTag, originalLookupKeyForTag)
 			}
@@ -90,13 +97,14 @@ func ExtractAndValidateFieldTagLookupKeys[T any]() (map[Tag]map[string]reflect.S
 			if _, lookupKeyAlreadySeenForTag := tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag]; lookupKeyAlreadySeenForTag {
 				return nil, fmt.Errorf("tag '%s' with lookup key '%s' is not unique", customTag, originalLookupKeyForTag)
 			}
-			tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag] = field
+			tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag] = fieldName
 
-			if jsonTagValue, jsonTagFound := field.Tag.Lookup(string(JSONTag)); !jsonTagFound || jsonTagValue != "-" {
-				return nil, fmt.Errorf("struct field '%s' with tag '%s' must have accompanying tag %s:\"-\"", field.Name, customTag, JSONTag)
+			if jsonTagValue, jsonTagFound := fieldMetadata.Tags[string(JSONTag)]; !jsonTagFound || jsonTagValue != "-" {
+				return nil, fmt.Errorf("struct field '%s' with tag '%s' must have accompanying tag %s:\"-\"", fieldName, customTag, JSONTag)
 			}
 		}
 	}
 
+	lookupKeyExtractMemo.Store(reflectType, tagToLookupKeyToFieldName)
 	return tagToLookupKeyToFieldName, nil
 }

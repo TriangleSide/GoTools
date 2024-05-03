@@ -50,15 +50,15 @@ var _ = Describe("decode HTTP request parameters", func() {
 			_ = listener.Close()
 		})
 
-		It("should fail to decode a struct that fails the tag validation", func() {
+		It("should panic when decoding a struct that fails the tag validation", func() {
 			request, err := http.NewRequest(http.MethodGet, "/", nil)
 			Expect(err).NotTo(HaveOccurred())
 			request = request.WithContext(context.Background())
-			_, err = parameters.Decode[struct {
-				Field string `urlQuery:"a*" json:"-"`
-			}](request)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("tag 'urlQuery' with lookup key 'a*' must adhere to the naming convention"))
+			Expect(func() {
+				_, _ = parameters.Decode[struct {
+					Field string `urlQuery:"a*" json:"-"`
+				}](request)
+			}).Should(Panic())
 		})
 
 		It("should fail to decode when json is sent with an unknown field", func() {
@@ -141,7 +141,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			_, err := http.Get(requestPrefix("/NotAnInt"))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(decodeErr).To(HaveOccurred())
-			Expect(decodeErr.Error()).To(ContainSubstring(`failed to parse path parameters`))
+			Expect(decodeErr.Error()).To(ContainSubstring(`failed to set value for path parameter urlTestPath`))
 		})
 
 		It("should fail when the validation fails", func() {
@@ -159,21 +159,21 @@ var _ = Describe("decode HTTP request parameters", func() {
 			request, err := http.NewRequest(http.MethodGet, "/", nil)
 			Expect(err).NotTo(HaveOccurred())
 			request = request.WithContext(context.Background())
-			_, err = parameters.Decode[string](request)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring(`the generic must be a struct`))
+			Expect(func() {
+				_, _ = parameters.Decode[string](request)
+			}).Should(Panic())
 		})
 
-		It("should fail when the generic is a struct pointer", func() {
+		It("should panic when the generic is a struct pointer", func() {
 			type parameterParams struct {
 				Field string `httpHeader:"TestHeader" json:"-" validate:"required"`
 			}
 			request, err := http.NewRequest(http.MethodGet, "/", nil)
 			Expect(err).NotTo(HaveOccurred())
 			request = request.WithContext(context.Background())
-			_, err = parameters.Decode[*parameterParams](request)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring(`the generic must be a struct`))
+			Expect(func() {
+				_, _ = parameters.Decode[*parameterParams](request)
+			}).Should(Panic())
 		})
 
 		It("should successfully decode a struct with many different fields", func() {
