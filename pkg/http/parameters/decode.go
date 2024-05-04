@@ -75,9 +75,10 @@ func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]m
 		panic("the query tag should be present on the lookup key map")
 	}
 
+	normalizer := tagToLookupKeyNormalizer[QueryTag]
 	for queryParameterName, queryParameterValues := range request.URL.Query() {
-		lowerCaseQueryParameterName := strings.ToLower(queryParameterName)
-		matchedFieldName, hasMatchedFieldName := lookupKeyToFieldName[lowerCaseQueryParameterName]
+		normalizedQueryParameterName := normalizer(queryParameterName)
+		matchedFieldName, hasMatchedFieldName := lookupKeyToFieldName[normalizedQueryParameterName]
 		if !hasMatchedFieldName {
 			continue
 		}
@@ -99,10 +100,10 @@ func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]
 		panic("the header tag should be present on the lookup key map")
 	}
 
-	// For each header in the request, find out if the params struct has a field for it, then attempt to set it if so.
+	normalizer := tagToLookupKeyNormalizer[HeaderTag]
 	for headerName, headerValues := range request.Header {
-		lowerCaseHeaderName := strings.ToLower(headerName)
-		matchedFieldName, hasMatchedFieldName := lookupKeyToFieldName[lowerCaseHeaderName]
+		normalizedHeaderName := normalizer(headerName)
+		matchedFieldName, hasMatchedFieldName := lookupKeyToFieldName[normalizedHeaderName]
 		if !hasMatchedFieldName {
 			continue
 		}
@@ -124,8 +125,10 @@ func decodePathParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]ma
 		panic("the path tag should be present on the lookup key map")
 	}
 
+	normalizer := tagToLookupKeyNormalizer[PathTag]
 	for pathName, field := range lookupKeyToFieldName {
-		pathValue := request.PathValue(pathName)
+		normalizedPathName := normalizer(pathName)
+		pathValue := request.PathValue(normalizedPathName)
 		if pathValue == "" {
 			continue
 		}
