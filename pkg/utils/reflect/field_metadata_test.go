@@ -27,12 +27,12 @@ var _ = Describe("struct field metadata", func() {
 		Expect(metadata).To(BeEmpty())
 	})
 
-	It("should succeed if done twice on the same struct type", func() {
+	It("should succeed if done many times on the same struct type", func() {
 		type testStruct struct{}
-		metadata1 := reflectutils.FieldsToMetadata[testStruct]()
-		Expect(metadata1).To(BeEmpty())
-		metadata2 := reflectutils.FieldsToMetadata[testStruct]()
-		Expect(metadata2).To(BeEmpty())
+		for i := 0; i < 2; i++ {
+			metadata := reflectutils.FieldsToMetadata[testStruct]()
+			Expect(metadata).To(BeEmpty())
+		}
 	})
 
 	When("when a struct has a string field called Value and no tag", func() {
@@ -40,12 +40,13 @@ var _ = Describe("struct field metadata", func() {
 			Value string
 		}
 
-		It("return the field name and its type with no metadata", func() {
+		It("should return the field name and its type with no metadata", func() {
 			metadata := reflectutils.FieldsToMetadata[testStruct]()
 			Expect(metadata).To(HaveLen(1))
 			Expect(metadata).To(HaveKey("Value"))
 			Expect(metadata["Value"].Type.Kind()).To(Equal(reflect.String))
 			Expect(metadata["Value"].Tags).To(HaveLen(0))
+			Expect(metadata["Value"].Anonymous).To(HaveLen(0))
 		})
 	})
 
@@ -54,13 +55,14 @@ var _ = Describe("struct field metadata", func() {
 			Value int `key:"Value"`
 		}
 
-		It("return the field name and its type with no metadata", func() {
+		It("should return the field name and its type with the tag metadata", func() {
 			metadata := reflectutils.FieldsToMetadata[testStruct]()
 			Expect(metadata).To(HaveLen(1))
 			Expect(metadata).To(HaveKey("Value"))
 			Expect(metadata["Value"].Type.Kind()).To(Equal(reflect.Int))
 			Expect(metadata["Value"].Tags).To(HaveLen(1))
-			Expect(metadata["Value"].Tags).Should(HaveKeyWithValue("key", "Value"))
+			Expect(metadata["Value"].Tags).To(HaveKeyWithValue("key", "Value"))
+			Expect(metadata["Value"].Anonymous).To(HaveLen(0))
 		})
 	})
 
@@ -69,14 +71,15 @@ var _ = Describe("struct field metadata", func() {
 			Value float32 `key1:"Value1" key2:"Value2"`
 		}
 
-		It("return the field name and its type with no metadata", func() {
+		It("should return the field name and its type with the tags metadata", func() {
 			metadata := reflectutils.FieldsToMetadata[testStruct]()
 			Expect(metadata).To(HaveLen(1))
 			Expect(metadata).To(HaveKey("Value"))
 			Expect(metadata["Value"].Type.Kind()).To(Equal(reflect.Float32))
 			Expect(metadata["Value"].Tags).To(HaveLen(2))
-			Expect(metadata["Value"].Tags).Should(HaveKeyWithValue("key1", "Value1"))
-			Expect(metadata["Value"].Tags).Should(HaveKeyWithValue("key2", "Value2"))
+			Expect(metadata["Value"].Tags).To(HaveKeyWithValue("key1", "Value1"))
+			Expect(metadata["Value"].Tags).To(HaveKeyWithValue("key2", "Value2"))
+			Expect(metadata["Value"].Anonymous).To(HaveLen(0))
 		})
 	})
 
@@ -86,19 +89,88 @@ var _ = Describe("struct field metadata", func() {
 			Value6 string `key7:"Value8" key9:"Value10"`
 		}
 
-		It("return the field name and its type with no metadata", func() {
+		It("should return the field names and their type with their tags metadata", func() {
 			metadata := reflectutils.FieldsToMetadata[testStruct]()
 			Expect(metadata).To(HaveLen(2))
 			Expect(metadata).To(HaveKey("Value1"))
 			Expect(metadata["Value1"].Type.Kind()).To(Equal(reflect.String))
 			Expect(metadata["Value1"].Tags).To(HaveLen(2))
-			Expect(metadata["Value1"].Tags).Should(HaveKeyWithValue("key2", "Value3"))
-			Expect(metadata["Value1"].Tags).Should(HaveKeyWithValue("key4", "Value5"))
+			Expect(metadata["Value1"].Tags).To(HaveKeyWithValue("key2", "Value3"))
+			Expect(metadata["Value1"].Tags).To(HaveKeyWithValue("key4", "Value5"))
+			Expect(metadata["Value1"].Anonymous).To(HaveLen(0))
 			Expect(metadata).To(HaveKey("Value6"))
 			Expect(metadata["Value6"].Type.Kind()).To(Equal(reflect.String))
 			Expect(metadata["Value6"].Tags).To(HaveLen(2))
-			Expect(metadata["Value6"].Tags).Should(HaveKeyWithValue("key7", "Value8"))
-			Expect(metadata["Value6"].Tags).Should(HaveKeyWithValue("key9", "Value10"))
+			Expect(metadata["Value6"].Tags).To(HaveKeyWithValue("key7", "Value8"))
+			Expect(metadata["Value6"].Tags).To(HaveKeyWithValue("key9", "Value10"))
+			Expect(metadata["Value6"].Anonymous).To(HaveLen(0))
+		})
+	})
+
+	When("when a struct has nested structs, all with fields and a tags", func() {
+		type deepStruct struct {
+			DeepField string `key:"Deep"`
+		}
+
+		type embeddedStruct1 struct {
+			deepStruct
+			EmbeddedField1 string `key:"Embedded1"`
+		}
+
+		type embeddedStruct2 struct {
+			EmbeddedField2 string `key:"Embedded2"`
+		}
+
+		type outerStruct struct {
+			embeddedStruct1
+			embeddedStruct2
+			OuterField string `key:"Outer"`
+		}
+
+		It("should return the anonymous structs fields", func() {
+			metadata := reflectutils.FieldsToMetadata[outerStruct]()
+			Expect(metadata).To(HaveLen(4))
+			Expect(metadata).To(HaveKey("DeepField"))
+			Expect(metadata["DeepField"].Type.Kind()).To(Equal(reflect.String))
+			Expect(metadata["DeepField"].Tags).To(HaveLen(1))
+			Expect(metadata["DeepField"].Tags).Should(HaveKeyWithValue("key", "Deep"))
+			Expect(metadata["DeepField"].Anonymous).To(HaveLen(2))
+			Expect(metadata["DeepField"].Anonymous[0]).To(Equal("embeddedStruct1"))
+			Expect(metadata["DeepField"].Anonymous[1]).To(Equal("deepStruct"))
+			Expect(metadata).To(HaveKey("EmbeddedField1"))
+			Expect(metadata["EmbeddedField1"].Type.Kind()).To(Equal(reflect.String))
+			Expect(metadata["EmbeddedField1"].Tags).To(HaveLen(1))
+			Expect(metadata["EmbeddedField1"].Tags).To(HaveKeyWithValue("key", "Embedded1"))
+			Expect(metadata["EmbeddedField1"].Anonymous).To(HaveLen(1))
+			Expect(metadata["EmbeddedField1"].Anonymous[0]).To(Equal("embeddedStruct1"))
+			Expect(metadata).To(HaveKey("EmbeddedField2"))
+			Expect(metadata["EmbeddedField2"].Type.Kind()).To(Equal(reflect.String))
+			Expect(metadata["EmbeddedField2"].Tags).To(HaveLen(1))
+			Expect(metadata["EmbeddedField2"].Tags).To(HaveKeyWithValue("key", "Embedded2"))
+			Expect(metadata["EmbeddedField2"].Anonymous).To(HaveLen(1))
+			Expect(metadata["EmbeddedField2"].Anonymous[0]).To(Equal("embeddedStruct2"))
+			Expect(metadata).To(HaveKey("OuterField"))
+			Expect(metadata["OuterField"].Type.Kind()).To(Equal(reflect.String))
+			Expect(metadata["OuterField"].Tags).To(HaveLen(1))
+			Expect(metadata["OuterField"].Tags).To(HaveKeyWithValue("key", "Outer"))
+			Expect(metadata["OuterField"].Anonymous).To(HaveLen(0))
+		})
+	})
+
+	When("when a struct has a nested struct, both with the same field name", func() {
+		type embeddedStruct struct {
+			Field string
+		}
+
+		type outerStruct struct {
+			embeddedStruct
+			Field string
+		}
+
+		It("should panic", func() {
+			Expect(func() {
+				_ = reflectutils.FieldsToMetadata[outerStruct]()
+			}).Should(Panic())
 		})
 	})
 })

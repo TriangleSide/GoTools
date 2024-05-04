@@ -19,50 +19,50 @@ func (t *unmarshallTestStruct) UnmarshalText(text []byte) error {
 	return nil
 }
 
-type testInternalStruct struct {
-	Value string `json:"value"`
-}
-
-type testStruct struct {
-	// Normal value assignments.
-	StringValue     string
-	IntValue        int
-	UintValue       uint
-	FloatValue      float64
-	BoolValue       bool
-	StructValue     testInternalStruct
-	MapValue        map[string]testInternalStruct
-	UnmarshallValue unmarshallTestStruct
-	TimeValue       time.Time
-
-	// This section is a copy of the normal values assignment but with pointers.
-	StringPtrValue     *string
-	IntPtrValue        *int
-	UintPtrValue       *uint
-	FloatPtrValue      *float64
-	BoolPtrValue       *bool
-	StructPtrValue     *testInternalStruct
-	MapPtrValue        *map[string]testInternalStruct
-	UnmarshallPtrValue *unmarshallTestStruct
-	TimePtrValue       *time.Time
-
-	// List value assignments.
-	// unmarshallTestStruct is not included in this section since there isn't a custom unmarshaller for the list.
-	ListStringValue []string
-	ListIntValue    []int
-	ListFloatValue  []float64
-	ListBoolValue   []bool
-	ListStructValue []testInternalStruct
-
-	// This section is a copy of the normal list value assignment but with the list values as pointers.
-	ListStringPtrValue []*string
-	ListIntPtrValue    []*int
-	ListFloatPtrValue  []*float64
-	ListBoolPtrValue   []*bool
-	ListStructPtrValue []*testInternalStruct
-}
-
 var _ = Describe("assign a struct field with a string value", func() {
+	type testInternalStruct struct {
+		Value string `json:"value"`
+	}
+
+	type testStruct struct {
+		// Normal value assignments.
+		StringValue     string
+		IntValue        int
+		UintValue       uint
+		FloatValue      float64
+		BoolValue       bool
+		StructValue     testInternalStruct
+		MapValue        map[string]testInternalStruct
+		UnmarshallValue unmarshallTestStruct
+		TimeValue       time.Time
+
+		// This section is a copy of the normal values assignment but with pointers.
+		StringPtrValue     *string
+		IntPtrValue        *int
+		UintPtrValue       *uint
+		FloatPtrValue      *float64
+		BoolPtrValue       *bool
+		StructPtrValue     *testInternalStruct
+		MapPtrValue        *map[string]testInternalStruct
+		UnmarshallPtrValue *unmarshallTestStruct
+		TimePtrValue       *time.Time
+
+		// List value assignments.
+		// unmarshallTestStruct is not included in this section since there isn't a custom unmarshaller for the list.
+		ListStringValue []string
+		ListIntValue    []int
+		ListFloatValue  []float64
+		ListBoolValue   []bool
+		ListStructValue []testInternalStruct
+
+		// This section is a copy of the normal list value assignment but with the list values as pointers.
+		ListStringPtrValue []*string
+		ListIntPtrValue    []*int
+		ListFloatPtrValue  []*float64
+		ListBoolPtrValue   []*bool
+		ListStructPtrValue []*testInternalStruct
+	}
+
 	When("a test struct is initialized with no assigned values", func() {
 		var (
 			values *testStruct
