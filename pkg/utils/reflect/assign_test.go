@@ -20,11 +20,23 @@ func (t *unmarshallTestStruct) UnmarshalText(text []byte) error {
 }
 
 var _ = Describe("assign a struct field with a string value", func() {
+	type testDeepEmbeddedStruct struct {
+		DeepEmbeddedValue *string
+	}
+
+	type testEmbeddedStruct struct {
+		testDeepEmbeddedStruct
+		EmbeddedValue string
+	}
+
 	type testInternalStruct struct {
 		Value string `json:"value"`
 	}
 
 	type testStruct struct {
+		// Embedded value assignments.
+		testEmbeddedStruct
+
 		// Normal value assignments.
 		StringValue     string
 		IntValue        int
@@ -63,6 +75,12 @@ var _ = Describe("assign a struct field with a string value", func() {
 		ListStructPtrValue []*testInternalStruct
 	}
 
+	It("should panic when setting the value on an object that is not a struct", func() {
+		Expect(func() {
+			_ = reflect.AssignToField(new(int), "StringValue", "test")
+		}).To(Panic())
+	})
+
 	When("a test struct is initialized with no assigned values", func() {
 		var (
 			values *testStruct
@@ -72,10 +90,18 @@ var _ = Describe("assign a struct field with a string value", func() {
 			values = &testStruct{}
 		})
 
-		It("should fail to set the value on an object that is not a struct", func() {
-			failObj := 1
-			const setValue = "test"
-			Expect(reflect.AssignToField(&failObj, "StringValue", setValue)).To(HaveOccurred())
+		Context("embedded value assignments", func() {
+			It("should set the EmbeddedValue field", func() {
+				const setValue = "test"
+				Expect(reflect.AssignToField(values, "EmbeddedValue", setValue)).To(Succeed())
+				Expect(values.EmbeddedValue).To(Equal(setValue))
+			})
+
+			It("should set the DeepEmbeddedValue field", func() {
+				const setValue = "test"
+				Expect(reflect.AssignToField(values, "DeepEmbeddedValue", setValue)).To(Succeed())
+				Expect(*values.DeepEmbeddedValue).To(Equal(setValue))
+			})
 		})
 
 		Context("normal value assignments", func() {
@@ -355,11 +381,11 @@ var _ = Describe("assign a struct field with a string value", func() {
 				Expect(err.Error()).To(ContainSubstring("json unmarshal error"))
 			})
 
-			It("should fail when trying to set a field that does not exist", func() {
+			It("should panic when trying to set a field that does not exist", func() {
 				const setValue = "some value"
-				err := reflect.AssignToField(values, "NonExistentField", setValue)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("no such field"))
+				Expect(func() {
+					_ = reflect.AssignToField(values, "NonExistentField", setValue)
+				}).To(Panic())
 			})
 
 			It("should fail to set non-integer values in an integer list", func() {

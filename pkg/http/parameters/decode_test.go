@@ -177,12 +177,18 @@ var _ = Describe("decode HTTP request parameters", func() {
 		})
 
 		It("should successfully decode a struct with many different fields", func() {
+			type embeddedStruct struct {
+				HeaderEmbeddedField string `httpHeader:"HeaderEmbeddedField" json:"-" validate:"required"`
+			}
+
 			type internalStruct struct {
 				SubField1 string `json:"SubField1" validate:"required"`
 				SubField2 int    `json:"SubField2" validate:"required"`
 			}
 
 			type parameterFields struct {
+				embeddedStruct
+
 				QueryStringField string            `urlQuery:"QueryStringField" json:"-" validate:"required"`
 				QueryIntField    int               `urlQuery:"QueryIntField" json:"-" validate:"required"`
 				QueryFloatField  float64           `urlQuery:"QueryFloatField" json:"-" validate:"required"`
@@ -283,6 +289,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			Expect(err).NotTo(HaveOccurred())
 			request.Header.Set("Content-Type", "application/json")
 
+			request.Header.Set("HeaderEmbeddedField", "value")
 			request.Header.Set("HeaderStringField", "value")
 			request.Header.Set("HeaderIntField", "123")
 			request.Header.Set("HeaderFloatField", "1.23")
@@ -321,6 +328,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			Expect(*params.QueryPtrMapField).To(Equal(map[string]string{"key1": "value1", "key2": "value2"}))
 			Expect(*params.QueryPtrListField).To(Equal([]string{"item1", "item2"}))
 
+			Expect(params.HeaderEmbeddedField).To(Equal("value"))
 			Expect(params.HeaderStringField).To(Equal("value"))
 			Expect(params.HeaderIntField).To(Equal(123))
 			Expect(params.HeaderFloatField).To(Equal(1.23))

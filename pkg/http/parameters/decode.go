@@ -52,7 +52,7 @@ func Decode[T any](request *http.Request) (*T, error) {
 }
 
 // decodeJSONBodyParameters decodes JSON from the request body into the parameter struct.
-func decodeJSONBodyParameters(params any, request *http.Request) error {
+func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 	if strings.EqualFold(request.Header.Get(headers.ContentType), headers.ContentTypeApplicationJson) {
 		decoder := json.NewDecoder(request.Body)
 		decoder.DisallowUnknownFields()
@@ -69,7 +69,7 @@ func decodeJSONBodyParameters(params any, request *http.Request) error {
 }
 
 // decodeQueryParameters identifies fields tagged with QueryTag and maps corresponding URL query parameters to these fields.
-func decodeQueryParameters(params any, tagToLookupKeyToFieldName map[Tag]map[string]string, request *http.Request) error {
+func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]map[string]string, request *http.Request) error {
 	lookupKeyToFieldName, tagFound := tagToLookupKeyToFieldName[QueryTag]
 	if !tagFound {
 		panic("the query tag should be present on the lookup key map")
@@ -93,7 +93,7 @@ func decodeQueryParameters(params any, tagToLookupKeyToFieldName map[Tag]map[str
 }
 
 // decodeHeaderParameters identifies fields tagged with HeaderTag and maps corresponding HTTP headers to these fields.
-func decodeHeaderParameters(params any, tagToLookupKeyToFieldName map[Tag]map[string]string, request *http.Request) error {
+func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]map[string]string, request *http.Request) error {
 	lookupKeyToFieldName, tagFound := tagToLookupKeyToFieldName[HeaderTag]
 	if !tagFound {
 		panic("the header tag should be present on the lookup key map")
@@ -118,7 +118,7 @@ func decodeHeaderParameters(params any, tagToLookupKeyToFieldName map[Tag]map[st
 }
 
 // decodePathParameters identifies fields tagged with PathTag and maps corresponding URL path parameters to these fields.
-func decodePathParameters(params any, tagToLookupKeyToFieldName map[Tag]map[string]string, request *http.Request) error {
+func decodePathParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]map[string]string, request *http.Request) error {
 	lookupKeyToFieldName, tagFound := tagToLookupKeyToFieldName[PathTag]
 	if !tagFound {
 		panic("the path tag should be present on the lookup key map")

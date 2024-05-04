@@ -13,19 +13,35 @@ import (
 // complex types (structs, slices, maps) and types implementing the encoding.TextUnmarshaler interface.
 // The conversion from string to the appropriate type is performed based on the field's underlying type.
 // JSON format is expected for complex types. This function supports setting both direct values and pointers to the values.
-func AssignToField(obj any, fieldName string, stringEncodedValue string) error {
+func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) error {
 	structValue := reflect.ValueOf(obj)
 	if structValue.Kind() != reflect.Ptr || structValue.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("obj must be a pointer to a struct")
+		panic(fmt.Sprintf("obj must be a pointer to a struct"))
 	}
 
-	// Get the struct field to set the encoded value on.
-	structFieldValue := structValue.Elem().FieldByName(fieldName)
-	if !structFieldValue.IsValid() {
-		return fmt.Errorf("no such field: %s in obj", fieldName)
+	// Get the field metadata for all the structs fields.
+	fieldsToMetadata := FieldsToMetadata[T]()
+	fieldMetadata, foundFieldMetadata := fieldsToMetadata[fieldName]
+	if !foundFieldMetadata {
+		panic(fmt.Sprintf("no field '%s' in struct '%s'", fieldName, structValue.Type().String()))
 	}
+
+	// Get the value of the specified field in the struct.
+	// This accounts for fields in embedded anonymous structs.
+	var structFieldValue reflect.Value
+	if len(fieldMetadata.Anonymous) != 0 {
+		anonValue := structValue.Elem()
+		for _, anonymousName := range fieldMetadata.Anonymous {
+			anonValue = anonValue.FieldByName(anonymousName)
+		}
+		structFieldValue = anonValue.FieldByName(fieldName)
+	} else {
+		structFieldValue = structValue.Elem().FieldByName(fieldName)
+	}
+
+	// Ensure the value can be set. This shouldn't occur since unexported fields are not used.
 	if !structFieldValue.CanSet() {
-		return fmt.Errorf("cannot set %s field value", fieldName)
+		panic(fmt.Sprintf("field '%s' in struct '%s' must be able to be set", fieldName, structValue.Type().String()))
 	}
 
 	// Get the struct field type. This is needed to determine how to set the value.
