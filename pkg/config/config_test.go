@@ -11,19 +11,19 @@ import (
 )
 
 var _ = Describe("config", func() {
-	When("a struct has a field called Value with a default of 0, a validation rule of gte=0, and is required", func() {
+	When("a struct has a field called Value with a default of 1, a validation rule of gte=0, and is required", func() {
 		const (
 			EnvName      = "VALUE"
-			DefaultValue = 0
+			DefaultValue = 1
 		)
 
 		type testStruct struct {
-			Value int `default:"0" validate:"gte=0" required:"true"`
+			Value int `config_format:"snake" config_default:"1" validate:"required,gte=0"`
 		}
 
-		When("an environment variable called VALUE is set with a value of 1", func() {
+		When("an environment variable called VALUE is set with a value of 2", func() {
 			const (
-				EnvValueStr = "1"
+				EnvValueStr = "2"
 			)
 
 			BeforeEach(func() {
@@ -112,7 +112,7 @@ var _ = Describe("config", func() {
 			Value *int
 		}
 
-		It("should set the field to nil when processing the configuration", func() {
+		It("should return a struct with unmodified fields", func() {
 			conf, err := config.ProcessAndValidate[testStruct]()
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(conf).To(Not(BeNil()))
@@ -120,16 +120,51 @@ var _ = Describe("config", func() {
 		})
 	})
 
-	When("a struct has a field called Value with no default or validation, but it has a required tag", func() {
+	When("a struct has a field called Value with no config tags, but it has a required validation", func() {
 		type testStruct struct {
-			Value *int `required:"true"`
+			Value *int `validate:"required"`
 		}
 
 		It("should return a validation error when processing the configuration", func() {
 			conf, err := config.ProcessAndValidate[testStruct]()
 			Expect(err).To(HaveOccurred())
 			Expect(conf).To(BeNil())
-			Expect(err.Error()).To(ContainSubstring("required key VALUE"))
+			Expect(err.Error()).To(ContainSubstring("validation failed on field 'Value' with validator 'required'"))
+		})
+	})
+
+	When("a struct a field and has an embedded anonymous struct with a field", func() {
+		type embeddedStruct struct {
+			EmbeddedField string `config_format:"snake" validate:"required"`
+		}
+
+		type testStruct struct {
+			embeddedStruct
+			Field string `config_format:"snake" validate:"required"`
+		}
+
+		const (
+			EmbeddedEnvName = "EMBEDDED_FIELD"
+			EmbeddedValue   = "embeddedField"
+			FieldEnvName    = "FIELD"
+			FieldValue      = "field"
+		)
+
+		BeforeEach(func() {
+			Expect(os.Setenv(EmbeddedEnvName, EmbeddedValue)).To(Succeed())
+			Expect(os.Setenv(FieldEnvName, FieldValue)).To(Succeed())
+		})
+
+		AfterEach(func() {
+			Expect(os.Unsetenv(EmbeddedEnvName)).To(Succeed())
+			Expect(os.Unsetenv(FieldEnvName)).To(Succeed())
+		})
+
+		It("should be able to set both fields", func() {
+			conf, err := config.ProcessAndValidate[testStruct]()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(conf.Field).To(Equal(FieldValue))
+			Expect(conf.EmbeddedField).To(Equal(EmbeddedValue))
 		})
 	})
 })
