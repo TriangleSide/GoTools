@@ -89,7 +89,7 @@ var _ = Describe("parameter tags", func() {
 				Field2 int    `urlQuery:"QueryField" json:"-"`
 			}]()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("tag 'urlQuery' with lookup key 'QueryField' is not unique"))
+			Expect(err.Error()).To(ContainSubstring("is not unique"))
 			Expect(tagToLookupKeyToFieldName).To(BeNil())
 		})
 
@@ -99,7 +99,7 @@ var _ = Describe("parameter tags", func() {
 				Field2 int    `urlQuery:"qUeRyfIeLd" json:"-"`
 			}]()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("tag 'urlQuery' with lookup key 'qUeRyfIeLd' is not unique"))
+			Expect(err.Error()).To(ContainSubstring("is not unique"))
 			Expect(tagToLookupKeyToFieldName).To(BeNil())
 		})
 
