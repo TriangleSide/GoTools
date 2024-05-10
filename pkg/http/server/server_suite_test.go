@@ -9,5 +9,5 @@ import (
 
 func Test(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Server test suite.")
+	RunSpecs(t, "HTTP server test suite.")
 }

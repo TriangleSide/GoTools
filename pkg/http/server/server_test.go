@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -277,7 +276,7 @@ var _ = Describe("server", func() {
 				}
 
 				generateServerTests := func(host string, port uint16) {
-					When("an HTTP server is bound to IP "+host+" and port "+strconv.Itoa(int(port))+" with common middleware is started", func() {
+					When(fmt.Sprintf("an HTTP server is bound to IP %s and port %d with common middleware is started", host, port), func() {
 						var (
 							conf config.Server
 							srv  *server.Server
@@ -295,7 +294,7 @@ var _ = Describe("server", func() {
 							waitUntilReady := make(chan bool)
 							srv = server.New(conf)
 							go func() {
-								err := srv.Run(ctx, commonMw, handlers, func() {
+								err := srv.Run(commonMw, handlers, func() {
 									close(waitUntilReady)
 								})
 								Expect(err).ToNot(HaveOccurred())
@@ -305,6 +304,18 @@ var _ = Describe("server", func() {
 
 						AfterEach(func() {
 							Expect(srv.Shutdown(ctx)).To(Succeed())
+						})
+
+						It("should panic when started again", func() {
+							Expect(func() {
+								_ = srv.Run(commonMw, handlers, func() {})
+							}).Should(Panic())
+						})
+
+						It("should be able to be shutdown multiple times", func() {
+							for i := 0; i < 3; i++ {
+								Expect(srv.Shutdown(ctx)).To(Succeed())
+							}
 						})
 
 						generateClientTests(host, port)
