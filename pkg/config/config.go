@@ -10,6 +10,9 @@ import (
 	"intelligence/pkg/validation"
 )
 
+// EnvName is used to indicate that the value of the variable is the name of an environment variable.
+type EnvName string
+
 const (
 	// FormatTag is the field name pre-processor. Is a field is called StructField and has a snake-case formatter,
 	// it is transformed into STRUCT_FIELD.
