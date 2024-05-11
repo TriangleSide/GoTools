@@ -21,3 +21,23 @@ unit-tests: clean-unit-tests-cache
 
 .PHONY: test
 test: unit-tests
+
+####################################################################################################
+# Minikube #########################################################################################
+####################################################################################################
+
+.PHONY: minikube-check-version
+minikube-check-version:
+	@command ./scripts/minikube_check_version.zsh
+
+.PHONY: minikube-delete-cluster
+minikube-delete-cluster: minikube-check-version
+	@command ./scripts/minikube_delete_cluster.zsh
+
+.PHONY: minikube-start-cluster
+minikube-start-cluster: minikube-check-version minikube-delete-cluster
+	@command ./scripts/minikube_start_cluster.zsh
+
+.PHONY: minikube-status
+minikube-status: minikube-check-version
+	@command ./scripts/minikube_status.zsh

@@ -12,3 +12,7 @@ that the user of this system can interact with.
   GPS location from a phone, or a picture.
 - Properties: A feature or quality that something possesses. This could be a physical characteristic like color 
   or shape, or an abstract quality such as value or significance.
+
+## Documentation
+
+Documentation for this project can be found in the [docs](./docs) folder.
