@@ -1,3 +1,16 @@
+// Copyright (c) 2024 David Ouellette.
+//
+// All rights reserved.
+//
+// This software and its documentation are proprietary information of David Ouellette.
+// No part of this software or its documentation may be copied, transferred, reproduced,
+// distributed, modified, or disclosed without the prior written permission of David Ouellette.
+//
+// Unauthorized use of this software is strictly prohibited and may be subject to civil and
+// criminal penalties.
+//
+// By using this software, you agree to abide by the terms specified herein.
+
 package server_test
 
 import (
@@ -146,6 +159,21 @@ var _ = Describe("server", func() {
 				})
 
 				generateClientTests := func(host string, port uint16) {
+					successfulRootGet := func(httpClient *http.Client) {
+						request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s:%d%s", host, port, path), nil)
+						Expect(err).NotTo(HaveOccurred())
+						response, err := httpClient.Do(request)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+						Expect(response.Body).To(Not(BeNil()))
+						responseBody, err := io.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(string(responseBody)).To(Equal(body))
+						Expect(commonMwValue).To(Equal(commonMwValueSet))
+						Expect(handlerMwValue).To(Equal(mwSetValue))
+						Expect(response.Body.Close()).To(Succeed())
+					}
+
 					When("an HTTP client is created that verifies the server certificate without trusting it", func() {
 						var (
 							strictHttpClient *http.Client
@@ -199,31 +227,8 @@ var _ = Describe("server", func() {
 							httpClient.CloseIdleConnections()
 						})
 
-						When("an HTTP request is made for the contents at root", func() {
-							var (
-								response *http.Response
-							)
-
-							BeforeEach(func() {
-								request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s:%d%s", host, port, path), nil)
-								Expect(err).NotTo(HaveOccurred())
-								response, err = httpClient.Do(request)
-								Expect(err).NotTo(HaveOccurred())
-							})
-
-							AfterEach(func() {
-								Expect(response.Body.Close()).To(Succeed())
-							})
-
-							It("should return 200 OK and PONG in the body and the middleware to have been invoked", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-								Expect(response.Body).To(Not(BeNil()))
-								responseBody, err := io.ReadAll(response.Body)
-								Expect(err).NotTo(HaveOccurred())
-								Expect(string(responseBody)).To(Equal(body))
-								Expect(commonMwValue).To(Equal(commonMwValueSet))
-								Expect(handlerMwValue).To(Equal(mwSetValue))
-							})
+						It("should be able to get the root contents", func() {
+							successfulRootGet(httpClient)
 						})
 					})
 
@@ -246,31 +251,8 @@ var _ = Describe("server", func() {
 							httpClient.CloseIdleConnections()
 						})
 
-						When("an HTTP request is made for the contents at root", func() {
-							var (
-								response *http.Response
-							)
-
-							BeforeEach(func() {
-								request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s:%d%s", host, port, path), nil)
-								Expect(err).NotTo(HaveOccurred())
-								response, err = httpClient.Do(request)
-								Expect(err).NotTo(HaveOccurred())
-							})
-
-							AfterEach(func() {
-								Expect(response.Body.Close()).To(Succeed())
-							})
-
-							It("should return 200 OK and PONG in the body and the middleware to have been invoked", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusOK))
-								Expect(response.Body).To(Not(BeNil()))
-								responseBody, err := io.ReadAll(response.Body)
-								Expect(err).NotTo(HaveOccurred())
-								Expect(string(responseBody)).To(Equal(body))
-								Expect(commonMwValue).To(Equal(commonMwValueSet))
-								Expect(handlerMwValue).To(Equal(mwSetValue))
-							})
+						It("should be able to get the root contents", func() {
+							successfulRootGet(httpClient)
 						})
 					})
 				}

@@ -1,3 +1,16 @@
+// Copyright (c) 2024 David Ouellette.
+//
+// All rights reserved.
+//
+// This software and its documentation are proprietary information of David Ouellette.
+// No part of this software or its documentation may be copied, transferred, reproduced,
+// distributed, modified, or disclosed without the prior written permission of David Ouellette.
+//
+// Unauthorized use of this software is strictly prohibited and may be subject to civil and
+// criminal penalties.
+//
+// By using this software, you agree to abide by the terms specified herein.
+
 package symmetric
 
 import (
@@ -5,6 +18,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -17,7 +31,7 @@ type Encryptor struct {
 // New allocates and configures an Encryptor.
 func New(key string) (*Encryptor, error) {
 	if len(key) == 0 {
-		return nil, fmt.Errorf("invalid key")
+		return nil, errors.New("invalid key")
 	}
 	hash := sha256.Sum256([]byte(key))
 	block, err := aes.NewCipher(hash[:])

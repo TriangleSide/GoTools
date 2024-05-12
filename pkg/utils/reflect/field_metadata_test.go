@@ -1,3 +1,16 @@
+// Copyright (c) 2024 David Ouellette.
+//
+// All rights reserved.
+//
+// This software and its documentation are proprietary information of David Ouellette.
+// No part of this software or its documentation may be copied, transferred, reproduced,
+// distributed, modified, or disclosed without the prior written permission of David Ouellette.
+//
+// Unauthorized use of this software is strictly prohibited and may be subject to civil and
+// criminal penalties.
+//
+// By using this software, you agree to abide by the terms specified herein.
+
 package reflect_test
 
 import (
@@ -45,8 +58,8 @@ var _ = Describe("struct field metadata", func() {
 			Expect(metadata).To(HaveLen(1))
 			Expect(metadata).To(HaveKey("Value"))
 			Expect(metadata["Value"].Type.Kind()).To(Equal(reflect.String))
-			Expect(metadata["Value"].Tags).To(HaveLen(0))
-			Expect(metadata["Value"].Anonymous).To(HaveLen(0))
+			Expect(metadata["Value"].Tags).To(BeEmpty())
+			Expect(metadata["Value"].Anonymous).To(BeEmpty())
 		})
 	})
 
@@ -62,7 +75,7 @@ var _ = Describe("struct field metadata", func() {
 			Expect(metadata["Value"].Type.Kind()).To(Equal(reflect.Int))
 			Expect(metadata["Value"].Tags).To(HaveLen(1))
 			Expect(metadata["Value"].Tags).To(HaveKeyWithValue("key", "Value"))
-			Expect(metadata["Value"].Anonymous).To(HaveLen(0))
+			Expect(metadata["Value"].Anonymous).To(BeEmpty())
 		})
 	})
 
@@ -79,7 +92,7 @@ var _ = Describe("struct field metadata", func() {
 			Expect(metadata["Value"].Tags).To(HaveLen(2))
 			Expect(metadata["Value"].Tags).To(HaveKeyWithValue("key1", "Value1"))
 			Expect(metadata["Value"].Tags).To(HaveKeyWithValue("key2", "Value2"))
-			Expect(metadata["Value"].Anonymous).To(HaveLen(0))
+			Expect(metadata["Value"].Anonymous).To(BeEmpty())
 		})
 	})
 
@@ -97,13 +110,13 @@ var _ = Describe("struct field metadata", func() {
 			Expect(metadata["Value1"].Tags).To(HaveLen(2))
 			Expect(metadata["Value1"].Tags).To(HaveKeyWithValue("key2", "Value3"))
 			Expect(metadata["Value1"].Tags).To(HaveKeyWithValue("key4", "Value5"))
-			Expect(metadata["Value1"].Anonymous).To(HaveLen(0))
+			Expect(metadata["Value1"].Anonymous).To(BeEmpty())
 			Expect(metadata).To(HaveKey("Value6"))
 			Expect(metadata["Value6"].Type.Kind()).To(Equal(reflect.String))
 			Expect(metadata["Value6"].Tags).To(HaveLen(2))
 			Expect(metadata["Value6"].Tags).To(HaveKeyWithValue("key7", "Value8"))
 			Expect(metadata["Value6"].Tags).To(HaveKeyWithValue("key9", "Value10"))
-			Expect(metadata["Value6"].Anonymous).To(HaveLen(0))
+			Expect(metadata["Value6"].Anonymous).To(BeEmpty())
 		})
 	})
 
@@ -153,7 +166,7 @@ var _ = Describe("struct field metadata", func() {
 			Expect(metadata["OuterField"].Type.Kind()).To(Equal(reflect.String))
 			Expect(metadata["OuterField"].Tags).To(HaveLen(1))
 			Expect(metadata["OuterField"].Tags).To(HaveKeyWithValue("key", "Outer"))
-			Expect(metadata["OuterField"].Anonymous).To(HaveLen(0))
+			Expect(metadata["OuterField"].Anonymous).To(BeEmpty())
 		})
 	})
 

@@ -1,3 +1,16 @@
+// Copyright (c) 2024 David Ouellette.
+//
+// All rights reserved.
+//
+// This software and its documentation are proprietary information of David Ouellette.
+// No part of this software or its documentation may be copied, transferred, reproduced,
+// distributed, modified, or disclosed without the prior written permission of David Ouellette.
+//
+// Unauthorized use of this software is strictly prohibited and may be subject to civil and
+// criminal penalties.
+//
+// By using this software, you agree to abide by the terms specified herein.
+
 package config
 
 import (
@@ -37,4 +50,9 @@ type Server struct {
 	// and confidential because unauthorized access to this key compromises the entire
 	// security of the TLS encryption. This key is typically also encoded in PEM format.
 	ServerKey string `config_format:"snake" config_default:"120s" validate:"required,filepath"`
+
+	// ServerMaxHeaderBytes controls the maximum number of bytes the server will read parsing
+	// the request header's keys and values, including the request line. It does not limit the
+	// size of the request body.
+	ServerMaxHeaderBytes int `config_format:"snake" config_default:"1048576" validate:"required,gte=4096,lte=1073741824"`
 }

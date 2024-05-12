@@ -1,3 +1,16 @@
+// Copyright (c) 2024 David Ouellette.
+//
+// All rights reserved.
+//
+// This software and its documentation are proprietary information of David Ouellette.
+// No part of this software or its documentation may be copied, transferred, reproduced,
+// distributed, modified, or disclosed without the prior written permission of David Ouellette.
+//
+// Unauthorized use of this software is strictly prohibited and may be subject to civil and
+// criminal penalties.
+//
+// By using this software, you agree to abide by the terms specified herein.
+
 package metrics_test
 
 import (
@@ -39,7 +52,7 @@ var _ = Describe("metrics", func() {
 				Timestamp:   time.Now(),
 			}
 
-			serverBindPort = serverBindPort + 1
+			serverBindPort++
 
 			Expect(os.Setenv(string(config.MetricsKeyEnvName), "encryption_key_"+strconv.Itoa(int(serverBindPort)))).To(Succeed())
 			Expect(os.Setenv(string(config.MetricsHostEnvName), "::1")).To(Succeed())
@@ -311,7 +324,7 @@ var _ = Describe("metrics", func() {
 							Expect(metricsServer.Running()).To(BeTrue())
 							for {
 								select {
-								case _ = <-metricsChan:
+								case <-metricsChan:
 									countReceived++
 								default:
 									return countReceived == threadCount*metricsEach

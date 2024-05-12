@@ -1,3 +1,16 @@
+// Copyright (c) 2024 David Ouellette.
+//
+// All rights reserved.
+//
+// This software and its documentation are proprietary information of David Ouellette.
+// No part of this software or its documentation may be copied, transferred, reproduced,
+// distributed, modified, or disclosed without the prior written permission of David Ouellette.
+//
+// Unauthorized use of this software is strictly prohibited and may be subject to civil and
+// criminal penalties.
+//
+// By using this software, you agree to abide by the terms specified herein.
+
 package reflect
 
 import (
@@ -16,7 +29,7 @@ import (
 func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) error {
 	structValue := reflect.ValueOf(obj)
 	if structValue.Kind() != reflect.Ptr || structValue.Elem().Kind() != reflect.Struct {
-		panic(fmt.Sprintf("obj must be a pointer to a struct"))
+		panic("obj must be a pointer to a struct")
 	}
 
 	// Get the field metadata for all the structs fields.

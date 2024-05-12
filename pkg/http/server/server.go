@@ -1,3 +1,16 @@
+// Copyright (c) 2024 David Ouellette.
+//
+// All rights reserved.
+//
+// This software and its documentation are proprietary information of David Ouellette.
+// No part of this software or its documentation may be copied, transferred, reproduced,
+// distributed, modified, or disclosed without the prior written permission of David Ouellette.
+//
+// Unauthorized use of this software is strictly prohibited and may be subject to civil and
+// criminal penalties.
+//
+// By using this software, you agree to abide by the terms specified herein.
+
 package server
 
 import (
@@ -79,6 +92,7 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 		return fmt.Errorf("failed to load the server certificate (%s)", err.Error())
 	}
 	tlsConfig := &tls.Config{
+		MinVersion:   tls.VersionTLS12,
 		Certificates: []tls.Certificate{serverCert},
 	}
 
@@ -87,9 +101,9 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 		Handler:           serveMux,
 		ReadTimeout:       server.conf.ServerReadTimeout,
 		WriteTimeout:      server.conf.ServerWriteTimeout,
-		IdleTimeout:       0,       // Turn off the keep-alive functionality.
-		ReadHeaderTimeout: 0,       // Uses the value of the read timeout.
-		MaxHeaderBytes:    1 << 20, // 1MB.
+		IdleTimeout:       0, // Turn off the keep-alive functionality.
+		ReadHeaderTimeout: 0, // Uses the value of the read timeout.
+		MaxHeaderBytes:    server.conf.ServerMaxHeaderBytes,
 		TLSConfig:         tlsConfig,
 	}
 
