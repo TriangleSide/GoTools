@@ -38,17 +38,13 @@ test: unit_tests
 # Minikube #########################################################################################
 ####################################################################################################
 
-.PHONY: minikube_check_version
-minikube_check_version:
-	@./scripts/minikube_check_version.zsh
-
 .PHONY: minikube_delete_cluster
-minikube_delete_cluster: minikube_check_version
-	@./scripts/minikube_delete_cluster.zsh
+minikube_delete_cluster:
+	$(GOCMD) run ./cmd/minikube/main.go delete
 
-.PHONY: minikube_create_cluster
-minikube_create_cluster: minikube_check_version minikube_delete_cluster
-	@./scripts/minikube_create_cluster.zsh
+.PHONY: minikube_start_cluster
+minikube_start_cluster: minikube_delete_cluster
+	$(GOCMD) run ./cmd/minikube/main.go start
 
 ####################################################################################################
 # Helm #############################################################################################
