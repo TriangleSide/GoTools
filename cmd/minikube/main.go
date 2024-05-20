@@ -18,9 +18,9 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"regexp"
-	"strconv"
 	"strings"
+
+	"intelligence/pkg/utils/semver"
 )
 
 const (
@@ -32,25 +32,15 @@ const (
 
 	minikubeProfileFlag = "--profile=intelligence"
 
-	minikubeVersionRegex   = "^v[0-9]+[.][0-9]+[.][0-9]+$"
 	minikubeMinimumVersion = "v1.33.0"
+	minikubeMaximumVersion = "v2.0.0"
 )
 
-// ensureMinikubeIsInstalled checks the system PATH to see if it can find the minikube binary
-// and verifies that the file is executable.
+// ensureMinikubeIsInstalled checks the system PATH to see if it can find the minikube binary.
 func ensureMinikubeIsInstalled() {
-	path, err := exec.LookPath(minikubeCommand)
+	_, err := exec.LookPath(minikubeCommand)
 	if err != nil {
 		log.Fatal("Minikube is not installed.")
-	}
-
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		log.Fatal("Failed to get the Minikube file status.")
-	}
-
-	if fileInfo.Mode()&0100 == 0 {
-		log.Fatal("Minikube is not executable.")
 	}
 }
 
@@ -62,54 +52,36 @@ func ensureMinikubeVersionIsSufficient() {
 		log.Fatal("Error getting minikube version.")
 	}
 
-	versionRegex, err := regexp.Compile(minikubeVersionRegex)
-	if err != nil {
-		log.Fatal("Error compiling regex for minikube version.")
-	}
-
 	minikubeCurrentVersion := ""
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
 		if strings.Contains(line, "minikube version:") {
 			versionParts := strings.Fields(line)
 			minikubeCurrentVersion = versionParts[len(versionParts)-1]
-
-			if !versionRegex.MatchString(minikubeCurrentVersion) {
-				log.Fatal("Could not parse Minikube version.")
-			}
-
 			break
 		}
 	}
-
 	if minikubeCurrentVersion == "" {
 		log.Fatal("Could find the Minikube version.")
 	}
 
-	currentVersionParts := strings.Split(minikubeCurrentVersion[1:], ".")
-	minimumVersionParts := strings.Split(minikubeMinimumVersion[1:], ".")
-
-	if len(currentVersionParts) != len(minimumVersionParts) {
-		log.Fatal("Mismatch in the formatting of the minimum version and current version.")
+	minimumVersionCheck, err := semver.Compare(minikubeCurrentVersion, minikubeMinimumVersion)
+	if err != nil {
+		log.Fatalf("Could not compare minikube versions (%s).", err.Error())
+	}
+	if minimumVersionCheck < 0 {
+		log.Fatalf("Minikube version %s is too old (>= %s).", minikubeCurrentVersion, minikubeMinimumVersion)
 	}
 
-	for i := 0; i < len(currentVersionParts); i++ {
-		currentVersionPart, err := strconv.Atoi(currentVersionParts[i])
-		if err != nil {
-			log.Fatal("Could not parse the current minikube version.")
-		}
-
-		minimumVersionPart, err := strconv.Atoi(minimumVersionParts[i])
-		if err != nil {
-			log.Fatal("Could not parse the minimum minikube version.")
-		}
-
-		if currentVersionPart < minimumVersionPart {
-			log.Fatal("Minikube version " + minikubeCurrentVersion + " is not sufficient (< " + minikubeMinimumVersion + ").")
-		}
+	maximumVersionCheck, err := semver.Compare(minikubeCurrentVersion, minikubeMaximumVersion)
+	if err != nil {
+		log.Fatalf("Could not compare minikube versions (%s).", err.Error())
+	}
+	if maximumVersionCheck >= 0 {
+		log.Fatalf("Minikube version %s is too new (>= %s).", minikubeCurrentVersion, minikubeMaximumVersion)
 	}
 
-	log.Println("Minikube version " + minikubeCurrentVersion + " is sufficient (>= " + minikubeMinimumVersion + ").")
+	log.Printf("Minikube version is accepted (%s <= %s < %s).\n", minikubeMinimumVersion, minikubeCurrentVersion, minikubeMaximumVersion)
 }
 
 // minikubeTestClusterExists runs the `minikube status` command to check if the cluster exists.
@@ -188,7 +160,7 @@ func main() {
 	switch strings.TrimSpace(strings.ToLower(os.Args[1])) {
 	case minikubeDeleteSubcommand:
 		minikubeDeleteTestCluster()
-	case minikubeStatusSubcommand:
+	case minikubeStartSubcommand:
 		if minikubeTestClusterExists() {
 			log.Fatal("The minikube test cluster is already running.")
 		}
