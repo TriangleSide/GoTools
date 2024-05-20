@@ -1,0 +1,8 @@
+apiVersion: v2
+name: cni
+version: 0.1.0
+description: "This chart installs and configures the Cilium CNI (Container Network Interface)."
+dependencies:
+  - name: cilium
+    version: 1.15.5
+    repository: "https://helm.cilium.io/"

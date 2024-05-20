@@ -1,0 +1,9 @@
+cilium:
+  hubble:
+    enabled: true
+    relay:
+      enabled: true
+    ui:
+      enabled: true
+  encryption:
+    enabled: false

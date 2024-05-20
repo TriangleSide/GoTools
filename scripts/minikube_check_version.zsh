@@ -7,19 +7,21 @@ if ! command -v minikube >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "Minikube is installed."
+version_greater_equal() {
+    [[ "$(print -l $1 $2 | sort -V | head -n 1)" == "$2" ]]
+}
 
+MINIKUBE_VERSION_REGEX='^v[0-9]+\.[0-9]+\.[0-9]+$'
 MINIKUBE_MINIMUM_VERSION=v1.33.0
-MINIKUBE_CURRENT_VERSION=$(minikube version | grep 'minikube version:' | cut -d' ' -f3);
+MINIKUBE_CURRENT_VERSION=$(minikube version | awk '/minikube version:/ {print $3}' | grep -E "$MINIKUBE_VERSION_REGEX")
 
-if [ "$MINIKUBE_CURRENT_VERSION" = "" ]; then
-    echo "Could not parse minikube version." >&2
+if [[ -z "$MINIKUBE_CURRENT_VERSION" ]]; then
+    echo "Could not find Minikube version." >&2
     exit 1
 fi
 
-if [ "$(printf '%s\n%s' "$MINIKUBE_MINIMUM_VERSION" "$MINIKUBE_CURRENT_VERSION" | sort -V | head -n1)" = "$MINIKUBE_MINIMUM_VERSION" ]; then
-    echo "Minikube version $MINIKUBE_CURRENT_VERSION is sufficient (>= $MINIKUBE_MINIMUM_VERSION)."
+if version_greater_equal "$MINIKUBE_CURRENT_VERSION" "$MINIKUBE_MINIMUM_VERSION"; then
+    echo "Minikube version is sufficient ($MINIKUBE_CURRENT_VERSION)."
 else
-    echo "Minikube version $MINIKUBE_CURRENT_VERSION is not sufficient. Please upgrade to at least $MINIKUBE_MINIMUM_VERSION." >&2
-    exit 1
+    echo "Minikube version is too low. Required: $MINIKUBE_MINIMUM_VERSION, but found: $MINIKUBE_CURRENT_VERSION."
 fi

@@ -1,0 +1,10 @@
+cilium:
+  hubble:
+    enabled: false
+  encryption:
+    enabled: true
+    type: wireguard
+  operator:
+    enabled: true
+    prometheus:
+     enabled: false
