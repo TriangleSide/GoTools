@@ -44,9 +44,11 @@ func ensureMinikubeIsInstalled() {
 	}
 }
 
-// ensureMinikubeVersionIsSufficient compares the minikube's version command output with the defined minimum version.
+// ensureMinikubeVersionIsSufficient compares the minikube's version is within the accepted range.
 func ensureMinikubeVersionIsSufficient() {
 	cmd := exec.Command(minikubeCommand, minikubeVersionSubcommand)
+	log.Println(cmd.String())
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatal("Error getting minikube version.")
@@ -62,7 +64,7 @@ func ensureMinikubeVersionIsSufficient() {
 		}
 	}
 	if minikubeCurrentVersion == "" {
-		log.Fatal("Could find the Minikube version.")
+		log.Fatal("Could not find the Minikube version.")
 	}
 
 	minimumVersionCheck, err := semver.Compare(minikubeCurrentVersion, minikubeMinimumVersion)
@@ -81,12 +83,13 @@ func ensureMinikubeVersionIsSufficient() {
 		log.Fatalf("Minikube version %s is too new (>= %s).", minikubeCurrentVersion, minikubeMaximumVersion)
 	}
 
-	log.Printf("Minikube version is accepted (%s <= %s < %s).\n", minikubeMinimumVersion, minikubeCurrentVersion, minikubeMaximumVersion)
+	log.Printf("Minikube version is within the range (%s <= %s < %s).\n", minikubeMinimumVersion, minikubeCurrentVersion, minikubeMaximumVersion)
 }
 
 // minikubeTestClusterExists runs the `minikube status` command to check if the cluster exists.
 func minikubeTestClusterExists() bool {
 	cmd := exec.Command(minikubeCommand, minikubeStatusSubcommand, minikubeProfileFlag)
+	log.Println(cmd.String())
 
 	if err := cmd.Start(); err != nil {
 		log.Fatal("Error when invoking minikube status.")
@@ -106,6 +109,8 @@ func minikubeTestClusterExists() bool {
 // minikubeDeleteTestCluster deletes the test cluster created by minikubeCreateTestCluster.
 func minikubeDeleteTestCluster() {
 	cmd := exec.Command(minikubeCommand, minikubeDeleteSubcommand, minikubeProfileFlag)
+	log.Println(cmd.String())
+
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
@@ -134,6 +139,7 @@ func minikubeCreateTestCluster() {
 	}
 
 	cmd := exec.Command(minikubeCommand, flags...)
+	log.Println(cmd.String())
 
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
@@ -149,8 +155,8 @@ func minikubeCreateTestCluster() {
 
 // main runs helper commands for minikube binary.
 func main() {
-	const maxNumberOfArgs = 2
-	if len(os.Args) != maxNumberOfArgs {
+	const requiredNumberOfArgs = 2
+	if len(os.Args) != requiredNumberOfArgs {
 		log.Fatal("minikube command requires exactly one argument.")
 	}
 

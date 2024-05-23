@@ -43,21 +43,17 @@ minikube_delete_cluster:
 	$(GOCMD) run ./cmd/minikube/main.go delete
 
 .PHONY: minikube_start_cluster
-minikube_start_cluster: minikube_delete_cluster
+minikube_start_cluster:
 	$(GOCMD) run ./cmd/minikube/main.go start
 
 ####################################################################################################
 # Helm #############################################################################################
 ####################################################################################################
 
-.PHONY: helm_check_version
-helm_check_version:
-	@./scripts/helm_check_version.zsh
-
 .PHONY: helm_lint_charts
-helm_lint_charts: helm_check_version
-	@./scripts/helm_lint_charts.zsh
+helm_lint_charts:
+	$(GOCMD) run ./cmd/helm/main.go lint
 
 .PHONY: helm_install_charts
-helm_install_charts: helm_check_version helm_lint_charts
-	@./scripts/helm_install_charts.zsh $(HELM_ENV)
+helm_install_charts:
+	$(GOCMD) run ./cmd/helm/main.go install $(HELM_ENV)
