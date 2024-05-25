@@ -11,25 +11,29 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package server_test
+package string_utils_test
 
 import (
-	"os"
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/config"
+	stringutils "intelligence/pkg/utils/string"
 )
 
-func Test(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "HTTP server test suite.")
-}
-
-func unsetEnvironmentVariables() {
-	Expect(os.Unsetenv(string(config.HTTPServerBindPortEnvName))).To(Succeed())
-	Expect(os.Unsetenv(string(config.HTTPServerCertEnvName))).To(Succeed())
-	Expect(os.Unsetenv(string(config.HTTPServerKeyEnvName))).To(Succeed())
-}
+var _ = Describe("camel to snake", func() {
+	DescribeTable("camel to snake",
+		func(camel string, expectedSnake string) {
+			snake := stringutils.CamelToUpperSnake(camel)
+			Expect(snake).To(Equal(expectedSnake))
+		},
+		Entry("", "", ""),
+		Entry("", "a", "A"),
+		Entry("", "12345", "12345"),
+		Entry("", "1a", "1A"),
+		Entry("", "1aSplit", "1A_SPLIT"),
+		Entry("", "1a1Split", "1A1_SPLIT"),
+		Entry("", "MyCamelCase", "MY_CAMEL_CASE"),
+		Entry("", "myCamelCase", "MY_CAMEL_CASE"),
+		Entry("", "CAMELCase", "CAMEL_CASE"),
+	)
+})

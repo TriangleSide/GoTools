@@ -11,16 +11,26 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package config_test
+package tcp
 
 import (
-	"testing"
+	"fmt"
+	"net"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"intelligence/pkg/network"
 )
 
-func Test(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Config test suite.")
+// Listener exists because the GoLang standard library doesn't have an interface for it.
+type Listener interface {
+	net.Listener
+}
+
+// ResolveAddr validates and formats a net.TCPAddr.
+func ResolveAddr(host string, port uint16) (*net.TCPAddr, error) {
+	formattedAddress, err := network.FormatNetworkAddress(host, port)
+	if err != nil {
+		return nil, fmt.Errorf("failed to format the TCP address (%s)", err.Error())
+	}
+
+	return net.ResolveTCPAddr("tcp", formattedAddress)
 }

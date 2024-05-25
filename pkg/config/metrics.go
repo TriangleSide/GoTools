@@ -13,14 +13,19 @@
 
 package config
 
+import (
+	"intelligence/pkg/config/envprocessor"
+)
+
 const (
-	MetricsPortEnvName           EnvName = "METRICS_PORT"
-	MetricsKeyEnvName            EnvName = "METRICS_KEY"
-	MetricsHostEnvName           EnvName = "METRICS_HOST"
-	MetricsBindIPEnvName         EnvName = "METRICS_BIND_IP"
-	MetricsOsBufferSizeEnvName   EnvName = "METRICS_OS_BUFFER_SIZE"
-	MetricsReadBufferSizeEnvName EnvName = "METRICS_READ_BUFFER_SIZE"
-	MetricsReadThreadsEnvName    EnvName = "METRICS_READ_THREADS"
+	MetricsPortEnvName           envprocessor.EnvName = "METRICS_PORT"
+	MetricsKeyEnvName            envprocessor.EnvName = "METRICS_KEY"
+	MetricsHostEnvName           envprocessor.EnvName = "METRICS_HOST"
+	MetricsBindIPEnvName         envprocessor.EnvName = "METRICS_BIND_IP"
+	MetricsQueueSizeEnvName      envprocessor.EnvName = "METRICS_QUEUE_SIZE"
+	MetricsOsBufferSizeEnvName   envprocessor.EnvName = "METRICS_OS_BUFFER_SIZE"
+	MetricsReadBufferSizeEnvName envprocessor.EnvName = "METRICS_READ_BUFFER_SIZE"
+	MetricsReadThreadsEnvName    envprocessor.EnvName = "METRICS_READ_THREADS"
 )
 
 // MetricsCommon contains the common configuration for both the client and the server.
@@ -39,7 +44,7 @@ type MetricsClient struct {
 type MetricsServer struct {
 	MetricsCommon
 	MetricsBindIP         string `config_format:"snake" config_default:"::1"     validate:"required,ip_addr"`
-	MetricsQueue          uint   `config_format:"snake" config_default:"1024"    validate:"required,gt=0,lte=8192"`
+	MetricsQueueSize      uint   `config_format:"snake" config_default:"1024"    validate:"required,gt=0,lte=8192"`
 	MetricsOSBufferSize   uint   `config_format:"snake" config_default:"1048576" validate:"required,gte=4096,lte=1073741824"`
 	MetricsReadBufferSize uint   `config_format:"snake" config_default:"1048576" validate:"required,gte=4096,lte=1073741824"`
 	MetricsReadThreads    int    `config_format:"snake" config_default:"2"       validate:"required,gte=1,lte=32"`

@@ -26,13 +26,13 @@ var _ = Describe("struct field metadata", func() {
 	It("should panic if the type is not a struct", func() {
 		Expect(func() {
 			_ = reflectutils.FieldsToMetadata[int]()
-		}).Should(Panic())
+		}).Should(PanicWith(ContainSubstring("type must be a struct")))
 	})
 
 	It("should panic if the type is a pointer to a struct", func() {
 		Expect(func() {
 			_ = reflectutils.FieldsToMetadata[*struct{}]()
-		}).Should(Panic())
+		}).Should(PanicWith(ContainSubstring("type must be a struct")))
 	})
 
 	It("should return an empty map for an empty struct", func() {
@@ -183,7 +183,7 @@ var _ = Describe("struct field metadata", func() {
 		It("should panic", func() {
 			Expect(func() {
 				_ = reflectutils.FieldsToMetadata[outerStruct]()
-			}).Should(Panic())
+			}).Should(PanicWith(ContainSubstring("field Field is ambiguous")))
 		})
 	})
 })

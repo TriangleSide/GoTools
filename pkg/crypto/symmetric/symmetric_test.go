@@ -14,7 +14,9 @@
 package symmetric_test
 
 import (
+	"crypto/cipher"
 	"crypto/rand"
+	"errors"
 	mathrand "math/rand"
 	"strconv"
 
@@ -25,8 +27,19 @@ import (
 )
 
 var _ = Describe("symmetric encryption", func() {
+	When("the cipher provider returns an error", func() {
+		It("should return an error when creating a new symmetric encryptor", func() {
+			encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(mathrand.Int()), symmetric.WithBlockCypherProvider(func(key []byte) (cipher.Block, error) {
+				return nil, errors.New("block cipher provider error")
+			}))
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to create the block cipher (block cipher provider error)"))
+			Expect(encryptor).To(BeNil())
+		})
+	})
+
 	When("an encryptor is created", func() {
-		var encryptor *symmetric.Encryptor
+		var encryptor symmetric.Encryptor
 
 		BeforeEach(func() {
 			var err error
@@ -99,6 +112,30 @@ var _ = Describe("symmetric encryption", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("invalid key"))
 			Expect(encryptor).To(BeNil())
+		})
+	})
+
+	When("an option returns an error", func() {
+		It("should return an error", func() {
+			encryptor, err := symmetric.New("key", func(config *symmetric.Config) error {
+				return errors.New("option error")
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failure while configuring the encryptor (option error)"))
+			Expect(encryptor).To(BeNil())
+		})
+	})
+
+	When("the random data func fails", func() {
+		It("should return an error when encrypting", func() {
+			encryptor, err := symmetric.New("key", symmetric.WithRandomDataFunc(func(buffer []byte) error {
+				return errors.New("random data error")
+			}))
+			Expect(err).ToNot(HaveOccurred())
+			cypher, err := encryptor.Encrypt([]byte("test"))
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to generate initialization vector (random data error)"))
+			Expect(cypher).To(BeNil())
 		})
 	})
 })

@@ -54,9 +54,11 @@ func RegisterValidation(tag string, validationFunc validator.Func, validationErr
 	if _, ok := customValidationErrorMessages[tag]; ok {
 		panic(fmt.Sprintf("Tag '%s' already has a registered validation function.", tag))
 	}
+	if validationErrorMsg == nil {
+		panic(fmt.Sprintf("Tag '%s' has a nil error message function.", tag))
+	}
 	customValidationErrorMessages[tag] = validationErrorMsg
-	err := validate.RegisterValidation(tag, validationFunc, true)
-	if err != nil {
+	if err := validate.RegisterValidation(tag, validationFunc, true); err != nil {
 		panic(fmt.Sprintf("Failed to register the validation function for the tag '%s'.", tag))
 	}
 }

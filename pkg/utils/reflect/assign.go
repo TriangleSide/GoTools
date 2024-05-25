@@ -52,11 +52,6 @@ func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) e
 		structFieldValue = structValue.Elem().FieldByName(fieldName)
 	}
 
-	// Ensure the value can be set. This shouldn't occur since unexported fields are not used.
-	if !structFieldValue.CanSet() {
-		panic(fmt.Sprintf("field '%s' in struct '%s' must be able to be set", fieldName, structValue.Type().String()))
-	}
-
 	// Get the struct field type. This is needed to determine how to set the value.
 	originalFieldType := structFieldValue.Type()
 	var fieldType reflect.Type

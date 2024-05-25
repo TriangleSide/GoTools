@@ -50,6 +50,6 @@ var _ = Describe("to pointer utility", func() {
 	It("should panic with a pointer type", func() {
 		Expect(func() {
 			ptr.Of[*int](nil)
-		}).Should(Panic())
+		}).Should(PanicWith(ContainSubstring("type cannot be a pointer")))
 	})
 })

@@ -11,15 +11,14 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package config
+package envprocessor
 
 import (
 	"fmt"
 	"os"
-	"strings"
-	"unicode"
 
 	reflectutils "intelligence/pkg/utils/reflect"
+	stringutils "intelligence/pkg/utils/string"
 	"intelligence/pkg/validation"
 )
 
@@ -38,29 +37,33 @@ const (
 	FormatTypeSnake = "snake"
 )
 
-// envVarsProcessorParameters holds information needed by the environment variable processor.
-type envVarsProcessorParameters struct {
+// Config is the configuration for the ProcessAndValidate function.
+type Config struct {
 	prefix string
 }
 
 // Option is used to set parameters for the environment variable processor.
-type Option func(*envVarsProcessorParameters)
+type Option func(*Config) error
 
 // WithPrefix sets the prefix to look for in the environment variables.
 // Given a struct field named Value and the prefix TEST, the processor will look for TEST_VALUE.
 func WithPrefix(prefix string) Option {
-	return func(p *envVarsProcessorParameters) {
+	return func(p *Config) error {
 		p.prefix = prefix
+		return nil
 	}
 }
 
 // ProcessAndValidate fills out the fields of a struct from the environment variables.
-func ProcessAndValidate[T any](options ...Option) (*T, error) {
-	config := &envVarsProcessorParameters{
+func ProcessAndValidate[T any](opts ...Option) (*T, error) {
+	config := &Config{
 		prefix: "",
 	}
-	for _, option := range options {
-		option(config)
+
+	for _, opt := range opts {
+		if err := opt(config); err != nil {
+			return nil, fmt.Errorf("failed to set the options for the configuration processor (%s)", err.Error())
+		}
 	}
 
 	fieldsMetadata := reflectutils.FieldsToMetadata[T]()
@@ -75,12 +78,12 @@ func ProcessAndValidate[T any](options ...Option) (*T, error) {
 		var formattedEnvName string
 		switch formatValue {
 		case FormatTypeSnake:
-			formattedEnvName = camelToSnake(fieldName)
+			formattedEnvName = stringutils.CamelToUpperSnake(fieldName)
 			if config.prefix != "" {
 				formattedEnvName = fmt.Sprintf("%s_%s", config.prefix, formattedEnvName)
 			}
 		default:
-			panic(fmt.Sprintf("invalid format tag value (%s)", formatValue))
+			panic(fmt.Sprintf("invalid config format (%s)", formatValue))
 		}
 
 		envValue, hasEnvValue := os.LookupEnv(formattedEnvName)
@@ -103,20 +106,4 @@ func ProcessAndValidate[T any](options ...Option) (*T, error) {
 	}
 
 	return conf, nil
-}
-
-// camelToSnake converts a camel-case string to a upper-case snake-case format.
-//
-//	MyCamelCase becomes MY_CAMEL_CASE.
-//	myCamelCase becomes MY_CAMEL_CASE.
-//	CAMELCase becomes CAMEL_CASE.
-func camelToSnake(str string) string {
-	var snake strings.Builder
-	for i, r := range str {
-		if i > 0 && unicode.IsUpper(r) && (i+1 < len(str) && unicode.IsLower(rune(str[i+1])) || unicode.IsLower(rune(str[i-1]))) {
-			snake.WriteRune('_')
-		}
-		snake.WriteRune(unicode.ToUpper(r))
-	}
-	return snake.String()
 }

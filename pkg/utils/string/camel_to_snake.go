@@ -11,19 +11,21 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package logger
+package string_utils
 
 import (
-	"github.com/sirupsen/logrus"
+	"strings"
+	"unicode"
 )
 
-// UTCFormatter sets the timezone of the log to UTC.
-type UTCFormatter struct {
-	Next logrus.Formatter
-}
-
-// Format sets the timezone of the log to UTC then invokes the next formatter.
-func (f *UTCFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	entry.Time = entry.Time.UTC()
-	return f.Next.Format(entry)
+// CamelToUpperSnake converts a camelCase string to an upper case SNAKE_CASE format.
+func CamelToUpperSnake(str string) string {
+	var snake strings.Builder
+	for i, r := range str {
+		if i > 0 && unicode.IsUpper(r) && (i+1 < len(str) && unicode.IsLower(rune(str[i+1])) || unicode.IsLower(rune(str[i-1]))) {
+			snake.WriteRune('_')
+		}
+		snake.WriteRune(unicode.ToUpper(r))
+	}
+	return snake.String()
 }

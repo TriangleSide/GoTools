@@ -92,7 +92,7 @@ var _ = Describe("validation", func() {
 		})
 	})
 
-	When("an argument is passed to the Validate function that is not a struct", func() {
+	When("an argument is passed to the Struct function that is not a struct", func() {
 		var (
 			test int
 		)
@@ -110,7 +110,7 @@ var _ = Describe("validation", func() {
 		})
 	})
 
-	When("nil passed to the Validate function", func() {
+	When("nil passed to the Struct function", func() {
 		It("should return an error", func() {
 			Expect(validation.Struct(nil)).To(HaveOccurred())
 		})
@@ -236,6 +236,32 @@ var _ = Describe("validation", func() {
 
 		It("should succeed when there are no validators", func() {
 			Expect(validation.Var(testVar, "")).To(Succeed())
+		})
+	})
+
+	When("the same custom validation is registered twice", func() {
+		It("should panic", func() {
+			Expect(func() {
+				for i := 0; i < 2; i++ {
+					validation.RegisterValidation("custom_twice", func(fl validator.FieldLevel) bool { return true }, func(err validator.FieldError) string { return "" })
+				}
+			}).To(PanicWith(ContainSubstring("'custom_twice' already has a registered validation function")))
+		})
+	})
+
+	When("registering a validation tag and the validation func is nil", func() {
+		It("should panic", func() {
+			Expect(func() {
+				validation.RegisterValidation("nil_func", nil, func(err validator.FieldError) string { return "" })
+			}).To(PanicWith(ContainSubstring("Failed to register the validation function for the tag 'nil_func'")))
+		})
+	})
+
+	When("registering a validation tag and the error msg func is nil", func() {
+		It("should panic", func() {
+			Expect(func() {
+				validation.RegisterValidation("nil_error_func", func(fl validator.FieldLevel) bool { return true }, nil)
+			}).To(PanicWith(ContainSubstring("Tag 'nil_error_func' has a nil error message function")))
 		})
 	})
 })

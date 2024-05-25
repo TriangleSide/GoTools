@@ -15,6 +15,8 @@ package logger
 
 import (
 	"context"
+	"fmt"
+	"intelligence/pkg/config/envprocessor"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -22,41 +24,76 @@ import (
 	"intelligence/pkg/config"
 )
 
+const (
+	defaultLogLevel = logrus.InfoLevel
+)
+
 var (
+	// logger is the applications logger.
 	logger *logrus.Logger
 )
 
-// init configures the applications logger.
+// init configures the applications logger with default settings.
 func init() {
 	logger = logrus.New()
 	logger.SetOutput(os.Stdout)
-	if conf, confErr := config.ProcessAndValidate[config.Logger](); confErr == nil {
-		if level, parseLevelErr := logrus.ParseLevel(conf.LogLevel); parseLevelErr == nil {
-			logger.SetLevel(level)
-		} else {
-			logger.WithError(parseLevelErr).Fatal("Failed to parse logger level.")
-		}
-	} else {
-		logger.WithError(confErr).Fatal("Failed to parse logger config.")
-	}
-	logger.SetFormatter(&customFormatter{
-		JSONFormatter: logrus.JSONFormatter{
-			// UTC is enforced in the customFormatter.
-			TimestampFormat: "2001-02-03 19:34:56",
-			PrettyPrint:     logger.Level >= logrus.DebugLevel,
-		},
-	})
+	logger.SetLevel(defaultLogLevel)
 }
 
-// logEntry is the internal method that returns the log entry pointer stored in the context.
+// Config is configured by the Option functions.
+type Config struct {
+	configProvider func() (*config.Logger, error)
+}
+
+// Option sets values on the Config.
+type Option func(*Config) error
+
+// WithConfigProvider overwrites the default config provider.
+func WithConfigProvider(provider func() (*config.Logger, error)) Option {
+	return func(c *Config) error {
+		c.configProvider = provider
+		return nil
+	}
+}
+
+// MustConfigure parses the logger conf and configures the application logger.
+func MustConfigure(opts ...Option) {
+	cfg := Config{
+		configProvider: func() (*config.Logger, error) {
+			return envprocessor.ProcessAndValidate[config.Logger]()
+		},
+	}
+
+	for _, opt := range opts {
+		if err := opt(&cfg); err != nil {
+			panic(fmt.Sprintf("Failed to set the options for the logger (%s).", err.Error()))
+		}
+	}
+
+	logger.SetFormatter(&UTCFormatter{
+		Next: &logrus.JSONFormatter{
+			TimestampFormat: "2001-02-03 19:34:56",
+			PrettyPrint:     false,
+		},
+	})
+
+	envConf, err := cfg.configProvider()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get logger config (%s).", err.Error()))
+	}
+
+	level, err := logrus.ParseLevel(envConf.LogLevel)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to parse the log level (%s).", err.Error()))
+	}
+	logger.SetLevel(level)
+}
+
+// logEntry is an internal method that returns a log entry pointer stored in the context.
 func logEntry(ctx *context.Context) *logrus.Entry {
 	logEntryValue := (*ctx).Value(logEntryContextKey)
 	if logEntryValue != nil {
-		if entry, ok := logEntryValue.(*logrus.Entry); ok {
-			return entry
-		} else {
-			logger.Fatal("Log entry in the context does not match the expected type.")
-		}
+		return logEntryValue.(*logrus.Entry)
 	}
 	return logrus.NewEntry(logger)
 }
@@ -67,7 +104,7 @@ func LogEntry(ctx context.Context) *logrus.Entry {
 	return logEntry(&ctx).Dup()
 }
 
-// WithField adds a field to the log entry. The log entry is stored in the context and passed along with it.
+// WithField adds a field to the log entry stored in the context.
 func WithField(ctx *context.Context, key LogEntryKey, value any) *logrus.Entry {
 	entry := logEntry(ctx)
 	entry = entry.WithField(string(key), value)

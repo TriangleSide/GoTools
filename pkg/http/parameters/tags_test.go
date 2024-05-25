@@ -155,7 +155,7 @@ var _ = Describe("parameter tags", func() {
 		It("should panic when the generic isn't a struct", func() {
 			Expect(func() {
 				_, _ = parameters.ExtractAndValidateFieldTagLookupKeys[string]()
-			}).Should(Panic())
+			}).Should(PanicWith(ContainSubstring("type must be a struct")))
 		})
 
 		It("should fail when the generic is a struct pointer", func() {
@@ -164,7 +164,7 @@ var _ = Describe("parameter tags", func() {
 			}
 			Expect(func() {
 				_, _ = parameters.ExtractAndValidateFieldTagLookupKeys[*parameterStruct]()
-			}).Should(Panic())
+			}).Should(PanicWith(ContainSubstring("type must be a struct")))
 		})
 	})
 })

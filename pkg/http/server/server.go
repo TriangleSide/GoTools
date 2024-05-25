@@ -18,30 +18,76 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"intelligence/pkg/config"
+	"intelligence/pkg/config/envprocessor"
 	"intelligence/pkg/http/api"
 	"intelligence/pkg/http/middleware"
-	netutils "intelligence/pkg/utils/net"
+	"intelligence/pkg/network/tcp"
+	tcplistener "intelligence/pkg/network/tcp/listener"
 )
+
+// Config is configured by the caller with the ServerOption functions.
+type Config struct {
+	configProvider   func() (*config.HTTPServer, error)
+	listenerProvider func(localHost string, localPort uint16) (tcp.Listener, error)
+}
+
+// Option is used to configure the HTTP server.
+type Option func(config *Config) error
+
+// WithConfigProvider sets the server config provider.
+func WithConfigProvider(provider func() (*config.HTTPServer, error)) Option {
+	return func(config *Config) error {
+		config.configProvider = provider
+		return nil
+	}
+}
+
+// WithListenerProvider sets the provider for the TCP listener.
+func WithListenerProvider(provider func(localHost string, localPort uint16) (tcp.Listener, error)) Option {
+	return func(config *Config) error {
+		config.listenerProvider = provider
+		return nil
+	}
+}
 
 // Server handles requests via the Hypertext Transfer Protocol (HTTP) and sends back responses.
 // The Server must be allocated using New since the zero value for Server is not valid configuration.
 type Server struct {
-	conf     config.Server
-	listener net.Listener
-	srv      *http.Server
-	ran      *atomic.Bool
-	shutdown *atomic.Bool
-	wg       sync.WaitGroup
+	serverConfig *Config
+	envConf      *config.HTTPServer
+	listener     tcp.Listener
+	srv          *http.Server
+	ran          *atomic.Bool
+	shutdown     *atomic.Bool
+	wg           sync.WaitGroup
 }
 
 // New allocates and sets the required configuration for a Server.
-func New(conf config.Server) *Server {
+func New(opts ...Option) (*Server, error) {
+	serverConfig := &Config{
+		configProvider: func() (*config.HTTPServer, error) {
+			return envprocessor.ProcessAndValidate[config.HTTPServer]()
+		},
+		listenerProvider: tcplistener.New,
+	}
+
+	for _, opt := range opts {
+		if err := opt(serverConfig); err != nil {
+			return nil, fmt.Errorf("failed to configure the HTTP server (%s)", err.Error())
+		}
+	}
+
+	envConfig, err := serverConfig.configProvider()
+	if err != nil {
+		return nil, fmt.Errorf("could not load configuration (%s)", err.Error())
+	}
+
 	ran := &atomic.Bool{}
 	ran.Store(false)
 
@@ -49,12 +95,13 @@ func New(conf config.Server) *Server {
 	shutdown.Store(false)
 
 	return &Server{
-		conf:     conf,
-		srv:      nil,
-		ran:      ran,
-		shutdown: shutdown,
-		wg:       sync.WaitGroup{},
-	}
+		serverConfig: serverConfig,
+		envConf:      envConfig,
+		srv:          nil,
+		ran:          ran,
+		shutdown:     shutdown,
+		wg:           sync.WaitGroup{},
+	}, nil
 }
 
 // Run configures and starts an HTTP server.
@@ -78,16 +125,11 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 		for method, endpointHandler := range methodToEndpointHandlerMap {
 			allMiddleware := append(commonMiddleware, endpointHandler.Middleware...)
 			handlerChain := middleware.CreateChain(allMiddleware, endpointHandler.Handler)
-			serveMux.HandleFunc(fmt.Sprintf("%s %s", method.String(), apiPath.String()), handlerChain)
+			serveMux.HandleFunc(fmt.Sprintf("%s %s", method, apiPath), handlerChain)
 		}
 	}
 
-	addr, err := netutils.FormatNetworkAddress(server.conf.ServerBindIP, server.conf.ServerBindPort)
-	if err != nil {
-		return fmt.Errorf("failed to format the server network address (%s)", err.Error())
-	}
-
-	serverCert, err := tls.LoadX509KeyPair(server.conf.ServerCert, server.conf.ServerKey)
+	serverCert, err := tls.LoadX509KeyPair(server.envConf.HTTPServerCert, server.envConf.HTTPServerKey)
 	if err != nil {
 		return fmt.Errorf("failed to load the server certificate (%s)", err.Error())
 	}
@@ -97,34 +139,31 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 	}
 
 	server.srv = &http.Server{
-		Addr:              addr,
 		Handler:           serveMux,
-		ReadTimeout:       server.conf.ServerReadTimeout,
-		WriteTimeout:      server.conf.ServerWriteTimeout,
-		IdleTimeout:       0, // Turn off the keep-alive functionality.
-		ReadHeaderTimeout: 0, // Uses the value of the read timeout.
-		MaxHeaderBytes:    server.conf.ServerMaxHeaderBytes,
+		ReadTimeout:       time.Second * time.Duration(server.envConf.HTTPServerReadTimeoutSeconds),
+		WriteTimeout:      time.Second * time.Duration(server.envConf.HTTPServerWriteTimeoutSeconds),
+		IdleTimeout:       time.Second * time.Duration(server.envConf.HTTPServerIdleTimeoutSeconds),
+		ReadHeaderTimeout: time.Second * time.Duration(server.envConf.HTTPServerHeaderReadTimeoutSeconds),
+		MaxHeaderBytes:    server.envConf.HTTPServerMaxHeaderBytes,
 		TLSConfig:         tlsConfig,
 	}
 
 	// Manually creating the listener first ensures the server can start receiving connections before
 	// it is marked as ready by the callback.
-	server.listener, err = net.Listen("tcp", addr)
+	server.listener, err = server.serverConfig.listenerProvider(server.envConf.HTTPServerBindIP, server.envConf.HTTPServerBindPort)
 	if err != nil {
-		return fmt.Errorf("failed to listen to tcp address (%s)", err.Error())
+		return fmt.Errorf("failed to create the network listener (%s)", err.Error())
 	}
 
 	readyCallback()
 
+	// ServeTLS always returns as error as it is meant to be blocking.
 	err = server.srv.ServeTLS(server.listener, "", "")
-	if err != nil {
-		if errors.Is(err, http.ErrServerClosed) {
-			return nil
-		}
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	} else {
 		return fmt.Errorf("error encountered while serving http requests (%s)", err.Error())
 	}
-
-	return nil
 }
 
 // Shutdown gracefully shuts down the server and waits for it to finish.

@@ -47,10 +47,8 @@ var _ = Describe("assign a struct field with a string value", func() {
 	}
 
 	type testStruct struct {
-		// Embedded value assignments.
 		testEmbeddedStruct
 
-		// Normal value assignments.
 		StringValue     string
 		IntValue        int
 		UintValue       uint
@@ -61,7 +59,6 @@ var _ = Describe("assign a struct field with a string value", func() {
 		UnmarshallValue unmarshallTestStruct
 		TimeValue       time.Time
 
-		// This section is a copy of the normal values assignment but with pointers.
 		StringPtrValue     *string
 		IntPtrValue        *int
 		UintPtrValue       *uint
@@ -72,26 +69,25 @@ var _ = Describe("assign a struct field with a string value", func() {
 		UnmarshallPtrValue *unmarshallTestStruct
 		TimePtrValue       *time.Time
 
-		// List value assignments.
-		// unmarshallTestStruct is not included in this section since there isn't a custom unmarshaller for the list.
 		ListStringValue []string
 		ListIntValue    []int
 		ListFloatValue  []float64
 		ListBoolValue   []bool
 		ListStructValue []testInternalStruct
 
-		// This section is a copy of the normal list value assignment but with the list values as pointers.
 		ListStringPtrValue []*string
 		ListIntPtrValue    []*int
 		ListFloatPtrValue  []*float64
 		ListBoolPtrValue   []*bool
 		ListStructPtrValue []*testInternalStruct
+
+		UnhandledValue uintptr
 	}
 
 	It("should panic when setting the value on an object that is not a struct", func() {
 		Expect(func() {
 			_ = reflect.AssignToField(new(int), "StringValue", "test")
-		}).To(Panic())
+		}).To(PanicWith(ContainSubstring("obj must be a pointer to a struct")))
 	})
 
 	When("a test struct is initialized with no assigned values", func() {
@@ -398,7 +394,7 @@ var _ = Describe("assign a struct field with a string value", func() {
 				const setValue = "some value"
 				Expect(func() {
 					_ = reflect.AssignToField(values, "NonExistentField", setValue)
-				}).To(Panic())
+				}).To(PanicWith(ContainSubstring("no field 'NonExistentField' in struct")))
 			})
 
 			It("should fail to set non-integer values in an integer list", func() {
@@ -449,6 +445,13 @@ var _ = Describe("assign a struct field with a string value", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("parsing time"))
 			})
+
+			It("should fail when setting an unhandled value", func() {
+				err := reflect.AssignToField(values, "UnhandledValue", "test")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("unsupported field type"))
+			})
+
 		})
 	})
 })

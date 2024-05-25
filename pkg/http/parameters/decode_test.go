@@ -16,6 +16,7 @@ package parameters_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"net/url"
@@ -28,6 +29,21 @@ import (
 	"intelligence/pkg/http/parameters"
 	"intelligence/pkg/validation"
 )
+
+type testJsonReadCloser struct {
+	ReturnedError error
+	Closed        bool
+}
+
+func (j *testJsonReadCloser) Read(p []byte) (int, error) {
+	jsonData := `{"message": "generic json response"}`
+	return copy(p, jsonData), nil
+}
+
+func (j *testJsonReadCloser) Close() error {
+	j.Closed = true
+	return j.ReturnedError
+}
 
 var _ = Describe("decode HTTP request parameters", func() {
 	When("a server is started", Ordered, func() {
@@ -71,7 +87,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 				_, _ = parameters.Decode[struct {
 					Field string `urlQuery:"a*" json:"-"`
 				}](request)
-			}).Should(Panic())
+			}).Should(PanicWith(ContainSubstring("lookup key 'a*' must adhere to the naming convention")))
 		})
 
 		It("should fail to decode when json is sent with an unknown field", func() {
@@ -174,7 +190,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			request = request.WithContext(context.Background())
 			Expect(func() {
 				_, _ = parameters.Decode[string](request)
-			}).Should(Panic())
+			}).Should(PanicWith(ContainSubstring("the generic must be a struct")))
 		})
 
 		It("should panic when the generic is a struct pointer", func() {
@@ -186,7 +202,24 @@ var _ = Describe("decode HTTP request parameters", func() {
 			request = request.WithContext(context.Background())
 			Expect(func() {
 				_, _ = parameters.Decode[*parameterParams](request)
-			}).Should(Panic())
+			}).Should(PanicWith("the generic must be a struct"))
+		})
+
+		It("should succeed even if the body fails to close", func() {
+			request, err := http.NewRequest(http.MethodPost, "/", nil)
+			Expect(err).NotTo(HaveOccurred())
+			readCloser := &testJsonReadCloser{
+				ReturnedError: errors.New("test error"),
+			}
+			request.Body = readCloser
+			request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJson)
+			request = request.WithContext(context.Background())
+			decoded, err := parameters.Decode[struct {
+				Field string `json:"message"`
+			}](request)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(decoded.Field).ToNot(BeEmpty())
+			Expect(readCloser.Closed).To(BeTrue())
 		})
 
 		It("should successfully decode a struct with many different fields", func() {
@@ -202,63 +235,70 @@ var _ = Describe("decode HTTP request parameters", func() {
 			type parameterFields struct {
 				embeddedStruct
 
-				QueryStringField string            `urlQuery:"QueryStringField" json:"-" validate:"required"`
-				QueryIntField    int               `urlQuery:"QueryIntField" json:"-" validate:"required"`
-				QueryFloatField  float64           `urlQuery:"QueryFloatField" json:"-" validate:"required"`
-				QueryBoolField   bool              `urlQuery:"QueryBoolField" json:"-" validate:"required"`
-				QueryStructField internalStruct    `urlQuery:"QueryStructField" json:"-" validate:"required"`
-				QueryMapField    map[string]string `urlQuery:"QueryMapField" json:"-" validate:"required"`
-				QueryListField   []string          `urlQuery:"QueryListField" json:"-" validate:"required"`
+				QueryStringField       string            `urlQuery:"QueryStringField" json:"-" validate:"required"`
+				QueryStringFieldNotSet string            `urlQuery:"QueryStringFieldNotSet" json:"-"`
+				QueryIntField          int               `urlQuery:"QueryIntField" json:"-" validate:"required"`
+				QueryFloatField        float64           `urlQuery:"QueryFloatField" json:"-" validate:"required"`
+				QueryBoolField         bool              `urlQuery:"QueryBoolField" json:"-" validate:"required"`
+				QueryStructField       internalStruct    `urlQuery:"QueryStructField" json:"-" validate:"required"`
+				QueryMapField          map[string]string `urlQuery:"QueryMapField" json:"-" validate:"required"`
+				QueryListField         []string          `urlQuery:"QueryListField" json:"-" validate:"required"`
 
-				QueryPtrStringField *string            `urlQuery:"QueryPtrStringField" json:"-" validate:"required"`
-				QueryPtrIntField    *int               `urlQuery:"QueryPtrIntField" json:"-" validate:"required"`
-				QueryPtrFloatField  *float64           `urlQuery:"QueryPtrFloatField" json:"-" validate:"required"`
-				QueryPtrBoolField   *bool              `urlQuery:"QueryPtrBoolField" json:"-" validate:"required"`
-				QueryPtrStructField *internalStruct    `urlQuery:"QueryPtrStructField" json:"-" validate:"required"`
-				QueryPtrMapField    *map[string]string `urlQuery:"QueryPtrMapField" json:"-" validate:"required"`
-				QueryPtrListField   *[]string          `urlQuery:"QueryPtrListField" json:"-" validate:"required"`
+				QueryPtrStringField       *string            `urlQuery:"QueryPtrStringField" json:"-" validate:"required"`
+				QueryPtrStringFieldNotSet *string            `urlQuery:"QueryPtrStringFieldNotSet" json:"-"`
+				QueryPtrIntField          *int               `urlQuery:"QueryPtrIntField" json:"-" validate:"required"`
+				QueryPtrFloatField        *float64           `urlQuery:"QueryPtrFloatField" json:"-" validate:"required"`
+				QueryPtrBoolField         *bool              `urlQuery:"QueryPtrBoolField" json:"-" validate:"required"`
+				QueryPtrStructField       *internalStruct    `urlQuery:"QueryPtrStructField" json:"-" validate:"required"`
+				QueryPtrMapField          *map[string]string `urlQuery:"QueryPtrMapField" json:"-" validate:"required"`
+				QueryPtrListField         *[]string          `urlQuery:"QueryPtrListField" json:"-" validate:"required"`
 
-				HeaderStringField string            `httpHeader:"HeaderStringField" json:"-" validate:"required"`
-				HeaderIntField    int               `httpHeader:"HeaderIntField" json:"-" validate:"required"`
-				HeaderFloatField  float64           `httpHeader:"HeaderFloatField" json:"-" validate:"required"`
-				HeaderBoolField   bool              `httpHeader:"HeaderBoolField" json:"-" validate:"required"`
-				HeaderStructField internalStruct    `httpHeader:"HeaderStructField" json:"-" validate:"required"`
-				HeaderMapField    map[string]string `httpHeader:"HeaderMapField" json:"-" validate:"required"`
-				HeaderListField   []string          `httpHeader:"HeaderListField" json:"-" validate:"required"`
+				HeaderStringField       string            `httpHeader:"HeaderStringField" json:"-" validate:"required"`
+				HeaderStringFieldNotSet string            `httpHeader:"HeaderStringFieldNotSet" json:"-"`
+				HeaderIntField          int               `httpHeader:"HeaderIntField" json:"-" validate:"required"`
+				HeaderFloatField        float64           `httpHeader:"HeaderFloatField" json:"-" validate:"required"`
+				HeaderBoolField         bool              `httpHeader:"HeaderBoolField" json:"-" validate:"required"`
+				HeaderStructField       internalStruct    `httpHeader:"HeaderStructField" json:"-" validate:"required"`
+				HeaderMapField          map[string]string `httpHeader:"HeaderMapField" json:"-" validate:"required"`
+				HeaderListField         []string          `httpHeader:"HeaderListField" json:"-" validate:"required"`
 
-				HeaderPtrStringField *string            `httpHeader:"HeaderPtrStringField" json:"-" validate:"required"`
-				HeaderPtrIntField    *int               `httpHeader:"HeaderPtrIntField" json:"-" validate:"required"`
-				HeaderPtrFloatField  *float64           `httpHeader:"HeaderPtrFloatField" json:"-" validate:"required"`
-				HeaderPtrBoolField   *bool              `httpHeader:"HeaderPtrBoolField" json:"-" validate:"required"`
-				HeaderPtrStructField *internalStruct    `httpHeader:"HeaderPtrStructField" json:"-" validate:"required"`
-				HeaderPtrMapField    *map[string]string `httpHeader:"HeaderPtrMapField" json:"-" validate:"required"`
-				HeaderPtrListField   *[]string          `httpHeader:"HeaderPtrListField" json:"-" validate:"required"`
+				HeaderPtrStringField       *string            `httpHeader:"HeaderPtrStringField" json:"-" validate:"required"`
+				HeaderPtrStringFieldNotSet *string            `httpHeader:"HeaderPtrStringFieldNotSet" json:"-"`
+				HeaderPtrIntField          *int               `httpHeader:"HeaderPtrIntField" json:"-" validate:"required"`
+				HeaderPtrFloatField        *float64           `httpHeader:"HeaderPtrFloatField" json:"-" validate:"required"`
+				HeaderPtrBoolField         *bool              `httpHeader:"HeaderPtrBoolField" json:"-" validate:"required"`
+				HeaderPtrStructField       *internalStruct    `httpHeader:"HeaderPtrStructField" json:"-" validate:"required"`
+				HeaderPtrMapField          *map[string]string `httpHeader:"HeaderPtrMapField" json:"-" validate:"required"`
+				HeaderPtrListField         *[]string          `httpHeader:"HeaderPtrListField" json:"-" validate:"required"`
 
-				PathStringField    string  `urlPath:"PathStringField" json:"-" validate:"required"`
-				PathPtrStringField *string `urlPath:"PathPtrStringField" json:"-" validate:"required"`
+				PathStringField       string  `urlPath:"PathStringField" json:"-" validate:"required"`
+				PathStringFieldNotSet string  `urlPath:"DoesNotExistInThePath" json:"-"`
+				PathPtrStringField    *string `urlPath:"PathPtrStringField" json:"-" validate:"required"`
 
-				JSONStringField string            `json:"JSONStringField,omitempty"  validate:"required"`
-				JSONIntField    int               `json:"JSONIntField,omitempty"  validate:"required"`
-				JSONFloatField  float64           `json:"JSONFloatField,omitempty"  validate:"required"`
-				JSONBoolField   bool              `json:"JSONBoolField,omitempty"  validate:"required"`
-				JSONStructField internalStruct    `json:"JSONStructField,omitempty"  validate:"required"`
-				JSONMapField    map[string]string `json:"JSONMapField,omitempty"  validate:"required"`
-				JSONListField   []string          `json:"JSONListField,omitempty"  validate:"required"`
+				JSONStringField       string            `json:"JSONStringField,omitempty"  validate:"required"`
+				JSONStringFieldNotSet string            `json:"JSONStringFieldNotSet,omitempty"`
+				JSONIntField          int               `json:"JSONIntField,omitempty"  validate:"required"`
+				JSONFloatField        float64           `json:"JSONFloatField,omitempty"  validate:"required"`
+				JSONBoolField         bool              `json:"JSONBoolField,omitempty"  validate:"required"`
+				JSONStructField       internalStruct    `json:"JSONStructField,omitempty"  validate:"required"`
+				JSONMapField          map[string]string `json:"JSONMapField,omitempty"  validate:"required"`
+				JSONListField         []string          `json:"JSONListField,omitempty"  validate:"required"`
 
-				JSONPtrStringField *string            `json:"JSONPtrStringField"  validate:"required"`
-				JSONPtrIntField    *int               `json:"JSONPtrIntField"  validate:"required"`
-				JSONPtrFloatField  *float64           `json:"JSONPtrFloatField"  validate:"required"`
-				JSONPtrBoolField   *bool              `json:"JSONPtrBoolField"  validate:"required"`
-				JSONPtrStructField *internalStruct    `json:"JSONPtrStructField"  validate:"required"`
-				JSONPtrMapField    *map[string]string `json:"JSONPtrMapField"  validate:"required"`
-				JSONPtrListField   *[]string          `json:"JSONPtrListField"  validate:"required"`
+				JSONPtrStringField       *string            `json:"JSONPtrStringField"  validate:"required"`
+				JSONPtrStringFieldNotSet *string            `json:"JSONPtrStringFieldNotSet"`
+				JSONPtrIntField          *int               `json:"JSONPtrIntField"  validate:"required"`
+				JSONPtrFloatField        *float64           `json:"JSONPtrFloatField"  validate:"required"`
+				JSONPtrBoolField         *bool              `json:"JSONPtrBoolField"  validate:"required"`
+				JSONPtrStructField       *internalStruct    `json:"JSONPtrStructField"  validate:"required"`
+				JSONPtrMapField          *map[string]string `json:"JSONPtrMapField"  validate:"required"`
+				JSONPtrListField         *[]string          `json:"JSONPtrListField"  validate:"required"`
 			}
 
 			params := &parameterFields{}
 			Expect(validation.Struct(params)).To(HaveOccurred())
 
-			serverPath := "/{PathStringField}/{PathPtrStringField}"
-			clientPath := "/pathStringField/pathPtrStringField"
+			serverPath := "/{PathStringField}/{PathPtrStringField}/{doesNoExistInTheStruct}"
+			clientPath := "/pathStringField/pathPtrStringField/doesNotExistInTheStruct"
 
 			var decodeErr error
 			mux.HandleFunc(handlerPath(http.MethodPost, serverPath), func(_ http.ResponseWriter, request *http.Request) {
@@ -266,7 +306,8 @@ var _ = Describe("decode HTTP request parameters", func() {
 			})
 
 			queryParams := "?" +
-				"QueryStringField=value" +
+				"QueryParamDoesNotExistInTheStruct=value" +
+				"&QueryStringField=value" +
 				"&QueryIntField=123" +
 				"&QueryFloatField=1.23" +
 				"&QueryBoolField=true" +
@@ -302,6 +343,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			Expect(err).NotTo(HaveOccurred())
 			request.Header.Set("Content-Type", "application/json")
 
+			request.Header.Set("HeaderDoesNotExistInTheStruct", "value")
 			request.Header.Set("HeaderEmbeddedField", "value")
 			request.Header.Set("HeaderStringField", "value")
 			request.Header.Set("HeaderIntField", "123")
@@ -326,6 +368,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			Expect(validation.Struct(params)).To(Not(HaveOccurred()))
 
 			Expect(params.QueryStringField).To(Equal("value"))
+			Expect(params.PathStringFieldNotSet).To(Equal(""))
 			Expect(params.QueryIntField).To(Equal(123))
 			Expect(params.QueryFloatField).To(Equal(1.23))
 			Expect(params.QueryBoolField).To(BeTrue())
@@ -334,6 +377,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			Expect(params.QueryListField).To(Equal([]string{"item1", "item2"}))
 
 			Expect(*params.QueryPtrStringField).To(Equal("value"))
+			Expect(params.QueryPtrStringFieldNotSet).To(BeNil())
 			Expect(*params.QueryPtrIntField).To(Equal(123))
 			Expect(*params.QueryPtrFloatField).To(Equal(1.23))
 			Expect(*params.QueryPtrBoolField).To(BeTrue())
@@ -343,6 +387,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 
 			Expect(params.HeaderEmbeddedField).To(Equal("value"))
 			Expect(params.HeaderStringField).To(Equal("value"))
+			Expect(params.HeaderStringFieldNotSet).To(Equal(""))
 			Expect(params.HeaderIntField).To(Equal(123))
 			Expect(params.HeaderFloatField).To(Equal(1.23))
 			Expect(params.HeaderBoolField).To(BeTrue())
@@ -351,6 +396,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			Expect(params.HeaderListField).To(Equal([]string{"item1", "item2"}))
 
 			Expect(*params.HeaderPtrStringField).To(Equal("value"))
+			Expect(params.HeaderPtrStringFieldNotSet).To(BeNil())
 			Expect(*params.HeaderPtrIntField).To(Equal(123))
 			Expect(*params.HeaderPtrFloatField).To(Equal(1.23))
 			Expect(*params.HeaderPtrBoolField).To(BeTrue())
@@ -359,9 +405,11 @@ var _ = Describe("decode HTTP request parameters", func() {
 			Expect(*params.HeaderPtrListField).To(Equal([]string{"item1", "item2"}))
 
 			Expect(params.PathStringField).To(Equal("pathStringField"))
+			Expect(params.PathStringFieldNotSet).To(Equal(""))
 			Expect(*params.PathPtrStringField).To(Equal("pathPtrStringField"))
 
 			Expect(params.JSONStringField).To(Equal("value"))
+			Expect(params.JSONStringFieldNotSet).To(Equal(""))
 			Expect(params.JSONIntField).To(Equal(123))
 			Expect(params.JSONFloatField).To(Equal(1.23))
 			Expect(params.JSONBoolField).To(BeTrue())
@@ -370,6 +418,7 @@ var _ = Describe("decode HTTP request parameters", func() {
 			Expect(params.JSONListField).To(Equal([]string{"item1", "item2"}))
 
 			Expect(*params.JSONPtrStringField).To(Equal("value"))
+			Expect(params.JSONPtrStringFieldNotSet).To(BeNil())
 			Expect(*params.JSONPtrIntField).To(Equal(123))
 			Expect(*params.JSONPtrFloatField).To(Equal(1.23))
 			Expect(*params.JSONPtrBoolField).To(BeTrue())

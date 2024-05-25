@@ -11,19 +11,25 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package logger
+package metrics_client_test
 
 import (
-	"github.com/sirupsen/logrus"
+	"os"
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"intelligence/pkg/config"
 )
 
-// UTCFormatter sets the timezone of the log to UTC.
-type UTCFormatter struct {
-	Next logrus.Formatter
+func Test(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Metrics client test suite.")
 }
 
-// Format sets the timezone of the log to UTC then invokes the next formatter.
-func (f *UTCFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	entry.Time = entry.Time.UTC()
-	return f.Next.Format(entry)
+func unsetEnvironmentVariables() {
+	Expect(os.Unsetenv(string(config.MetricsKeyEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsHostEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsPortEnvName))).To(Succeed())
 }

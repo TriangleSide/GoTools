@@ -29,7 +29,11 @@ clean_unit_tests_cache:
 
 .PHONY: unit_tests
 unit_tests: clean_unit_tests_cache
-	$(GOCMD) test ./pkg/...
+	$(GOCMD) test ./pkg/... -coverprofile=.unit_tests_coverage.out
+
+.PHONY: unit_tests_coverage
+unit_tests_coverage:
+	$(GOCMD) tool cover -html=.unit_tests_coverage.out
 
 .PHONY: test
 test: unit_tests

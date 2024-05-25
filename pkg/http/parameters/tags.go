@@ -74,7 +74,7 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 // The returned map should not be written to under any circumstances since it can be shared among many threads.
 func ExtractAndValidateFieldTagLookupKeys[T any]() (map[Tag]map[string]string, error) {
 	reflectType := reflect.TypeOf(*new(T))
-	if memoData, ok := lookupKeyExtractMemo.Load(reflectType); ok {
+	if memoData, isMemoized := lookupKeyExtractMemo.Load(reflectType); isMemoized {
 		return memoData.(map[Tag]map[string]string), nil
 	}
 

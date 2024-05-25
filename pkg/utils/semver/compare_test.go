@@ -33,6 +33,8 @@ var _ = Describe("semantic versioning compare", func() {
 			}
 		},
 		Entry("both versions are equal", "1.0.0", "1.0.0", 0, ""),
+		Entry("both versions are equal", "1.0", "1.0", 0, ""),
+		Entry("both versions are equal", "1", "1", 0, ""),
 		Entry("first version greater (major)", "2.0.0", "1.0.0", 1, ""),
 		Entry("second version greater (major)", "1.0.0", "2.0.0", -1, ""),
 		Entry("first version greater (minor)", "1.2.0", "1.1.0", 1, ""),
@@ -71,7 +73,9 @@ var _ = Describe("semantic versioning compare", func() {
 		Entry("comparing longer vs shorter pre-release", "1.0.0-alpha.beta.gamma", "1.0.0-alpha.beta", 1, ""),
 		Entry("case sensitivity in pre-release", "1.0.0-Alpha", "1.0.0-alpha", -1, ""),
 		Entry("invalid characters in version", "1.0.0$", "1.0.0", 0, "invalid semver: 1.0.0$"),
-		Entry("version with space", "1.0.0 alpha", "1.0.0", 0, "invalid semver: 1.0.0 alpha"),
-		Entry("version with missing part", "1..0", "1.0.0", 0, "invalid semver: 1..0"),
+		Entry("version 1 with space", "1.0.0 alpha", "1.0.0", 0, "invalid semver: 1.0.0 alpha"),
+		Entry("version 2 with space", "1.0.0", "1.0.0 alpha", 0, "invalid semver: 1.0.0 alpha"),
+		Entry("version 1 with missing part", "1..0", "1.0.0", 0, "invalid semver: 1..0"),
+		Entry("version 2 with missing part", "1.0.0", "1..0", 0, "invalid semver: 1..0"),
 	)
 })

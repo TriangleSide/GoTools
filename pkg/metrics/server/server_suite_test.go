@@ -11,7 +11,7 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package server_test
+package metrics_server_test
 
 import (
 	"os"
@@ -25,11 +25,16 @@ import (
 
 func Test(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "HTTP server test suite.")
+	RunSpecs(t, "Metrics server test suite.")
 }
 
 func unsetEnvironmentVariables() {
-	Expect(os.Unsetenv(string(config.HTTPServerBindPortEnvName))).To(Succeed())
-	Expect(os.Unsetenv(string(config.HTTPServerCertEnvName))).To(Succeed())
-	Expect(os.Unsetenv(string(config.HTTPServerKeyEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsKeyEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsPortEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsHostEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsBindIPEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsQueueSizeEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsOsBufferSizeEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsReadBufferSizeEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.MetricsReadThreadsEnvName))).To(Succeed())
 }

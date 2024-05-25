@@ -11,19 +11,16 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package logger
+package envprocessor_test
 
 import (
-	"github.com/sirupsen/logrus"
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-// UTCFormatter sets the timezone of the log to UTC.
-type UTCFormatter struct {
-	Next logrus.Formatter
-}
-
-// Format sets the timezone of the log to UTC then invokes the next formatter.
-func (f *UTCFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	entry.Time = entry.Time.UTC()
-	return f.Next.Format(entry)
+func Test(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Environment configuration processor test suite.")
 }

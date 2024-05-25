@@ -11,19 +11,26 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package logger
+package tcp_listener
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+	"net"
+
+	"intelligence/pkg/network/tcp"
 )
 
-// UTCFormatter sets the timezone of the log to UTC.
-type UTCFormatter struct {
-	Next logrus.Formatter
-}
+// New creates a TCP listener with some default settings.
+func New(localHost string, localPort uint16) (tcp.Listener, error) {
+	resolvedAddress, err := tcp.ResolveAddr(localHost, localPort)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve the TCP address (%s)", err.Error())
+	}
 
-// Format sets the timezone of the log to UTC then invokes the next formatter.
-func (f *UTCFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	entry.Time = entry.Time.UTC()
-	return f.Next.Format(entry)
+	conn, err := net.ListenTCP("tcp", resolvedAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to listen on the TCP address (%s)", err.Error())
+	}
+
+	return conn, nil
 }

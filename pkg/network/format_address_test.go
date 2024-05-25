@@ -11,13 +11,13 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package net_test
+package network_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/utils/net"
+	"intelligence/pkg/network"
 )
 
 var _ = Describe("format network address", func() {
@@ -28,7 +28,7 @@ var _ = Describe("format network address", func() {
 
 		When("an IPv4 address is used", func() {
 			It("should return a formatted address", func() {
-				formatted, err := net.FormatNetworkAddress("127.0.0.1", port)
+				formatted, err := network.FormatNetworkAddress("127.0.0.1", port)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(formatted).To(Equal("127.0.0.1:12345"))
 			})
@@ -36,7 +36,7 @@ var _ = Describe("format network address", func() {
 
 		When("an IPv6 address  is used", func() {
 			It("should return a formatted address", func() {
-				formatted, err := net.FormatNetworkAddress("::1", port)
+				formatted, err := network.FormatNetworkAddress("::1", port)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(formatted).To(Equal("[::1]:12345"))
 			})
@@ -44,7 +44,7 @@ var _ = Describe("format network address", func() {
 
 		When("the hostname localhost is used", func() {
 			It("should return a formatted address", func() {
-				formatted, err := net.FormatNetworkAddress("localhost", port)
+				formatted, err := network.FormatNetworkAddress("localhost", port)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(formatted).To(Equal("localhost:12345"))
 			})
@@ -52,7 +52,7 @@ var _ = Describe("format network address", func() {
 
 		When("the fqdn example.com is used", func() {
 			It("should return a formatted address", func() {
-				formatted, err := net.FormatNetworkAddress("example.com", port)
+				formatted, err := network.FormatNetworkAddress("example.com", port)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(formatted).To(Equal("example.com:12345"))
 			})
@@ -60,7 +60,7 @@ var _ = Describe("format network address", func() {
 
 		When("an incorrectly formatted hostname is used", func() {
 			It("should fail", func() {
-				formatted, err := net.FormatNetworkAddress("[=+--]", port)
+				formatted, err := network.FormatNetworkAddress("[=+--]", port)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("invalid hostname"))
 				Expect(formatted).To(BeEmpty())
@@ -69,7 +69,7 @@ var _ = Describe("format network address", func() {
 
 		When("an incorrectly formatted IP is used", func() {
 			It("should fail", func() {
-				formatted, err := net.FormatNetworkAddress("256.100.50.25", port)
+				formatted, err := network.FormatNetworkAddress("256.100.50.25", port)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("invalid hostname '256.100.50.25'"))
 				Expect(formatted).To(BeEmpty())

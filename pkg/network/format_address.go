@@ -11,7 +11,7 @@
 //
 // By using this software, you agree to abide by the terms specified herein.
 
-package net
+package network
 
 import (
 	"fmt"
@@ -35,5 +35,6 @@ func FormatNetworkAddress(host string, port uint16) (string, error) {
 	if err := validation.Var(&host, "required,hostname"); err != nil {
 		return "", fmt.Errorf("invalid hostname '%s'", host)
 	}
+
 	return fmt.Sprintf("%s:%d", host, port), nil
 }

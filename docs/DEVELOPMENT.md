@@ -12,3 +12,13 @@ To create a local kubernetes cluster with the application installed, run the fol
 To teardown the cluster created with the steps defined above, run:
 
 - `make minikube_delete_cluster`
+
+## Tests
+
+To run the test suites:
+
+- `make test`
+
+To view the unit tests coverage report in a browser. The `test` recipe needs to be run first:
+
+- `make unit_tests_coverage`
