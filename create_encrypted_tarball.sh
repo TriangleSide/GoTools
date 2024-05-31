@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo "Creating a tarball of $SCRIPT_DIR"
 
+MINIKUBE_LOCATION=".minikube"
 TARBALL_LOCATION=".tarballs"
 mkdir -p "$TARBALL_LOCATION"
 
@@ -14,7 +15,7 @@ ENCRYPTED_FILE="$TARBALL_LOCATION/intelligence-repo.$CURRENT_DATETIME.tar.gz.gpg
 PASSWORD_FILE=".enc_key.txt"
 
 echo "Creating tarball into $TARBALL_FILE."
-tar --exclude="$TARBALL_LOCATION" -czf "$TARBALL_FILE" .
+tar --exclude="$TARBALL_LOCATION" --exclude="$MINIKUBE_LOCATION" -czf "$TARBALL_FILE" .
 
 echo "Encrypting into $ENCRYPTED_FILE"
 gpg --batch --yes --passphrase-file "$PASSWORD_FILE" --symmetric --output "$ENCRYPTED_FILE" "$TARBALL_FILE"
