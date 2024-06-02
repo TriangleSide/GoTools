@@ -1,10 +1,9 @@
 apiVersion: "cilium.io/v2"
 kind: CiliumNetworkPolicy
 metadata:
-  name: deny-for-default-namespace
+  name: default-namespace-deny
   namespace: default
 spec:
-  description: "Default deny for all pods in the default namespace."
   endpointSelector:
     matchLabels: {}
   ingress:

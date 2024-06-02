@@ -1,4 +1,5 @@
 cilium:
+  policyEnforcementMode: default
   hubble:
     enabled: false
   encryption:
