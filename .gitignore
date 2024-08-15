@@ -9,9 +9,6 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
-# Encrypted Tarballs
-.tarballs/
-
 # Helm Charts
 charts/*/charts/*.tgz
 
