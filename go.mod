@@ -1,8 +1,8 @@
 module intelligence
 
-go 1.22
+go 1.23
 
-toolchain go1.22.2
+toolchain go1.23.0
 
 require (
 	github.com/go-playground/validator/v10 v10.22.0

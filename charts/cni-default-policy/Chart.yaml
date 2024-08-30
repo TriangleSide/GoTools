@@ -1,4 +1,0 @@
-apiVersion: v2
-name: cni-default-policy
-version: 0.1.0
-description: "This charts sets the default networking policies for the Cilium CNI."
