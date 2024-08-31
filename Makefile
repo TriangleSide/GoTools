@@ -12,7 +12,7 @@ DOCKER_RUN := docker run --rm -v $(PWD):/app -w /app  --network host
 GOMODCACHE ?= $(HOME)/go/pkg/mod
 GOCACHE ?= $(HOME)/.cache/go-build
 
-GO_DOCKER_VERSION := 1
+GO_DOCKER_VERSION := 1.23.0
 GO_DOCKER_CACHES := -v $(GOMODCACHE):/go/pkg/mod -e GOMODCACHE=/go/pkg/mod -v $(GOCACHE):/root/.cache/go-build -e GOCACHE=/root/.cache/go-build
 GO_DOCKER_RUN := $(DOCKER_RUN) $(GO_DOCKER_CACHES) -e CGO_ENABLED=0 golang:$(GO_DOCKER_VERSION) go
 

@@ -8,8 +8,11 @@ import (
 )
 
 var (
+	// typeLocks ensures unique types are processed one at a time.
+	typeLocks = sync.Map{}
+
 	// fieldsToMetadataMemo is used to cache the result of the FieldsToMetadata function.
-	fieldsToMetadataMemo = sync.Map{}
+	fieldsToMetadataMemo = make(map[reflect.Type]map[string]*FieldMetadata)
 
 	// tagMatchRegex matches all tag entries on a struct field.
 	tagMatchRegex = regexp.MustCompile(`(\w+):"([^"]*)"`)
@@ -26,14 +29,20 @@ type FieldMetadata struct {
 // The returned map should not be written to under any circumstances since it can be shared among many threads.
 func FieldsToMetadata[T any]() map[string]*FieldMetadata {
 	reflectType := reflect.TypeOf(*new(T))
-	if memoData, ok := fieldsToMetadataMemo.Load(reflectType); ok {
-		return memoData.(map[string]*FieldMetadata)
+
+	lock, _ := typeLocks.LoadOrStore(reflectType, &sync.Mutex{})
+	mutex := lock.(*sync.Mutex)
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if memoData, ok := fieldsToMetadataMemo[reflectType]; ok {
+		return memoData
 	}
 
 	fieldsToMetadata := make(map[string]*FieldMetadata)
 	processType(reflectType, fieldsToMetadata, make([]string, 0))
 
-	fieldsToMetadataMemo.Store(reflectType, fieldsToMetadata)
+	fieldsToMetadataMemo[reflectType] = fieldsToMetadata
 	return fieldsToMetadata
 }
 

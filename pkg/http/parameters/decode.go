@@ -15,9 +15,6 @@ import (
 
 // Decode populates a parameter struct with values from an HTTP request and performs validation on the struct.
 func Decode[T any](request *http.Request) (*T, error) {
-	logEntry := logger.LogEntry(request.Context())
-	logEntry.Tracef("Parsing request parameters.")
-
 	params := new(T)
 	if reflect.ValueOf(*params).Kind() != reflect.Struct {
 		panic("the generic must be a struct")

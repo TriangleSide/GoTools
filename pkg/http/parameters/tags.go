@@ -43,8 +43,11 @@ var (
 	// lookupKeyFollowsNamingConvention is used to verify that a tags lookup key follow the naming convention as defined by TagLookupKeyNamingConvention.
 	lookupKeyFollowsNamingConvention func(lookupKey string) bool
 
+	// lookupKeyTypeLocks ensures unique types are processed one at a time.
+	lookupKeyTypeLocks = sync.Map{}
+
 	// lookupKeyExtractMemo stores the results of the ExtractAndValidateFieldTagLookupKeys function.
-	lookupKeyExtractMemo = sync.Map{}
+	lookupKeyExtractMemo = make(map[reflect.Type]map[Tag]map[string]string)
 )
 
 // init creates the variables needed by the processor.
@@ -59,10 +62,28 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 
 // ExtractAndValidateFieldTagLookupKeys validates the struct tags and returns a map of unique tag lookup keys for each field in the struct.
 // The returned map should not be written to under any circumstances since it can be shared among many threads.
+//
+//	type MyStruct struct {
+//	    MyParameter string `httpHeader:x-my-parameter`
+//	}
+//
+// Returns the following map:
+//
+//	{
+//	   "httpHeader": {
+//	       "x-my-parameter": "MyParameter"
+//	   }
+//	}
 func ExtractAndValidateFieldTagLookupKeys[T any]() (map[Tag]map[string]string, error) {
 	reflectType := reflect.TypeOf(*new(T))
-	if memoData, isMemoized := lookupKeyExtractMemo.Load(reflectType); isMemoized {
-		return memoData.(map[Tag]map[string]string), nil
+
+	lock, _ := lookupKeyTypeLocks.LoadOrStore(reflectType, &sync.Mutex{})
+	mutex := lock.(*sync.Mutex)
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if memoData, isMemoized := lookupKeyExtractMemo[reflectType]; isMemoized {
+		return memoData, nil
 	}
 
 	fieldsMetadata := reflectutils.FieldsToMetadata[T]()
@@ -101,6 +122,6 @@ func ExtractAndValidateFieldTagLookupKeys[T any]() (map[Tag]map[string]string, e
 		}
 	}
 
-	lookupKeyExtractMemo.Store(reflectType, tagToLookupKeyToFieldName)
+	lookupKeyExtractMemo[reflectType] = tagToLookupKeyToFieldName
 	return tagToLookupKeyToFieldName, nil
 }

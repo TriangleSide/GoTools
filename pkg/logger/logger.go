@@ -3,12 +3,12 @@ package logger
 import (
 	"context"
 	"fmt"
-	"intelligence/pkg/config/envprocessor"
 	"os"
 
 	"github.com/sirupsen/logrus"
 
 	"intelligence/pkg/config"
+	"intelligence/pkg/config/envprocessor"
 )
 
 const (
