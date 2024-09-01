@@ -59,15 +59,22 @@ func formatErrorMessage(err error) error {
 			if customErrorMsg, isCustomTag := customValidationErrorMessages[fieldError.Tag()]; isCustomTag {
 				errorList = append(errorList, customErrorMsg(fieldError))
 			} else {
-				errorMsg := "validation failed"
+				sb := strings.Builder{}
+				sb.WriteString("validation failed")
 				if fieldError.Field() != "" {
-					errorMsg = errorMsg + " on field '" + fieldError.Field() + "'"
+					sb.WriteString(" on field '")
+					sb.WriteString(fieldError.Field())
+					sb.WriteString("'")
 				}
-				errorMsg = errorMsg + " with validator '" + fieldError.Tag() + "'"
+				sb.WriteString(" with validator '")
+				sb.WriteString(fieldError.Tag())
+				sb.WriteString("'")
 				if fieldError.Param() != "" {
-					errorMsg = errorMsg + " and parameter(s) '" + fieldError.Param() + "'"
+					sb.WriteString(" and parameter(s) '")
+					sb.WriteString(fieldError.Param())
+					sb.WriteString("'")
 				}
-				errorList = append(errorList, errorMsg)
+				errorList = append(errorList, sb.String())
 			}
 		}
 		return errors.New(strings.Join(errorList, "; "))
