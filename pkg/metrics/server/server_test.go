@@ -11,15 +11,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/config"
-	"intelligence/pkg/config/envprocessor"
-	"intelligence/pkg/crypto/symmetric"
-	"intelligence/pkg/metrics"
-	metricsclient "intelligence/pkg/metrics/client"
-	metricsserver "intelligence/pkg/metrics/server"
-	"intelligence/pkg/network/udp"
-	udplistener "intelligence/pkg/network/udp/listener"
-	"intelligence/pkg/utils/ptr"
+	"github.com/TriangleSide/GoBase/pkg/config"
+	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
+	"github.com/TriangleSide/GoBase/pkg/crypto/symmetric"
+	"github.com/TriangleSide/GoBase/pkg/metrics"
+	metricsclient "github.com/TriangleSide/GoBase/pkg/metrics/client"
+	metricsserver "github.com/TriangleSide/GoBase/pkg/metrics/server"
+	"github.com/TriangleSide/GoBase/pkg/network/udp"
+	udplistener "github.com/TriangleSide/GoBase/pkg/network/udp/listener"
+	"github.com/TriangleSide/GoBase/pkg/utils/ptr"
 )
 
 type udpFailSetReadBuffer struct {

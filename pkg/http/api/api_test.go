@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/http/api"
-	"intelligence/pkg/validation"
+	"github.com/TriangleSide/GoBase/pkg/http/api"
+	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
 var _ = Describe("handler", func() {

@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/http/middleware"
+	"github.com/TriangleSide/GoBase/pkg/http/middleware"
 )
 
 var _ = Describe("middleware", func() {

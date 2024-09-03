@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"intelligence/pkg/logger"
+	"github.com/TriangleSide/GoBase/pkg/logger"
 )
 
 type testFormatter struct {

@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	udpclient "intelligence/pkg/network/udp/client"
+	udpclient "github.com/TriangleSide/GoBase/pkg/network/udp/client"
 )
 
 var _ = Describe("udp client", func() {

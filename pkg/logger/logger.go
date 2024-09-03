@@ -7,8 +7,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"intelligence/pkg/config"
-	"intelligence/pkg/config/envprocessor"
+	"github.com/TriangleSide/GoBase/pkg/config"
+	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
 )
 
 const (

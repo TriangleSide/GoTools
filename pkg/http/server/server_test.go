@@ -21,13 +21,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/config"
-	"intelligence/pkg/config/envprocessor"
-	"intelligence/pkg/http/api"
-	"intelligence/pkg/http/middleware"
-	"intelligence/pkg/http/server"
-	"intelligence/pkg/network/tcp"
-	tcplistener "intelligence/pkg/network/tcp/listener"
+	"github.com/TriangleSide/GoBase/pkg/config"
+	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
+	"github.com/TriangleSide/GoBase/pkg/http/api"
+	"github.com/TriangleSide/GoBase/pkg/http/middleware"
+	"github.com/TriangleSide/GoBase/pkg/http/server"
+	"github.com/TriangleSide/GoBase/pkg/network/tcp"
+	tcplistener "github.com/TriangleSide/GoBase/pkg/network/tcp/listener"
 )
 
 type testHandler struct {

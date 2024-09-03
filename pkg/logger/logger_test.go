@@ -7,8 +7,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/config"
-	"intelligence/pkg/logger"
+	"github.com/TriangleSide/GoBase/pkg/config"
+	"github.com/TriangleSide/GoBase/pkg/logger"
 )
 
 var _ = Describe("logger", func() {

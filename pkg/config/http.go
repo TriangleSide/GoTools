@@ -1,7 +1,7 @@
 package config
 
 import (
-	"intelligence/pkg/config/envprocessor"
+	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
 )
 
 const (

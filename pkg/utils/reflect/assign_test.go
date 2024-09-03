@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/utils/reflect"
+	"github.com/TriangleSide/GoBase/pkg/utils/reflect"
 )
 
 type unmarshallTestStruct struct {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"intelligence/pkg/network/udp"
+	"github.com/TriangleSide/GoBase/pkg/network/udp"
 )
 
 // New creates a local UDP listener with some default settings.

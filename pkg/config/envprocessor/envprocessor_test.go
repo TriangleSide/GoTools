@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/config/envprocessor"
+	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
 )
 
 var _ = Describe("config", func() {

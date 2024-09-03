@@ -5,7 +5,7 @@ import (
 	"net"
 	"strings"
 
-	"intelligence/pkg/validation"
+	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
 // FormatNetworkAddress takes a host address and a port number, and returns a correctly formatted server address.

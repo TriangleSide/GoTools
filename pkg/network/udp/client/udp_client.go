@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"intelligence/pkg/network/udp"
+	"github.com/TriangleSide/GoBase/pkg/network/udp"
 )
 
 // Config is configured by the caller with the Option functions.

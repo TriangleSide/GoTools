@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
-	"intelligence/pkg/http/middleware"
-	"intelligence/pkg/validation"
+	"github.com/TriangleSide/GoBase/pkg/http/middleware"
+	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
 const (

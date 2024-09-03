@@ -10,12 +10,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"intelligence/pkg/config"
-	"intelligence/pkg/config/envprocessor"
-	"intelligence/pkg/http/api"
-	"intelligence/pkg/http/middleware"
-	"intelligence/pkg/network/tcp"
-	tcplistener "intelligence/pkg/network/tcp/listener"
+	"github.com/TriangleSide/GoBase/pkg/config"
+	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
+	"github.com/TriangleSide/GoBase/pkg/http/api"
+	"github.com/TriangleSide/GoBase/pkg/http/middleware"
+	"github.com/TriangleSide/GoBase/pkg/network/tcp"
+	tcplistener "github.com/TriangleSide/GoBase/pkg/network/tcp/listener"
 )
 
 // Config is configured by the caller with the ServerOption functions.

@@ -5,7 +5,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/validation"
+	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
 var _ = Describe("validation", func() {

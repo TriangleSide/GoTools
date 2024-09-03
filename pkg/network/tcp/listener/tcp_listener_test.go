@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	tcplistener "intelligence/pkg/network/tcp/listener"
+	tcplistener "github.com/TriangleSide/GoBase/pkg/network/tcp/listener"
 )
 
 var _ = Describe("tcp listener ", func() {

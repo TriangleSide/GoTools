@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	reflectutils "intelligence/pkg/utils/reflect"
+	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
 )
 
 // Tag is a string of metadata associated at compile time with a field of a struct.

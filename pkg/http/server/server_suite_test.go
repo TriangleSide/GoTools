@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/config"
+	"github.com/TriangleSide/GoBase/pkg/config"
 )
 
 func Test(t *testing.T) {

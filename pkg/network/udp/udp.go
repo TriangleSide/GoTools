@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"intelligence/pkg/network"
+	"github.com/TriangleSide/GoBase/pkg/network"
 )
 
 // Conn exists because the GoLang standard library doesn't have an interface for it.

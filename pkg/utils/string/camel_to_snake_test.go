@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	stringutils "intelligence/pkg/utils/string"
+	stringutils "github.com/TriangleSide/GoBase/pkg/utils/string"
 )
 
 var _ = Describe("camel to snake", func() {

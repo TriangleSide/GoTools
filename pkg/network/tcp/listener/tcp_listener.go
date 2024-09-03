@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"intelligence/pkg/network/tcp"
+	"github.com/TriangleSide/GoBase/pkg/network/tcp"
 )
 
 // New creates a TCP listener with some default settings.

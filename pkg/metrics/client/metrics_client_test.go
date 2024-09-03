@@ -7,12 +7,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/config"
-	"intelligence/pkg/crypto/symmetric"
-	"intelligence/pkg/metrics"
-	metricsclient "intelligence/pkg/metrics/client"
-	"intelligence/pkg/network/udp"
-	udpclient "intelligence/pkg/network/udp/client"
+	"github.com/TriangleSide/GoBase/pkg/config"
+	"github.com/TriangleSide/GoBase/pkg/crypto/symmetric"
+	"github.com/TriangleSide/GoBase/pkg/metrics"
+	metricsclient "github.com/TriangleSide/GoBase/pkg/metrics/client"
+	"github.com/TriangleSide/GoBase/pkg/network/udp"
+	udpclient "github.com/TriangleSide/GoBase/pkg/network/udp/client"
 )
 
 type udpFailWriter struct {

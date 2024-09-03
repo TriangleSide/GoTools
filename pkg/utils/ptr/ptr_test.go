@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/utils/ptr"
+	"github.com/TriangleSide/GoBase/pkg/utils/ptr"
 )
 
 var _ = Describe("to pointer utility", func() {

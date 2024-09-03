@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	reflectutils "intelligence/pkg/utils/reflect"
-	stringutils "intelligence/pkg/utils/string"
-	"intelligence/pkg/validation"
+	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
+	stringutils "github.com/TriangleSide/GoBase/pkg/utils/string"
+	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
 // EnvName is used to indicate that the value of the variable is the name of an environment variable.

@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	reflectutils "intelligence/pkg/utils/reflect"
+	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
 )
 
 var _ = Describe("struct field metadata", func() {

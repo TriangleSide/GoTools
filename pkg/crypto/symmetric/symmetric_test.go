@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/crypto/symmetric"
+	"github.com/TriangleSide/GoBase/pkg/crypto/symmetric"
 )
 
 var _ = Describe("symmetric encryption", func() {

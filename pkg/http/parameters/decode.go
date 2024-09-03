@@ -7,10 +7,10 @@ import (
 	"reflect"
 	"strings"
 
-	"intelligence/pkg/http/headers"
-	"intelligence/pkg/logger"
-	reflectutils "intelligence/pkg/utils/reflect"
-	"intelligence/pkg/validation"
+	"github.com/TriangleSide/GoBase/pkg/http/headers"
+	"github.com/TriangleSide/GoBase/pkg/logger"
+	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
+	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
 // Decode populates a parameter struct with values from an HTTP request and performs validation on the struct.

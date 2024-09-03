@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"intelligence/pkg/http/headers"
-	"intelligence/pkg/http/parameters"
+	"github.com/TriangleSide/GoBase/pkg/http/headers"
+	"github.com/TriangleSide/GoBase/pkg/http/parameters"
 )
 
 var _ = Describe("parameter tags", func() {

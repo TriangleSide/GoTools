@@ -7,12 +7,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"intelligence/pkg/config"
-	"intelligence/pkg/config/envprocessor"
-	"intelligence/pkg/crypto/symmetric"
-	"intelligence/pkg/metrics"
-	"intelligence/pkg/network/udp"
-	udpclient "intelligence/pkg/network/udp/client"
+	"github.com/TriangleSide/GoBase/pkg/config"
+	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
+	"github.com/TriangleSide/GoBase/pkg/crypto/symmetric"
+	"github.com/TriangleSide/GoBase/pkg/metrics"
+	"github.com/TriangleSide/GoBase/pkg/network/udp"
+	udpclient "github.com/TriangleSide/GoBase/pkg/network/udp/client"
 )
 
 // Config is configured by the caller with the Option functions.
