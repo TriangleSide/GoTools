@@ -4,7 +4,7 @@ Before getting started, ensure the prerequisite [dependencies](./DEPENDENCIES.md
 
 ## Codebase
 
-One of the goals of this codebase is to use as little external dependencies as possible.
+One of the goals of this codebase is to use no external dependencies.
 
 ## Tests
 
