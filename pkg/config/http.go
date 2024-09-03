@@ -8,6 +8,7 @@ const (
 	HTTPServerCertEnvName     envprocessor.EnvName = "HTTP_SERVER_CERT"
 	HTTPServerKeyEnvName      envprocessor.EnvName = "HTTP_SERVER_KEY"
 	HTTPServerBindPortEnvName envprocessor.EnvName = "HTTP_SERVER_BIND_PORT"
+	HTTPServerTLSEnvName      envprocessor.EnvName = "HTTP_SERVER_TLS"
 )
 
 // HTTPServer contains the parameters needed to configure an HTTP server.
@@ -38,13 +39,19 @@ type HTTPServer struct {
 	// zero, there is no timeout.
 	HTTPServerHeaderReadTimeoutSeconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
 
+	// The HTTPServerTLS flag is used to enable or disable the use of TLS (Transport Layer Security)
+	// for the HTTP server. When set to true, TLS is enabled, and the server will use the TLS protocol
+	// to provide secure communications. When set to false, the server operates over plain HTTP,
+	// which does not provide encryption.
+	HTTPServerTLS bool `config_format:"snake" config_default:"true"`
+
 	// HTTPServerCert is the file path to the server's TLS certificate.
 	// This certificate contains the public key part of the key pair used by the server
 	// to establish its identity with clients during the TLS handshake. The certificate
 	// must be issued by a trusted certificate authority (CA) or be a self-signed certificate
 	// that clients trust. The certificate includes the server's public key along with
 	// the identity of the server (like hostname), and it is encoded in PEM format.
-	HTTPServerCert string `config_format:"snake" validate:"required,filepath"`
+	HTTPServerCert string `config_format:"snake" config_default:"" validate:"omitempty,filepath"`
 
 	// HTTPServerKey is the file path to the server's private key.
 	// This key is the private part of the key pair associated with the server's certificate.
@@ -52,7 +59,7 @@ type HTTPServer struct {
 	// by clients during the TLS handshake. The server's private key must be kept secure
 	// and confidential because unauthorized access to this key compromises the entire
 	// security of the TLS encryption. This key is typically also encoded in PEM format.
-	HTTPServerKey string `config_format:"snake" validate:"required,filepath"`
+	HTTPServerKey string `config_format:"snake" config_default:"" validate:"omitempty,filepath"`
 
 	// HTTPServerMaxHeaderBytes controls the maximum number of bytes the server will read parsing
 	// the request header's keys and values, including the request line. It does not limit the

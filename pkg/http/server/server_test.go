@@ -37,14 +37,14 @@ type testHandler struct {
 	Handler    http.HandlerFunc
 }
 
-func (t testHandler) AcceptHTTPAPIBuilder(builder *api.HTTPAPIBuilder) {
+func (t *testHandler) AcceptHTTPAPIBuilder(builder *api.HTTPAPIBuilder) {
 	builder.MustRegister(api.Path(t.Path), api.Method(t.Method), &api.Handler{
 		Middleware: t.Middleware,
 		Handler:    t.Handler,
 	})
 }
 
-var _ = Describe("server", func() {
+var _ = Describe("http server", func() {
 	AfterEach(func() {
 		unsetEnvironmentVariables()
 	})
@@ -110,7 +110,178 @@ var _ = Describe("server", func() {
 				}
 			})
 
-			When("a server certificate and key is generated", func() {
+			generateServerRunErrorCases := func() {
+				It("should fail if the environment variables fail to be parsed", func() {
+					srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+						return nil, errors.New("config error")
+					}))
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("could not load configuration (config error)"))
+					Expect(srv).To(BeNil())
+				})
+
+				It("should fail if the server address is incorrectly formatted", func() {
+					srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+						cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
+						Expect(err).ToNot(HaveOccurred())
+						cfg.HTTPServerBindIP = "not_an_ip"
+						return cfg, nil
+					}))
+					Expect(err).NotTo(HaveOccurred())
+					err = srv.Run(commonMw, handlers, func() {})
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("failed to create the network listener"))
+				})
+
+				It("should fail if the server keys are missing", func() {
+					srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+						cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
+						Expect(err).ToNot(HaveOccurred())
+						cfg.HTTPServerTLS = true
+						cfg.HTTPServerKey = ""
+						cfg.HTTPServerCert = ""
+						return cfg, nil
+					}))
+					Expect(err).NotTo(HaveOccurred())
+					err = srv.Run(commonMw, handlers, func() {})
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("failed to load the server certificate"))
+				})
+
+				It("should return an error if the option returns an error", func() {
+					srv, err := server.New(func(cfg *server.Config) error {
+						return errors.New("error")
+					})
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("failed to configure the HTTP server (error)"))
+					Expect(srv).To(BeNil())
+				})
+
+				It("should fail if the port is is already bound", func() {
+					const ip = "::1"
+					const port = 6789
+					ln, err := tcplistener.New(ip, port)
+					Expect(err).ToNot(HaveOccurred())
+					defer func() {
+						Expect(ln.Close()).To(Succeed())
+					}()
+					srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+						cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
+						Expect(err).ToNot(HaveOccurred())
+						cfg.HTTPServerBindIP = ip
+						cfg.HTTPServerBindPort = port
+						return cfg, nil
+					}))
+					Expect(err).NotTo(HaveOccurred())
+					err = srv.Run(commonMw, handlers, func() {})
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("address already in use"))
+				})
+
+				When("the TCP listener is closed unexpectedly when the server is running", func() {
+					var (
+						listener net.Listener
+						srv      *server.Server
+					)
+
+					BeforeEach(func() {
+						var err error
+						listener, err = tcplistener.New("::1", 6789)
+						Expect(err).ToNot(HaveOccurred())
+						srv, err = server.New(server.WithListenerProvider(func(string, uint16) (tcp.Listener, error) {
+							return listener, nil
+						}))
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					AfterEach(func() {
+						Expect(srv.Shutdown(ctx)).To(Succeed())
+					})
+
+					It("should return an error", func() {
+						srvErrChan := make(chan error, 1)
+						waitUntilReady := make(chan bool)
+						go func() {
+							srvErrChan <- srv.Run(commonMw, handlers, func() {
+								close(waitUntilReady)
+							})
+						}()
+						<-waitUntilReady
+						Expect(listener.Close()).To(Succeed())
+						err := <-srvErrChan
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("error encountered while serving http requests"))
+					})
+				})
+			}
+
+			generateServerTests := func(host string, port uint16, clientTests func(host string, port uint16)) {
+				When(fmt.Sprintf("a server is bound to IP %s and port %d is started", host, port), func() {
+					var (
+						srv        *server.Server
+						srvErrChan chan error
+					)
+
+					BeforeEach(func() {
+						var err error
+
+						srvErrChan = make(chan error, 1)
+						waitUntilReady := make(chan bool)
+
+						srv, err = server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+							cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
+							Expect(err).ToNot(HaveOccurred())
+							cfg.HTTPServerBindIP = host
+							cfg.HTTPServerBindPort = port
+							return cfg, nil
+						}))
+						Expect(err).ToNot(HaveOccurred())
+
+						go func() {
+							srvErrChan <- srv.Run(commonMw, handlers, func() {
+								close(waitUntilReady)
+							})
+						}()
+						<-waitUntilReady
+					})
+
+					AfterEach(func() {
+						Expect(srv.Shutdown(ctx)).To(Succeed())
+						Expect(<-srvErrChan).To(Not(HaveOccurred()))
+					})
+
+					It("should panic when started again", func() {
+						Expect(func() {
+							Expect(srv.Run(commonMw, handlers, func() {})).To(Succeed())
+						}).Should(PanicWith(ContainSubstring("HTTP server can only be run once per instance")))
+					})
+
+					It("should be able to be shutdown multiple times", func() {
+						for i := 0; i < 3; i++ {
+							Expect(srv.Shutdown(ctx)).To(Succeed())
+						}
+					})
+
+					clientTests(host, port)
+				})
+			}
+
+			expectSuccessfulRootGet := func(httpClient *http.Client, host string, port uint16, protocol string) {
+				request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s://%s:%d%s", protocol, host, port, path), nil)
+				Expect(err).NotTo(HaveOccurred())
+				response, err := httpClient.Do(request)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+				Expect(response.Body).To(Not(BeNil()))
+				responseBody, err := io.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(responseBody)).To(Equal(body))
+				Expect(commonMwValue).To(Equal(commonMwValueSet))
+				Expect(handlerMwValue).To(Equal(mwSetValue))
+				Expect(response.Body.Close()).To(Succeed())
+			}
+
+			When("a server certificate and key is generated for TLS", func() {
 				var (
 					tempDir         string
 					privateKeyPath  string
@@ -148,6 +319,7 @@ var _ = Describe("server", func() {
 					certificatePath = filepath.Join(tempDir, "cert.pem")
 					Expect(os.WriteFile(certificatePath, certificatePEM, 0644)).To(Succeed())
 
+					Expect(os.Setenv(string(config.HTTPServerTLSEnvName), "true")).To(Succeed())
 					Expect(os.Setenv(string(config.HTTPServerKeyEnvName), privateKeyPath)).To(Succeed())
 					Expect(os.Setenv(string(config.HTTPServerCertEnvName), certificatePath)).To(Succeed())
 				})
@@ -156,127 +328,8 @@ var _ = Describe("server", func() {
 					Expect(os.RemoveAll(tempDir)).To(Succeed())
 				})
 
-				Context("server run errors", func() {
-					It("should fail if the environment variables fail to be parsed", func() {
-						srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-							return nil, errors.New("config error")
-						}))
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("could not load configuration (config error)"))
-						Expect(srv).To(BeNil())
-					})
-
-					It("should fail if the server address is incorrectly formatted", func() {
-						srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-							cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
-							Expect(err).ToNot(HaveOccurred())
-							cfg.HTTPServerBindIP = "not_an_ip"
-							return cfg, nil
-						}))
-						Expect(err).NotTo(HaveOccurred())
-						err = srv.Run(commonMw, handlers, func() {})
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("failed to create the network listener"))
-					})
-
-					It("should fail if the server keys are missing", func() {
-						srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-							cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
-							Expect(err).ToNot(HaveOccurred())
-							cfg.HTTPServerKey = ""
-							cfg.HTTPServerCert = ""
-							return cfg, nil
-						}))
-						Expect(err).NotTo(HaveOccurred())
-						err = srv.Run(commonMw, handlers, func() {})
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("failed to load the server certificate"))
-					})
-
-					It("should return an error if the option returns an error", func() {
-						srv, err := server.New(func(cfg *server.Config) error {
-							return errors.New("error")
-						})
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("failed to configure the HTTP server (error)"))
-						Expect(srv).To(BeNil())
-					})
-
-					It("should fail if the port is is already bound", func() {
-						const ip = "::1"
-						const port = 6789
-						ln, err := tcplistener.New(ip, port)
-						Expect(err).ToNot(HaveOccurred())
-						defer func() {
-							Expect(ln.Close()).To(Succeed())
-						}()
-						srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-							cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
-							Expect(err).ToNot(HaveOccurred())
-							cfg.HTTPServerBindIP = ip
-							cfg.HTTPServerBindPort = port
-							return cfg, nil
-						}))
-						Expect(err).NotTo(HaveOccurred())
-						err = srv.Run(commonMw, handlers, func() {})
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("address already in use"))
-					})
-
-					When("the TCP listener is closed unexpectedly when the server is running", func() {
-						var (
-							listener net.Listener
-							srv      *server.Server
-						)
-
-						BeforeEach(func() {
-							var err error
-							listener, err = tcplistener.New("::1", 6789)
-							Expect(err).ToNot(HaveOccurred())
-							srv, err = server.New(server.WithListenerProvider(func(string, uint16) (tcp.Listener, error) {
-								return listener, nil
-							}))
-							Expect(err).NotTo(HaveOccurred())
-						})
-
-						AfterEach(func() {
-							Expect(srv.Shutdown(ctx)).To(Succeed())
-						})
-
-						It("should return an error", func() {
-							srvErrChan := make(chan error, 1)
-							waitUntilReady := make(chan bool)
-							go func() {
-								srvErrChan <- srv.Run(commonMw, handlers, func() {
-									close(waitUntilReady)
-								})
-							}()
-							<-waitUntilReady
-							Expect(listener.Close()).To(Succeed())
-							err := <-srvErrChan
-							Expect(err).To(HaveOccurred())
-							Expect(err.Error()).To(ContainSubstring("error encountered while serving http requests"))
-						})
-					})
-				})
-
-				generateClientTests := func(host string, port uint16) {
-					successfulRootGet := func(httpClient *http.Client) {
-						request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s:%d%s", host, port, path), nil)
-						Expect(err).NotTo(HaveOccurred())
-						response, err := httpClient.Do(request)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-						Expect(response.Body).To(Not(BeNil()))
-						responseBody, err := io.ReadAll(response.Body)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(string(responseBody)).To(Equal(body))
-						Expect(commonMwValue).To(Equal(commonMwValueSet))
-						Expect(handlerMwValue).To(Equal(mwSetValue))
-						Expect(response.Body.Close()).To(Succeed())
-					}
-
-					When("an HTTP client is created that verifies the server certificate without trusting it", func() {
+				generateTLSClientTests := func(host string, port uint16) {
+					When("an HTTPS client is created that verifies the server certificate without trusting it", func() {
 						var (
 							strictHttpClient *http.Client
 						)
@@ -305,7 +358,7 @@ var _ = Describe("server", func() {
 						})
 					})
 
-					When("an HTTP client is created that verifies the server certificate and trusts it", func() {
+					When("an HTTPS client is created that verifies the server certificate and trusts it", func() {
 						var (
 							httpClient *http.Client
 						)
@@ -330,11 +383,11 @@ var _ = Describe("server", func() {
 						})
 
 						It("should be able to get the root contents", func() {
-							successfulRootGet(httpClient)
+							expectSuccessfulRootGet(httpClient, host, port, "https")
 						})
 					})
 
-					When("an HTTP client is created that doesn't verify the server certificate", func() {
+					When("an HTTPS client is created that doesn't verify the server certificate", func() {
 						var (
 							httpClient *http.Client
 						)
@@ -354,64 +407,73 @@ var _ = Describe("server", func() {
 						})
 
 						It("should be able to get the root contents", func() {
-							successfulRootGet(httpClient)
+							expectSuccessfulRootGet(httpClient, host, port, "https")
 						})
 					})
 				}
 
-				generateServerTests := func(host string, port uint16) {
-					When(fmt.Sprintf("an HTTP server is bound to IP %s and port %d with common middleware is started", host, port), func() {
+				generateServerRunErrorCases()
+				generateServerTests("127.0.0.1", 4443, generateTLSClientTests)
+				generateServerTests("::1", 4443, generateTLSClientTests)
+			})
+
+			When("tls is turned off", func() {
+				BeforeEach(func() {
+					Expect(os.Setenv(string(config.HTTPServerTLSEnvName), "false")).To(Succeed())
+				})
+
+				generateInsecureClientTests := func(host string, port uint16) {
+					When("an HTTPS client is created for the HTTP server", func() {
 						var (
-							srv        *server.Server
-							srvErrChan chan error
+							strictHttpClient *http.Client
 						)
 
 						BeforeEach(func() {
-							var err error
-
-							srvErrChan = make(chan error, 1)
-							waitUntilReady := make(chan bool)
-
-							srv, err = server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-								cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
-								Expect(err).ToNot(HaveOccurred())
-								cfg.HTTPServerBindIP = host
-								cfg.HTTPServerBindPort = port
-								return cfg, nil
-							}))
-							Expect(err).ToNot(HaveOccurred())
-
-							go func() {
-								srvErrChan <- srv.Run(commonMw, handlers, func() {
-									close(waitUntilReady)
-								})
-							}()
-							<-waitUntilReady
-						})
-
-						AfterEach(func() {
-							Expect(srv.Shutdown(ctx)).To(Succeed())
-							Expect(<-srvErrChan).To(Not(HaveOccurred()))
-						})
-
-						It("should panic when started again", func() {
-							Expect(func() {
-								Expect(srv.Run(commonMw, handlers, func() {})).To(Succeed())
-							}).Should(PanicWith(ContainSubstring("HTTP server can only be run once per instance")))
-						})
-
-						It("should be able to be shutdown multiple times", func() {
-							for i := 0; i < 3; i++ {
-								Expect(srv.Shutdown(ctx)).To(Succeed())
+							strictHttpClient = &http.Client{
+								Transport: &http.Transport{
+									TLSClientConfig: &tls.Config{
+										InsecureSkipVerify: false,
+									},
+								},
 							}
 						})
 
-						generateClientTests(host, port)
+						AfterEach(func() {
+							strictHttpClient.CloseIdleConnections()
+						})
+
+						It("should fail to connect to the server", func() {
+							request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s:%d%s", host, port, path), nil)
+							Expect(err).NotTo(HaveOccurred())
+							response, err := strictHttpClient.Do(request)
+							Expect(err).To(HaveOccurred())
+							Expect(err.Error()).To(ContainSubstring("server gave HTTP response to HTTPS client"))
+							Expect(response).To(BeNil())
+						})
+					})
+
+					When("an HTTP client is created", func() {
+						var (
+							httpClient *http.Client
+						)
+
+						BeforeEach(func() {
+							httpClient = &http.Client{}
+						})
+
+						AfterEach(func() {
+							httpClient.CloseIdleConnections()
+						})
+
+						It("should be able to get the root contents", func() {
+							expectSuccessfulRootGet(httpClient, host, port, "http")
+						})
 					})
 				}
 
-				generateServerTests("127.0.0.1", 4443)
-				generateServerTests("::1", 4443)
+				generateServerRunErrorCases()
+				generateServerTests("127.0.0.1", 18080, generateInsecureClientTests)
+				generateServerTests("::1", 18080, generateInsecureClientTests)
 			})
 		})
 	})

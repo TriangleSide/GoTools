@@ -18,7 +18,7 @@ import (
 	tcplistener "github.com/TriangleSide/GoBase/pkg/network/tcp/listener"
 )
 
-// Config is configured by the caller with the ServerOption functions.
+// Config is configured by the caller with the Option functions.
 type Config struct {
 	configProvider   func() (*config.HTTPServer, error)
 	listenerProvider func(localHost string, localPort uint16) (tcp.Listener, error)
@@ -27,7 +27,7 @@ type Config struct {
 // Option is used to configure the HTTP server.
 type Option func(config *Config) error
 
-// WithConfigProvider sets the server config provider.
+// WithConfigProvider sets the provider for the config.HTTPServer.
 func WithConfigProvider(provider func() (*config.HTTPServer, error)) Option {
 	return func(config *Config) error {
 		config.configProvider = provider
@@ -35,7 +35,7 @@ func WithConfigProvider(provider func() (*config.HTTPServer, error)) Option {
 	}
 }
 
-// WithListenerProvider sets the provider for the TCP listener.
+// WithListenerProvider sets the provider for the tcp.Listener.
 func WithListenerProvider(provider func(localHost string, localPort uint16) (tcp.Listener, error)) Option {
 	return func(config *Config) error {
 		config.listenerProvider = provider
@@ -116,13 +116,16 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 		}
 	}
 
-	serverCert, err := tls.LoadX509KeyPair(server.envConf.HTTPServerCert, server.envConf.HTTPServerKey)
-	if err != nil {
-		return fmt.Errorf("failed to load the server certificate (%s)", err.Error())
-	}
-	tlsConfig := &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		Certificates: []tls.Certificate{serverCert},
+	var tlsConfig *tls.Config = nil
+	if server.envConf.HTTPServerTLS {
+		serverCert, err := tls.LoadX509KeyPair(server.envConf.HTTPServerCert, server.envConf.HTTPServerKey)
+		if err != nil {
+			return fmt.Errorf("failed to load the server certificates (%s)", err.Error())
+		}
+		tlsConfig = &tls.Config{
+			MinVersion:   tls.VersionTLS12,
+			Certificates: []tls.Certificate{serverCert},
+		}
 	}
 
 	server.srv = &http.Server{
@@ -137,6 +140,7 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 
 	// Manually creating the listener first ensures the server can start receiving connections before
 	// it is marked as ready by the callback.
+	var err error
 	server.listener, err = server.serverConfig.listenerProvider(server.envConf.HTTPServerBindIP, server.envConf.HTTPServerBindPort)
 	if err != nil {
 		return fmt.Errorf("failed to create the network listener (%s)", err.Error())
@@ -145,7 +149,13 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 	readyCallback()
 
 	// ServeTLS always returns as error as it is meant to be blocking.
-	err = server.srv.ServeTLS(server.listener, "", "")
+	if server.envConf.HTTPServerTLS {
+		err = server.srv.ServeTLS(server.listener, "", "")
+	} else {
+		err = server.srv.Serve(server.listener)
+	}
+
+	// The server blocks until there is an error, or it is shutdown.
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	} else {
