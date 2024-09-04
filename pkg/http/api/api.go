@@ -110,12 +110,16 @@ func (builder *HTTPAPIBuilder) MustRegister(path Path, method Method, handler *H
 		panic(fmt.Sprintf("HTTP method '%s' is invalid (%s).", method, err.Error()))
 	}
 
+	// The handler can be nil in cases like cors requests. The Go HTTP server needs the route
+	// to exist to handle the request, but there is no handler needed for it.
 	if handler == nil {
-		panic(fmt.Sprintf("The handler for path %s and method %s is nil.", path, method))
+		handler = &Handler{}
 	}
 
 	if handler.Handler == nil {
-		panic(fmt.Sprintf("The handler func for path %s and method %s is nil.", path, method))
+		handler.Handler = func(writer http.ResponseWriter, request *http.Request) {
+			writer.WriteHeader(http.StatusNotImplemented)
+		}
 	}
 
 	methodToHandlerMap, pathAlreadyRegistered := builder.handlers[path]

@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"net/http"
+	"net/http/httptest"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -42,21 +43,6 @@ var _ = Describe("handler", func() {
 			}).To(PanicWith(ContainSubstring("path contains invalid characters")))
 		})
 
-		It("should panic when a nil handler is registered", func() {
-			Expect(func() {
-				builder.MustRegister("/", http.MethodGet, nil)
-			}).To(PanicWith(ContainSubstring("handler for path / and method GET is nil")))
-		})
-
-		It("should panic when a nil handler func is registered", func() {
-			Expect(func() {
-				builder.MustRegister("/", http.MethodGet, &api.Handler{
-					Middleware: nil,
-					Handler:    nil,
-				})
-			}).To(PanicWith(ContainSubstring("handler func for path / and method GET is nil")))
-		})
-
 		It("should panic when path and method is registered twice", func() {
 			Expect(func() {
 				for i := 0; i < 2; i++ {
@@ -66,6 +52,76 @@ var _ = Describe("handler", func() {
 					})
 				}
 			}).To(PanicWith(ContainSubstring("method 'GET' already registered for path '/'")))
+		})
+
+		When("a nil handler is registered", func() {
+			var (
+				path     api.Path
+				recorder *httptest.ResponseRecorder
+				request  *http.Request
+			)
+
+			BeforeEach(func() {
+				var err error
+				path = "/"
+				builder.MustRegister("/", http.MethodGet, nil)
+				recorder = httptest.NewRecorder()
+				request, err = http.NewRequest(http.MethodGet, "/", nil)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should create a handler that returns the not implemented status", func() {
+				pathToMethodToHandler := builder.Handlers()
+				Expect(pathToMethodToHandler).To(Not(BeNil()))
+
+				methodToHandler, pathFound := pathToMethodToHandler[path]
+				Expect(pathFound).To(BeTrue())
+				Expect(methodToHandler).To(Not(BeNil()))
+
+				handler, methodFound := methodToHandler[http.MethodGet]
+				Expect(methodFound).To(BeTrue())
+				Expect(handler).To(Not(BeNil()))
+				Expect(handler.Handler).To(Not(BeNil()))
+				Expect(handler.Middleware).To(BeNil())
+
+				handler.Handler.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(http.StatusNotImplemented))
+			})
+		})
+
+		When("a nil handler func is registered", func() {
+			var (
+				path     api.Path
+				recorder *httptest.ResponseRecorder
+				request  *http.Request
+			)
+
+			BeforeEach(func() {
+				var err error
+				path = "/"
+				builder.MustRegister("/", http.MethodGet, nil)
+				recorder = httptest.NewRecorder()
+				request, err = http.NewRequest(http.MethodGet, "/", nil)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should create a handler that returns the not implemented status", func() {
+				pathToMethodToHandler := builder.Handlers()
+				Expect(pathToMethodToHandler).To(Not(BeNil()))
+
+				methodToHandler, pathFound := pathToMethodToHandler[path]
+				Expect(pathFound).To(BeTrue())
+				Expect(methodToHandler).To(Not(BeNil()))
+
+				handler, methodFound := methodToHandler[http.MethodGet]
+				Expect(methodFound).To(BeTrue())
+				Expect(handler).To(Not(BeNil()))
+				Expect(handler.Handler).To(Not(BeNil()))
+				Expect(handler.Middleware).To(BeNil())
+
+				handler.Handler.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(http.StatusNotImplemented))
+			})
 		})
 
 		When("a path of / with a method of GET is registered", func() {
