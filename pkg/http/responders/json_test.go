@@ -21,8 +21,7 @@ var _ = Describe("JSON responder", func() {
 	}
 
 	type requestParams struct {
-		ID   int    `json:"id" validate:"gt=0"`
-		Name string `json:"name"`
+		ID int `json:"id" validate:"gt=0"`
 	}
 
 	type responseBody struct {
@@ -30,7 +29,7 @@ var _ = Describe("JSON responder", func() {
 	}
 
 	jsonHandler := func(params *requestParams) (*responseBody, int, error) {
-		if params.ID == 123 && params.Name == "test" {
+		if params.ID == 123 {
 			return &responseBody{Message: "processed"}, http.StatusOK, nil
 		}
 		return nil, 0, &errors.BadRequest{Err: goerrors.New("invalid parameters")}
@@ -45,7 +44,7 @@ var _ = Describe("JSON responder", func() {
 			server := httptest.NewServer(http.HandlerFunc(httpHandler))
 			defer server.Close()
 
-			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":123, "name":"test"}`))
+			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":123}`))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
@@ -61,7 +60,7 @@ var _ = Describe("JSON responder", func() {
 			server := httptest.NewServer(http.HandlerFunc(httpHandler))
 			defer server.Close()
 
-			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":-1, "name":"error"}`))
+			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":-1}`))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 
@@ -77,7 +76,7 @@ var _ = Describe("JSON responder", func() {
 			server := httptest.NewServer(http.HandlerFunc(httpHandler))
 			defer server.Close()
 
-			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":456, "name":"error"}`))
+			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":456}`))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 
@@ -97,7 +96,7 @@ var _ = Describe("JSON responder", func() {
 			}))
 			defer server.Close()
 
-			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":456, "name":"error"}`))
+			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":456}`))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 

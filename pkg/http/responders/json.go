@@ -25,7 +25,7 @@ func JSON[RequestParameters any, ResponseBody any](writer http.ResponseWriter, r
 		return
 	}
 
-	writer.Header().Add(headers.ContentType, headers.ContentTypeApplicationJson)
+	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJson)
 	writer.WriteHeader(status)
 
 	if err := json.NewEncoder(writer).Encode(response); err != nil {

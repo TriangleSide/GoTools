@@ -17,12 +17,11 @@ import (
 
 var _ = Describe("status responder", func() {
 	type requestParams struct {
-		ID   int    `json:"id" validate:"gt=0"`
-		Name string `json:"name"`
+		ID int `json:"id" validate:"gt=0"`
 	}
 
 	statusHandler := func(params *requestParams) (int, error) {
-		if params.ID == 123 && params.Name == "test" {
+		if params.ID == 123 {
 			return http.StatusOK, nil
 		}
 		return 0, &errors.BadRequest{Err: goerrors.New("invalid parameters")}
@@ -37,7 +36,7 @@ var _ = Describe("status responder", func() {
 			server := httptest.NewServer(http.HandlerFunc(httpHandler))
 			defer server.Close()
 
-			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":123, "name":"test"}`))
+			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":123}`))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 		})
@@ -48,7 +47,7 @@ var _ = Describe("status responder", func() {
 			server := httptest.NewServer(http.HandlerFunc(httpHandler))
 			defer server.Close()
 
-			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":-1, "name":"error"}`))
+			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":-1}`))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 
@@ -64,7 +63,7 @@ var _ = Describe("status responder", func() {
 			server := httptest.NewServer(http.HandlerFunc(httpHandler))
 			defer server.Close()
 
-			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":456, "name":"error"}`))
+			response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":456}`))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 
