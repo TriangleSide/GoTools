@@ -66,7 +66,7 @@ func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 }
 
 // decodeQueryParameters identifies fields tagged with QueryTag and maps corresponding URL query parameters to these fields.
-func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]map[string]string, request *http.Request) error {
+func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName TagToLookupKeyToFieldName, request *http.Request) error {
 	lookupKeyToFieldName := tagToLookupKeyToFieldName[QueryTag]
 	normalizer := tagToLookupKeyNormalizer[QueryTag]
 
@@ -88,7 +88,7 @@ func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]m
 }
 
 // decodeHeaderParameters identifies fields tagged with HeaderTag and maps corresponding HTTP headers to these fields.
-func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]map[string]string, request *http.Request) error {
+func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName TagToLookupKeyToFieldName, request *http.Request) error {
 	lookupKeyToFieldName := tagToLookupKeyToFieldName[HeaderTag]
 	normalizer := tagToLookupKeyNormalizer[HeaderTag]
 
@@ -110,7 +110,7 @@ func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]
 }
 
 // decodePathParameters identifies fields tagged with PathTag and maps corresponding URL path parameters to these fields.
-func decodePathParameters[T any](params *T, tagToLookupKeyToFieldName map[Tag]map[string]string, request *http.Request) error {
+func decodePathParameters[T any](params *T, tagToLookupKeyToFieldName TagToLookupKeyToFieldName, request *http.Request) error {
 	lookupKeyToFieldName := tagToLookupKeyToFieldName[PathTag]
 	normalizer := tagToLookupKeyNormalizer[PathTag]
 

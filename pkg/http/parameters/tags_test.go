@@ -51,7 +51,7 @@ var _ = Describe("parameter tags", func() {
 			}
 
 			var err error
-			var tagToLookupKeyToFieldName map[parameters.Tag]map[string]string
+			var tagToLookupKeyToFieldName parameters.TagToLookupKeyToFieldName
 
 			for i := 0; i < 3; i++ {
 				tagToLookupKeyToFieldName, err = parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()
