@@ -4,18 +4,20 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"sync"
+	"time"
+
+	"github.com/TriangleSide/GoBase/pkg/utils/cache"
 )
 
+// StructFieldToMetadata represents the member fields or a struct to their respective metadata.
+type StructFieldToMetadata map[string]*FieldMetadata
+
 var (
-	// typeLocks ensures unique types are processed one at a time.
-	typeLocks = sync.Map{}
-
-	// fieldsToMetadataMemo is used to cache the result of the FieldsToMetadata function.
-	fieldsToMetadataMemo = make(map[reflect.Type]map[string]*FieldMetadata)
-
 	// tagMatchRegex matches all tag entries on a struct field.
 	tagMatchRegex = regexp.MustCompile(`(\w+):"([^"]*)"`)
+
+	// typeToMetadataCache is used to cache the result of the FieldsToMetadata function.
+	typeToMetadataCache = cache.New[reflect.Type, StructFieldToMetadata]()
 )
 
 // FieldMetadata is the metadata extracted from struct fields.
@@ -27,23 +29,14 @@ type FieldMetadata struct {
 
 // FieldsToMetadata returns a map of a structs field names to their respective metadata.
 // The returned map should not be written to under any circumstances since it can be shared among many threads.
-func FieldsToMetadata[T any]() map[string]*FieldMetadata {
+func FieldsToMetadata[T any]() StructFieldToMetadata {
 	reflectType := reflect.TypeOf(*new(T))
-
-	lock, _ := typeLocks.LoadOrStore(reflectType, &sync.Mutex{})
-	mutex := lock.(*sync.Mutex)
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	if memoData, ok := fieldsToMetadataMemo[reflectType]; ok {
-		return memoData
-	}
-
-	fieldsToMetadata := make(map[string]*FieldMetadata)
-	processType(reflectType, fieldsToMetadata, make([]string, 0))
-
-	fieldsToMetadataMemo[reflectType] = fieldsToMetadata
-	return fieldsToMetadata
+	fieldToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, func(reflectType reflect.Type) (StructFieldToMetadata, time.Duration, error) {
+		fieldsToMetadata := make(map[string]*FieldMetadata)
+		processType(reflectType, fieldsToMetadata, make([]string, 0))
+		return fieldsToMetadata, cache.DoesNotExpire, nil
+	})
+	return fieldToMetadata
 }
 
 // processType takes a struct type, lists all of its fields, and builds the metadata for it.
