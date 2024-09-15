@@ -21,7 +21,7 @@ func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) e
 
 	// Get the field metadata for all the structs fields.
 	fieldsToMetadata := FieldsToMetadata[T]()
-	fieldMetadata, foundFieldMetadata := fieldsToMetadata[fieldName]
+	fieldMetadata, foundFieldMetadata := fieldsToMetadata.Fetch(fieldName)
 	if !foundFieldMetadata {
 		panic(fmt.Sprintf("no field '%s' in struct '%s'", fieldName, structValue.Type().String()))
 	}

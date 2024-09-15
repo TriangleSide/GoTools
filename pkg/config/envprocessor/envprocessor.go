@@ -53,7 +53,7 @@ func ProcessAndValidate[T any](opts ...Option) (*T, error) {
 	fieldsMetadata := reflectutils.FieldsToMetadata[T]()
 	conf := new(T)
 
-	for fieldName, fieldMetadata := range fieldsMetadata {
+	for fieldName, fieldMetadata := range fieldsMetadata.Iterator() {
 		formatValue, hasFormatTag := fieldMetadata.Tags[FormatTag]
 		if !hasFormatTag {
 			continue

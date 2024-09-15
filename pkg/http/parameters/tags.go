@@ -108,7 +108,7 @@ func ExtractAndValidateFieldTagLookupKeys[T any]() (TagToLookupKeyToFieldName, e
 			tagToLookupKeyToFieldName[customTag] = make(LookupKeyToFieldName)
 		}
 
-		for fieldName, fieldMetadata := range fieldsMetadata {
+		for fieldName, fieldMetadata := range fieldsMetadata.Iterator() {
 			customTagFound := false
 			for customTag, lookupKeyNormalizer := range tagToLookupKeyNormalizer {
 				originalLookupKeyForTag, customTagFoundOnField := fieldMetadata.Tags[string(customTag)]
