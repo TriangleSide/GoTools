@@ -1,7 +1,6 @@
 package envprocessor_test
 
 import (
-	"errors"
 	"os"
 	"strconv"
 
@@ -195,19 +194,6 @@ var _ = Describe("config", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(conf.Field).To(Equal(FieldValue))
 			Expect(conf.EmbeddedField).To(Equal(EmbeddedValue))
-		})
-	})
-
-	When("the options fails", func() {
-		It("should return a validation error when processing the configuration", func() {
-			conf, err := envprocessor.ProcessAndValidate[struct {
-				Field string
-			}](func(cfg *envprocessor.Config) error {
-				return errors.New("error")
-			})
-			Expect(err).To(HaveOccurred())
-			Expect(conf).To(BeNil())
-			Expect(err.Error()).To(ContainSubstring("failed to set the options for the configuration processor (error)"))
 		})
 	})
 })

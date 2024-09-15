@@ -24,33 +24,30 @@ const (
 	FormatTypeSnake = "snake"
 )
 
-// Config is the configuration for the ProcessAndValidate function.
-type Config struct {
+// config is the configuration for the ProcessAndValidate function.
+type config struct {
 	prefix string
 }
 
 // Option is used to set parameters for the environment variable processor.
-type Option func(*Config) error
+type Option func(*config)
 
 // WithPrefix sets the prefix to look for in the environment variables.
 // Given a struct field named Value and the prefix TEST, the processor will look for TEST_VALUE.
 func WithPrefix(prefix string) Option {
-	return func(p *Config) error {
+	return func(p *config) {
 		p.prefix = prefix
-		return nil
 	}
 }
 
 // ProcessAndValidate fills out the fields of a struct from the environment variables.
 func ProcessAndValidate[T any](opts ...Option) (*T, error) {
-	config := &Config{
+	cfg := &config{
 		prefix: "",
 	}
 
 	for _, opt := range opts {
-		if err := opt(config); err != nil {
-			return nil, fmt.Errorf("failed to set the options for the configuration processor (%s)", err.Error())
-		}
+		opt(cfg)
 	}
 
 	fieldsMetadata := reflectutils.FieldsToMetadata[T]()
@@ -66,8 +63,8 @@ func ProcessAndValidate[T any](opts ...Option) (*T, error) {
 		switch formatValue {
 		case FormatTypeSnake:
 			formattedEnvName = stringutils.CamelToUpperSnake(fieldName)
-			if config.prefix != "" {
-				formattedEnvName = fmt.Sprintf("%s_%s", config.prefix, formattedEnvName)
+			if cfg.prefix != "" {
+				formattedEnvName = fmt.Sprintf("%s_%s", cfg.prefix, formattedEnvName)
 			}
 		default:
 			panic(fmt.Sprintf("invalid config format (%s)", formatValue))
