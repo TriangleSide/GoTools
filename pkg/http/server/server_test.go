@@ -148,15 +148,6 @@ var _ = Describe("http server", func() {
 					Expect(err.Error()).To(ContainSubstring("failed to load the server certificate"))
 				})
 
-				It("should return an error if the option returns an error", func() {
-					srv, err := server.New(func(cfg *server.Config) error {
-						return errors.New("error")
-					})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to configure the HTTP server (error)"))
-					Expect(srv).To(BeNil())
-				})
-
 				It("should fail if the port is is already bound", func() {
 					const ip = "::1"
 					const port = 6789

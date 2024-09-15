@@ -19,45 +19,43 @@ import (
 )
 
 // Config is configured by the caller with the Option functions.
-type Config struct {
+type serverConfig struct {
 	configProvider   func() (*config.HTTPServer, error)
 	listenerProvider func(localHost string, localPort uint16) (tcp.Listener, error)
 }
 
 // Option is used to configure the HTTP server.
-type Option func(config *Config) error
+type Option func(config *serverConfig)
 
 // WithConfigProvider sets the provider for the config.HTTPServer.
 func WithConfigProvider(provider func() (*config.HTTPServer, error)) Option {
-	return func(config *Config) error {
+	return func(config *serverConfig) {
 		config.configProvider = provider
-		return nil
 	}
 }
 
 // WithListenerProvider sets the provider for the tcp.Listener.
 func WithListenerProvider(provider func(localHost string, localPort uint16) (tcp.Listener, error)) Option {
-	return func(config *Config) error {
+	return func(config *serverConfig) {
 		config.listenerProvider = provider
-		return nil
 	}
 }
 
 // Server handles requests via the Hypertext Transfer Protocol (HTTP) and sends back responses.
 // The Server must be allocated using New since the zero value for Server is not valid configuration.
 type Server struct {
-	serverConfig *Config
-	envConf      *config.HTTPServer
-	listener     tcp.Listener
-	srv          *http.Server
-	ran          *atomic.Bool
-	shutdown     *atomic.Bool
-	wg           sync.WaitGroup
+	cfg      *serverConfig
+	envConf  *config.HTTPServer
+	listener tcp.Listener
+	srv      *http.Server
+	ran      *atomic.Bool
+	shutdown *atomic.Bool
+	wg       sync.WaitGroup
 }
 
 // New allocates and sets the required configuration for a Server.
 func New(opts ...Option) (*Server, error) {
-	serverConfig := &Config{
+	cfg := &serverConfig{
 		configProvider: func() (*config.HTTPServer, error) {
 			return envprocessor.ProcessAndValidate[config.HTTPServer]()
 		},
@@ -65,12 +63,10 @@ func New(opts ...Option) (*Server, error) {
 	}
 
 	for _, opt := range opts {
-		if err := opt(serverConfig); err != nil {
-			return nil, fmt.Errorf("failed to configure the HTTP server (%s)", err.Error())
-		}
+		opt(cfg)
 	}
 
-	envConfig, err := serverConfig.configProvider()
+	envConfig, err := cfg.configProvider()
 	if err != nil {
 		return nil, fmt.Errorf("could not load configuration (%s)", err.Error())
 	}
@@ -82,12 +78,12 @@ func New(opts ...Option) (*Server, error) {
 	shutdown.Store(false)
 
 	return &Server{
-		serverConfig: serverConfig,
-		envConf:      envConfig,
-		srv:          nil,
-		ran:          ran,
-		shutdown:     shutdown,
-		wg:           sync.WaitGroup{},
+		cfg:      cfg,
+		envConf:  envConfig,
+		srv:      nil,
+		ran:      ran,
+		shutdown: shutdown,
+		wg:       sync.WaitGroup{},
 	}, nil
 }
 
@@ -141,7 +137,7 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 	// Manually creating the listener first ensures the server can start receiving connections before
 	// it is marked as ready by the callback.
 	var err error
-	server.listener, err = server.serverConfig.listenerProvider(server.envConf.HTTPServerBindIP, server.envConf.HTTPServerBindPort)
+	server.listener, err = server.cfg.listenerProvider(server.envConf.HTTPServerBindIP, server.envConf.HTTPServerBindPort)
 	if err != nil {
 		return fmt.Errorf("failed to create the network listener (%s)", err.Error())
 	}
