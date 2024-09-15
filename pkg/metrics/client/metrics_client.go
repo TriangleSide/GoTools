@@ -16,7 +16,7 @@ import (
 )
 
 // Config is configured by the caller with the Option functions.
-type Config struct {
+type clientConfig struct {
 	configProvider    func() (*config.MetricsClient, error)
 	udpClientProvider func(remoteHost string, remotePort uint16) (udp.Conn, error)
 	encryptorProvider func(key string) (symmetric.Encryptor, error)
@@ -24,29 +24,26 @@ type Config struct {
 }
 
 // Option is used to configure the metrics client.
-type Option func(serverConfig *Config) error
+type Option func(serverConfig *clientConfig)
 
 // WithUDPClientProvider overwrites the UDP client provider.
 func WithUDPClientProvider(provider func(remoteHost string, remotePort uint16) (udp.Conn, error)) Option {
-	return func(serverConfig *Config) error {
+	return func(serverConfig *clientConfig) {
 		serverConfig.udpClientProvider = provider
-		return nil
 	}
 }
 
 // WithEncryptorProvider overwrites the encryptor provider.
 func WithEncryptorProvider(provider func(key string) (symmetric.Encryptor, error)) Option {
-	return func(serverConfig *Config) error {
+	return func(serverConfig *clientConfig) {
 		serverConfig.encryptorProvider = provider
-		return nil
 	}
 }
 
 // WithMarshallingFunc overwrites the default marshalling func.
 func WithMarshallingFunc(marshallingFunc func(payload any) ([]byte, error)) Option {
-	return func(serverConfig *Config) error {
+	return func(serverConfig *clientConfig) {
 		serverConfig.marshallingFunc = marshallingFunc
-		return nil
 	}
 }
 
@@ -62,7 +59,7 @@ type Client struct {
 
 // New creates a new Client instance from a configuration parsed from the environment variables.
 func New(opts ...Option) (*Client, error) {
-	clientConfig := &Config{
+	clientCfg := &clientConfig{
 		configProvider: func() (*config.MetricsClient, error) {
 			return envprocessor.ProcessAndValidate[config.MetricsClient]()
 		},
@@ -76,22 +73,20 @@ func New(opts ...Option) (*Client, error) {
 	}
 
 	for _, opt := range opts {
-		if err := opt(clientConfig); err != nil {
-			return nil, fmt.Errorf("failed to configure metrics client (%s)", err.Error())
-		}
+		opt(clientCfg)
 	}
 
-	cfg, err := clientConfig.configProvider()
+	cfg, err := clientCfg.configProvider()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get the metrics client configuration (%s)", err.Error())
 	}
 
-	conn, err := clientConfig.udpClientProvider(cfg.MetricsHost, cfg.MetricsPort)
+	conn, err := clientCfg.udpClientProvider(cfg.MetricsHost, cfg.MetricsPort)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the metrics client (%s)", err.Error())
 	}
 
-	encryptor, err := clientConfig.encryptorProvider(cfg.MetricsKey)
+	encryptor, err := clientCfg.encryptorProvider(cfg.MetricsKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the encryptor (%s)", err.Error())
 	}
@@ -101,7 +96,7 @@ func New(opts ...Option) (*Client, error) {
 
 	return &Client{
 		cfg:          cfg,
-		marshallFunc: clientConfig.marshallingFunc,
+		marshallFunc: clientCfg.marshallingFunc,
 		conn:         conn,
 		enc:          encryptor,
 		shutdown:     shutdownFlag,

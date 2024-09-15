@@ -77,17 +77,6 @@ var _ = Describe("metrics client", func() {
 			})
 		})
 
-		When("processing the options fails", func() {
-			It("should return an error", func() {
-				metricsClient, err := metricsclient.New(func(clientConfig *metricsclient.Config) error {
-					return errors.New("error")
-				})
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to configure metrics client (error)"))
-				Expect(metricsClient).To(BeNil())
-			})
-		})
-
 		When("the hostname environment variable is set to a value that is incorrectly formatted", func() {
 			BeforeEach(func() {
 				Expect(os.Setenv(string(config.MetricsHostEnvName), "!@#$%^&*()_+")).To(Succeed())
