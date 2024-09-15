@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TriangleSide/GoBase/pkg/datastructures"
 	"github.com/TriangleSide/GoBase/pkg/utils/cache"
 	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
 )
@@ -40,34 +41,15 @@ const (
 // LookupKeyToFieldName is the tag's lookup key to the name of the field on the struct.
 //
 //	type MyStruct struct {
-//	    HeaderParameter string `httpHeader:"x-my-parameter" json"-"`
+//		HeaderParameter string `httpHeader:"x-my-parameter" json"-"`
 //	}
 //
 // Returns the following map:
 //
 //	{
-//	   "x-my-parameter": "MyParameter",
+//		"x-my-parameter": "MyParameter",
 //	}
 type LookupKeyToFieldName map[string]string
-
-// TagToLookupKeyToFieldName is a map of unique tag lookup keys for each field in the struct.
-//
-//	type MyStruct struct {
-//	    HeaderParameter string `httpHeader:"x-my-parameter" json"-"`
-//		PathParameter   string `urlPath:"my-id" json"-"`
-//	}
-//
-// Returns the following map:
-//
-//		{
-//		   "httpHeader": {
-//		       "x-my-parameter": "MyParameter"
-//		   },
-//	    "urlPath": {
-//		       "my-id": "PathParameter"
-//		   }
-//		}
-type TagToLookupKeyToFieldName map[Tag]LookupKeyToFieldName
 
 var (
 	// tagToLookupKeyNormalizer is a map of custom encoding tags to their string normalizers.
@@ -83,7 +65,7 @@ var (
 	lookupKeyFollowsNamingConvention func(lookupKey string) bool
 
 	// lookupKeyExtractionCache stores the results of the ExtractAndValidateFieldTagLookupKeys function.
-	lookupKeyExtractionCache = cache.New[reflect.Type, TagToLookupKeyToFieldName]()
+	lookupKeyExtractionCache = cache.New[reflect.Type, datastructures.ReadOnlyMap[Tag, LookupKeyToFieldName]]()
 )
 
 // init creates the variables needed by the processor.
@@ -97,13 +79,28 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 }
 
 // ExtractAndValidateFieldTagLookupKeys validates the struct tags and returns a map of unique tag lookup keys for each field in the struct.
-// The returned map should not be written to under any circumstances since it can be shared among many threads.
-func ExtractAndValidateFieldTagLookupKeys[T any]() (TagToLookupKeyToFieldName, error) {
+//
+//	type MyStruct struct {
+//		HeaderParameter string `httpHeader:"x-my-parameter" json"-"`
+//		PathParameter   string `urlPath:"my-id" json"-"`
+//	}
+//
+// Returns the following map:
+//
+//	 {
+//			"httpHeader": {
+//				"x-my-parameter": "MyParameter"
+//			},
+//		    "urlPath": {
+//				"my-id": "PathParameter"
+//			}
+//		}
+func ExtractAndValidateFieldTagLookupKeys[T any]() (datastructures.ReadOnlyMap[Tag, LookupKeyToFieldName], error) {
 	reflectType := reflect.TypeOf(*new(T))
-	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (TagToLookupKeyToFieldName, time.Duration, error) {
+	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (datastructures.ReadOnlyMap[Tag, LookupKeyToFieldName], time.Duration, error) {
 		fieldsMetadata := reflectutils.FieldsToMetadata[T]()
 
-		tagToLookupKeyToFieldName := make(TagToLookupKeyToFieldName)
+		tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)
 		for customTag := range tagToLookupKeyNormalizer {
 			tagToLookupKeyToFieldName[customTag] = make(LookupKeyToFieldName)
 		}
@@ -137,6 +134,6 @@ func ExtractAndValidateFieldTagLookupKeys[T any]() (TagToLookupKeyToFieldName, e
 			}
 		}
 
-		return tagToLookupKeyToFieldName, cache.DoesNotExpire, nil
+		return datastructures.NewReadOnlyMapBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), cache.DoesNotExpire, nil
 	})
 }

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/TriangleSide/GoBase/pkg/datastructures"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
 	"github.com/TriangleSide/GoBase/pkg/logger"
 	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
@@ -66,8 +67,8 @@ func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 }
 
 // decodeQueryParameters identifies fields tagged with QueryTag and maps corresponding URL query parameters to these fields.
-func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName TagToLookupKeyToFieldName, request *http.Request) error {
-	lookupKeyToFieldName := tagToLookupKeyToFieldName[QueryTag]
+func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName datastructures.ReadOnlyMap[Tag, LookupKeyToFieldName], request *http.Request) error {
+	lookupKeyToFieldName := tagToLookupKeyToFieldName.Get(QueryTag)
 	normalizer := tagToLookupKeyNormalizer[QueryTag]
 
 	for queryParameterName, queryParameterValues := range request.URL.Query() {
@@ -88,8 +89,8 @@ func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName TagToLook
 }
 
 // decodeHeaderParameters identifies fields tagged with HeaderTag and maps corresponding HTTP headers to these fields.
-func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName TagToLookupKeyToFieldName, request *http.Request) error {
-	lookupKeyToFieldName := tagToLookupKeyToFieldName[HeaderTag]
+func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName datastructures.ReadOnlyMap[Tag, LookupKeyToFieldName], request *http.Request) error {
+	lookupKeyToFieldName := tagToLookupKeyToFieldName.Get(HeaderTag)
 	normalizer := tagToLookupKeyNormalizer[HeaderTag]
 
 	for headerName, headerValues := range request.Header {
@@ -110,8 +111,8 @@ func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName TagToLoo
 }
 
 // decodePathParameters identifies fields tagged with PathTag and maps corresponding URL path parameters to these fields.
-func decodePathParameters[T any](params *T, tagToLookupKeyToFieldName TagToLookupKeyToFieldName, request *http.Request) error {
-	lookupKeyToFieldName := tagToLookupKeyToFieldName[PathTag]
+func decodePathParameters[T any](params *T, tagToLookupKeyToFieldName datastructures.ReadOnlyMap[Tag, LookupKeyToFieldName], request *http.Request) error {
+	lookupKeyToFieldName := tagToLookupKeyToFieldName.Get(PathTag)
 	normalizer := tagToLookupKeyNormalizer[PathTag]
 
 	for pathName, field := range lookupKeyToFieldName {

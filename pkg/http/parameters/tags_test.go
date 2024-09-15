@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/TriangleSide/GoBase/pkg/datastructures"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
 	"github.com/TriangleSide/GoBase/pkg/http/parameters"
 )
@@ -51,36 +52,36 @@ var _ = Describe("parameter tags", func() {
 			}
 
 			var err error
-			var tagToLookupKeyToFieldName parameters.TagToLookupKeyToFieldName
+			var tagToLookupKeyToFieldName datastructures.ReadOnlyMap[parameters.Tag, parameters.LookupKeyToFieldName]
 
 			for i := 0; i < 3; i++ {
 				tagToLookupKeyToFieldName, err = parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()
 				Expect(err).To(Not(HaveOccurred()))
 			}
 
-			Expect(tagToLookupKeyToFieldName).To(HaveLen(3))
+			Expect(tagToLookupKeyToFieldName.Size()).To(Equal(3))
 
-			Expect(tagToLookupKeyToFieldName).To(HaveKey(parameters.QueryTag))
-			Expect(tagToLookupKeyToFieldName).To(HaveKey(parameters.HeaderTag))
-			Expect(tagToLookupKeyToFieldName).To(HaveKey(parameters.PathTag))
+			Expect(tagToLookupKeyToFieldName.Has(parameters.QueryTag))
+			Expect(tagToLookupKeyToFieldName.Has(parameters.HeaderTag))
+			Expect(tagToLookupKeyToFieldName.Has(parameters.PathTag))
 
-			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]).To(HaveLen(2))
-			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]).To(HaveKey("query1"))
-			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]["query1"]).To(Equal("QueryField1"))
-			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]).To(HaveKey("query2"))
-			Expect(tagToLookupKeyToFieldName[parameters.QueryTag]["query2"]).To(Equal("QueryField2"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.QueryTag)).To(HaveLen(2))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.QueryTag)).To(HaveKey("query1"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.QueryTag)["query1"]).To(Equal("QueryField1"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.QueryTag)).To(HaveKey("query2"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.QueryTag)["query2"]).To(Equal("QueryField2"))
 
-			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]).To(HaveLen(2))
-			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]).To(HaveKey("header1"))
-			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]["header1"]).To(Equal("HeaderField1"))
-			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]).To(HaveKey("header2"))
-			Expect(tagToLookupKeyToFieldName[parameters.HeaderTag]["header2"]).To(Equal("HeaderField2"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.HeaderTag)).To(HaveLen(2))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.HeaderTag)).To(HaveKey("header1"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.HeaderTag)["header1"]).To(Equal("HeaderField1"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.HeaderTag)).To(HaveKey("header2"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.HeaderTag)["header2"]).To(Equal("HeaderField2"))
 
-			Expect(tagToLookupKeyToFieldName[parameters.PathTag]).To(HaveLen(2))
-			Expect(tagToLookupKeyToFieldName[parameters.PathTag]).To(HaveKey("Path1"))
-			Expect(tagToLookupKeyToFieldName[parameters.PathTag]["Path1"]).To(Equal("PathField1"))
-			Expect(tagToLookupKeyToFieldName[parameters.PathTag]).To(HaveKey("Path2"))
-			Expect(tagToLookupKeyToFieldName[parameters.PathTag]["Path2"]).To(Equal("PathField2"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.PathTag)).To(HaveLen(2))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.PathTag)).To(HaveKey("Path1"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.PathTag)["Path1"]).To(Equal("PathField1"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.PathTag)).To(HaveKey("Path2"))
+			Expect(tagToLookupKeyToFieldName.Get(parameters.PathTag)["Path2"]).To(Equal("PathField2"))
 		})
 
 		It("should fail when validating a struct that has two fields with the same tag", func() {
