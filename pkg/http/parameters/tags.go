@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TriangleSide/GoBase/pkg/datastructures"
+	"github.com/TriangleSide/GoBase/pkg/ds"
 	"github.com/TriangleSide/GoBase/pkg/utils/cache"
 	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
 )
@@ -65,7 +65,7 @@ var (
 	lookupKeyFollowsNamingConvention func(lookupKey string) bool
 
 	// lookupKeyExtractionCache stores the results of the ExtractAndValidateFieldTagLookupKeys function.
-	lookupKeyExtractionCache = cache.New[reflect.Type, datastructures.ReadOnlyMap[Tag, LookupKeyToFieldName]]()
+	lookupKeyExtractionCache = cache.New[reflect.Type, ds.ReadOnlyMap[Tag, LookupKeyToFieldName]]()
 )
 
 // init creates the variables needed by the processor.
@@ -95,9 +95,9 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 //				"my-id": "PathParameter"
 //			}
 //		}
-func ExtractAndValidateFieldTagLookupKeys[T any]() (datastructures.ReadOnlyMap[Tag, LookupKeyToFieldName], error) {
+func ExtractAndValidateFieldTagLookupKeys[T any]() (ds.ReadOnlyMap[Tag, LookupKeyToFieldName], error) {
 	reflectType := reflect.TypeOf(*new(T))
-	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (datastructures.ReadOnlyMap[Tag, LookupKeyToFieldName], time.Duration, error) {
+	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (ds.ReadOnlyMap[Tag, LookupKeyToFieldName], time.Duration, error) {
 		fieldsMetadata := reflectutils.FieldsToMetadata[T]()
 
 		tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)
@@ -134,6 +134,6 @@ func ExtractAndValidateFieldTagLookupKeys[T any]() (datastructures.ReadOnlyMap[T
 			}
 		}
 
-		return datastructures.NewReadOnlyMapBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), cache.DoesNotExpire, nil
+		return ds.NewReadOnlyMapBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), cache.DoesNotExpire, nil
 	})
 }

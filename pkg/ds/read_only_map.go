@@ -1,10 +1,11 @@
-package datastructures
+package ds
 
 import (
 	"iter"
 )
 
 // ReadOnlyMap represents a generic read-only map.
+// It is the responsibility of the author to ensure that the Value generic is read-only as well.
 type ReadOnlyMap[Key comparable, Value any] interface {
 	// Get retrieves the value associated with the given key.
 	// Returns the zero value of Value if the key does not exist.

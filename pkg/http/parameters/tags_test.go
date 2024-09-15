@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/TriangleSide/GoBase/pkg/datastructures"
+	"github.com/TriangleSide/GoBase/pkg/ds"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
 	"github.com/TriangleSide/GoBase/pkg/http/parameters"
 )
@@ -52,7 +52,7 @@ var _ = Describe("parameter tags", func() {
 			}
 
 			var err error
-			var tagToLookupKeyToFieldName datastructures.ReadOnlyMap[parameters.Tag, parameters.LookupKeyToFieldName]
+			var tagToLookupKeyToFieldName ds.ReadOnlyMap[parameters.Tag, parameters.LookupKeyToFieldName]
 
 			for i := 0; i < 3; i++ {
 				tagToLookupKeyToFieldName, err = parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()

@@ -1,18 +1,18 @@
-package datastructures_test
+package ds_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/TriangleSide/GoBase/pkg/datastructures"
+	"github.com/TriangleSide/GoBase/pkg/ds"
 )
 
-func readOnlyMapMustHaveKeyAndValueGet[Key comparable, Value any](roMap datastructures.ReadOnlyMap[Key, Value], key Key, expectedValue Value) {
+func readOnlyMapMustHaveKeyAndValueGet[Key comparable, Value any](roMap ds.ReadOnlyMap[Key, Value], key Key, expectedValue Value) {
 	value := roMap.Get(key)
 	ExpectWithOffset(1, value).To(Equal(expectedValue))
 }
 
-func readOnlyMapMustHaveKeyAndValueFetch[Key comparable, Value any](roMap datastructures.ReadOnlyMap[Key, Value], key Key, expectedValue Value) {
+func readOnlyMapMustHaveKeyAndValueFetch[Key comparable, Value any](roMap ds.ReadOnlyMap[Key, Value], key Key, expectedValue Value) {
 	value, ok := roMap.Fetch(key)
 	ExpectWithOffset(1, ok).To(BeTrue())
 	ExpectWithOffset(1, value).To(Equal(expectedValue))
@@ -20,12 +20,12 @@ func readOnlyMapMustHaveKeyAndValueFetch[Key comparable, Value any](roMap datast
 
 var _ = Describe("ReadOnlyMap", Ordered, func() {
 	var (
-		builder datastructures.ReadOnlyMapBuilder[string, string]
-		roMap   datastructures.ReadOnlyMap[string, string]
+		builder ds.ReadOnlyMapBuilder[string, string]
+		roMap   ds.ReadOnlyMap[string, string]
 	)
 
 	BeforeEach(func() {
-		builder = datastructures.NewReadOnlyMapBuilder[string, string]()
+		builder = ds.NewReadOnlyMapBuilder[string, string]()
 	})
 
 	AfterEach(func() {
@@ -50,7 +50,7 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 		It("should panic if Set is called after Build", func() {
 			roMap = builder.Build()
 			Expect(func() {
-				builder.Set(datastructures.ReadOnlyMapBuilderEntry[string, string]{Key: "key", Value: "value"})
+				builder.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: "key", Value: "value"})
 			}).To(PanicWith(ContainSubstring("Build has already been called on this builder.")))
 		})
 
@@ -67,7 +67,7 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 		const value = "value"
 
 		BeforeEach(func() {
-			builder.Set(datastructures.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value})
+			builder.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value})
 			roMap = builder.Build()
 		})
 
@@ -143,8 +143,8 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 
 		BeforeEach(func() {
 			builder.Set(
-				datastructures.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value1},
-				datastructures.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value2},
+				ds.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value1},
+				ds.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value2},
 			)
 			roMap = builder.Build()
 		})
@@ -163,15 +163,15 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 	})
 
 	When("building multiple ReadOnlyMaps from different builders", func() {
-		var builder1, builder2 datastructures.ReadOnlyMapBuilder[string, string]
-		var roMap1, roMap2 datastructures.ReadOnlyMap[string, string]
+		var builder1, builder2 ds.ReadOnlyMapBuilder[string, string]
+		var roMap1, roMap2 ds.ReadOnlyMap[string, string]
 
 		BeforeEach(func() {
-			builder1 = datastructures.NewReadOnlyMapBuilder[string, string]()
-			builder2 = datastructures.NewReadOnlyMapBuilder[string, string]()
+			builder1 = ds.NewReadOnlyMapBuilder[string, string]()
+			builder2 = ds.NewReadOnlyMapBuilder[string, string]()
 
-			builder1.Set(datastructures.ReadOnlyMapBuilderEntry[string, string]{Key: "key1", Value: "value1"})
-			builder2.Set(datastructures.ReadOnlyMapBuilderEntry[string, string]{Key: "key2", Value: "value2"})
+			builder1.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: "key1", Value: "value1"})
+			builder2.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: "key2", Value: "value2"})
 
 			roMap1 = builder1.Build()
 			roMap2 = builder2.Build()
@@ -203,10 +203,10 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 
 	When("testing with different key and value types", func() {
 		It("should work with integer keys and values using Get and Fetch", func() {
-			intBuilder := datastructures.NewReadOnlyMapBuilder[int, int]()
+			intBuilder := ds.NewReadOnlyMapBuilder[int, int]()
 			intBuilder.Set(
-				datastructures.ReadOnlyMapBuilderEntry[int, int]{Key: 1, Value: 100},
-				datastructures.ReadOnlyMapBuilderEntry[int, int]{Key: 2, Value: 200},
+				ds.ReadOnlyMapBuilderEntry[int, int]{Key: 1, Value: 100},
+				ds.ReadOnlyMapBuilderEntry[int, int]{Key: 2, Value: 200},
 			)
 			intRoMap := intBuilder.Build()
 
@@ -227,10 +227,10 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 			type ValueStruct struct {
 				Name string
 			}
-			structBuilder := datastructures.NewReadOnlyMapBuilder[KeyStruct, ValueStruct]()
+			structBuilder := ds.NewReadOnlyMapBuilder[KeyStruct, ValueStruct]()
 			structBuilder.Set(
-				datastructures.ReadOnlyMapBuilderEntry[KeyStruct, ValueStruct]{Key: KeyStruct{ID: 1}, Value: ValueStruct{Name: "Alice"}},
-				datastructures.ReadOnlyMapBuilderEntry[KeyStruct, ValueStruct]{Key: KeyStruct{ID: 2}, Value: ValueStruct{Name: "Bob"}},
+				ds.ReadOnlyMapBuilderEntry[KeyStruct, ValueStruct]{Key: KeyStruct{ID: 1}, Value: ValueStruct{Name: "Alice"}},
+				ds.ReadOnlyMapBuilderEntry[KeyStruct, ValueStruct]{Key: KeyStruct{ID: 2}, Value: ValueStruct{Name: "Bob"}},
 			)
 			structRoMap := structBuilder.Build()
 
@@ -250,7 +250,7 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 		const value = "value"
 
 		BeforeEach(func() {
-			builder.Set(datastructures.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value})
+			builder.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value})
 			roMap = builder.Build()
 		})
 
@@ -440,7 +440,7 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 		}
 
 		It("should return zero value for Get when key is missing", func() {
-			builder := datastructures.NewReadOnlyMapBuilder[string, CustomStruct]()
+			builder := ds.NewReadOnlyMapBuilder[string, CustomStruct]()
 			roMap := builder.Build()
 
 			value := roMap.Get("missing")
@@ -450,7 +450,7 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 		})
 
 		It("should return false for Fetch when key is missing", func() {
-			builder := datastructures.NewReadOnlyMapBuilder[string, CustomStruct]()
+			builder := ds.NewReadOnlyMapBuilder[string, CustomStruct]()
 			roMap := builder.Build()
 
 			_, ok := roMap.Fetch("missing")
@@ -464,7 +464,7 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 		const value = "value"
 
 		BeforeEach(func() {
-			builder.Set(datastructures.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value})
+			builder.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value})
 			roMap = builder.Build()
 		})
 
@@ -488,8 +488,8 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 			type PointerStruct struct {
 				Field1 string
 			}
-			builder := datastructures.NewReadOnlyMapBuilder[string, *PointerStruct]()
-			builder.Set(datastructures.ReadOnlyMapBuilderEntry[string, *PointerStruct]{Key: "key", Value: nil})
+			builder := ds.NewReadOnlyMapBuilder[string, *PointerStruct]()
+			builder.Set(ds.ReadOnlyMapBuilderEntry[string, *PointerStruct]{Key: "key", Value: nil})
 			roMap := builder.Build()
 
 			value := roMap.Get("key")
@@ -505,8 +505,8 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 
 	When("testing Get and Fetch with complex types", func() {
 		It("should work with slices as values", func() {
-			builder := datastructures.NewReadOnlyMapBuilder[string, []int]()
-			builder.Set(datastructures.ReadOnlyMapBuilderEntry[string, []int]{Key: "numbers", Value: []int{1, 2, 3}})
+			builder := ds.NewReadOnlyMapBuilder[string, []int]()
+			builder.Set(ds.ReadOnlyMapBuilderEntry[string, []int]{Key: "numbers", Value: []int{1, 2, 3}})
 			roMap := builder.Build()
 
 			value := roMap.Get("numbers")
@@ -520,8 +520,8 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 		})
 
 		It("should work with maps as values", func() {
-			builder := datastructures.NewReadOnlyMapBuilder[string, map[string]int]()
-			builder.Set(datastructures.ReadOnlyMapBuilderEntry[string, map[string]int]{Key: "mapKey", Value: map[string]int{"a": 1}})
+			builder := ds.NewReadOnlyMapBuilder[string, map[string]int]()
+			builder.Set(ds.ReadOnlyMapBuilderEntry[string, map[string]int]{Key: "mapKey", Value: map[string]int{"a": 1}})
 			roMap := builder.Build()
 
 			value := roMap.Get("mapKey")
@@ -537,10 +537,10 @@ var _ = Describe("ReadOnlyMap", Ordered, func() {
 
 	When("testing thread safety (concurrent access)", func() {
 		It("should allow concurrent reads", func() {
-			builder := datastructures.NewReadOnlyMapBuilder[int, int]()
+			builder := ds.NewReadOnlyMapBuilder[int, int]()
 			const entryCount = 1000
 			for i := 0; i < entryCount; i++ {
-				builder.Set(datastructures.ReadOnlyMapBuilderEntry[int, int]{Key: i, Value: i * 10})
+				builder.Set(ds.ReadOnlyMapBuilderEntry[int, int]{Key: i, Value: i * 10})
 			}
 			roMap := builder.Build()
 

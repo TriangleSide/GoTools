@@ -1,4 +1,4 @@
-package datastructures_test
+package ds_test
 
 import (
 	"testing"
