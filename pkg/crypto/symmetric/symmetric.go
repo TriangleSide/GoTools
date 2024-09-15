@@ -10,28 +10,26 @@ import (
 	"io"
 )
 
-// Config is the configuration for the encryptor.
-type Config struct {
+// config is the configuration for the encryptor.
+type config struct {
 	blockCypherProvider func(key []byte) (cipher.Block, error)
 	randomDataFunc      func(buffer []byte) error
 }
 
 // Option is optional configuration of the encryptor.
-type Option func(*Config) error
+type Option func(*config)
 
 // WithBlockCypherProvider overwrites the provider for the block cipher.
 func WithBlockCypherProvider(provider func(key []byte) (cipher.Block, error)) Option {
-	return func(c *Config) error {
+	return func(c *config) {
 		c.blockCypherProvider = provider
-		return nil
 	}
 }
 
 // WithRandomDataFunc overwrites the random data function.
 func WithRandomDataFunc(randomDataFunc func(buffer []byte) error) Option {
-	return func(c *Config) error {
+	return func(c *config) {
 		c.randomDataFunc = randomDataFunc
-		return nil
 	}
 }
 
@@ -49,7 +47,7 @@ type aesEncryptor struct {
 
 // New allocates and configures an Encryptor.
 func New(key string, opts ...Option) (Encryptor, error) {
-	config := &Config{
+	cfg := &config{
 		blockCypherProvider: aes.NewCipher,
 		randomDataFunc: func(buffer []byte) error {
 			_, err := io.ReadFull(rand.Reader, buffer)
@@ -58,9 +56,7 @@ func New(key string, opts ...Option) (Encryptor, error) {
 	}
 
 	for _, opt := range opts {
-		if err := opt(config); err != nil {
-			return nil, fmt.Errorf("failure while configuring the encryptor (%s)", err.Error())
-		}
+		opt(cfg)
 	}
 
 	if len(key) == 0 {
@@ -68,14 +64,14 @@ func New(key string, opts ...Option) (Encryptor, error) {
 	}
 	hash := sha256.Sum256([]byte(key))
 
-	block, err := config.blockCypherProvider(hash[:])
+	block, err := cfg.blockCypherProvider(hash[:])
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the block cipher (%s)", err.Error())
 	}
 
 	return &aesEncryptor{
 		aesBlock:       block,
-		randomDataFunc: config.randomDataFunc,
+		randomDataFunc: cfg.randomDataFunc,
 	}, nil
 }
 

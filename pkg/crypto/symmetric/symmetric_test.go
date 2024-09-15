@@ -102,17 +102,6 @@ var _ = Describe("symmetric encryption", func() {
 		})
 	})
 
-	When("an option returns an error", func() {
-		It("should return an error", func() {
-			encryptor, err := symmetric.New("key", func(config *symmetric.Config) error {
-				return errors.New("option error")
-			})
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failure while configuring the encryptor (option error)"))
-			Expect(encryptor).To(BeNil())
-		})
-	})
-
 	When("the random data func fails", func() {
 		It("should return an error when encrypting", func() {
 			encryptor, err := symmetric.New("key", symmetric.WithRandomDataFunc(func(buffer []byte) error {
