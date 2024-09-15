@@ -15,8 +15,8 @@ import (
 	udplistener "github.com/TriangleSide/GoBase/pkg/network/udp/listener"
 )
 
-// Config is configured by the caller with the Options functions.
-type Config struct {
+// serverConfig is configured by the caller with the Options functions.
+type serverConfig struct {
 	configProvider      func() (*config.MetricsServer, error)
 	udpListenerProvider func(localHost string, localPort uint16) (udp.Conn, error)
 	encryptorProvider   func(key string) (symmetric.Encryptor, error)
@@ -25,45 +25,40 @@ type Config struct {
 }
 
 // Options is used to configure the metrics server.
-type Options func(*Config) error
+type Options func(*serverConfig)
 
 // WithEncryptorProvider overwrites the default encryptor provider.
 func WithEncryptorProvider(provider func(key string) (symmetric.Encryptor, error)) Options {
-	return func(serverConfig *Config) error {
-		serverConfig.encryptorProvider = provider
-		return nil
+	return func(cfg *serverConfig) {
+		cfg.encryptorProvider = provider
 	}
 }
 
 // WithUDPListenerProvider overwrites the default UDP listener provider.
 func WithUDPListenerProvider(provider func(localHost string, localPort uint16) (udp.Conn, error)) Options {
-	return func(serverConfig *Config) error {
-		serverConfig.udpListenerProvider = provider
-		return nil
+	return func(cfg *serverConfig) {
+		cfg.udpListenerProvider = provider
 	}
 }
 
 // WithConfigProvider overwrites the default config provider.
 func WithConfigProvider(provider func() (*config.MetricsServer, error)) Options {
-	return func(serverConfig *Config) error {
-		serverConfig.configProvider = provider
-		return nil
+	return func(cfg *serverConfig) {
+		cfg.configProvider = provider
 	}
 }
 
 // WithUnmarshallingFunc overwrites the default unmarshalling function.
 func WithUnmarshallingFunc(unmarshallingFunc func(data []byte, v any) error) Options {
-	return func(serverConfig *Config) error {
-		serverConfig.unmarshallingFunc = unmarshallingFunc
-		return nil
+	return func(cfg *serverConfig) {
+		cfg.unmarshallingFunc = unmarshallingFunc
 	}
 }
 
 // WithErrorHandler overwrites the default error handling function.
 func WithErrorHandler(errorHandler func(err error)) Options {
-	return func(serverConfig *Config) error {
-		serverConfig.errorHandler = errorHandler
-		return nil
+	return func(cfg *serverConfig) {
+		cfg.errorHandler = errorHandler
 	}
 }
 
@@ -82,7 +77,7 @@ type Server struct {
 
 // New creates a new Server instance from a configuration parsed from the environment variables.
 func New(opts ...Options) (*Server, error) {
-	serverConfig := &Config{
+	serverCfg := &serverConfig{
 		configProvider: func() (*config.MetricsServer, error) {
 			return envprocessor.ProcessAndValidate[config.MetricsServer]()
 		},
@@ -95,17 +90,15 @@ func New(opts ...Options) (*Server, error) {
 	}
 
 	for _, opt := range opts {
-		if err := opt(serverConfig); err != nil {
-			return nil, fmt.Errorf("failed to configure metrics server (%s)", err.Error())
-		}
+		opt(serverCfg)
 	}
 
-	cfg, err := serverConfig.configProvider()
+	cfg, err := serverCfg.configProvider()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get the metrics server configuration (%s)", err.Error())
 	}
 
-	conn, err := serverConfig.udpListenerProvider(cfg.MetricsBindIP, cfg.MetricsPort)
+	conn, err := serverCfg.udpListenerProvider(cfg.MetricsBindIP, cfg.MetricsPort)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metrics connection (%s)", err.Error())
 	}
@@ -115,7 +108,7 @@ func New(opts ...Options) (*Server, error) {
 		return nil, fmt.Errorf("failed to set the read buffer size to %d (%s)", cfg.MetricsOSBufferSize, err.Error())
 	}
 
-	encryptor, err := serverConfig.encryptorProvider(cfg.MetricsKey)
+	encryptor, err := serverCfg.encryptorProvider(cfg.MetricsKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the encryptor (%s)", err.Error())
 	}
@@ -128,8 +121,8 @@ func New(opts ...Options) (*Server, error) {
 
 	return &Server{
 		cfg:           cfg,
-		unmarshalFunc: serverConfig.unmarshallingFunc,
-		errorHandler:  serverConfig.errorHandler,
+		unmarshalFunc: serverCfg.unmarshallingFunc,
+		errorHandler:  serverCfg.errorHandler,
 		enc:           encryptor,
 		conn:          conn,
 		metrics:       make(chan *metrics.Metric, cfg.MetricsQueueSize),

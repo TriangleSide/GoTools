@@ -194,17 +194,6 @@ var _ = Describe("metrics", func() {
 			})
 		})
 
-		When("an option return an error", func() {
-			It("should return an error", func() {
-				server, err := metricsserver.New(func(serverConfig *metricsserver.Config) error {
-					return errors.New("option error")
-				})
-				Expect(err).To(HaveOccurred())
-				Expect(server).To(BeNil())
-				Expect(err.Error()).To(ContainSubstring("failed to configure metrics server (option error)"))
-			})
-		})
-
 		When("a metrics server is started with an unmarshalling func that fails", func() {
 			It("should return an error", func() {
 				received := atomic.Bool{}
