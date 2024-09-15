@@ -7,32 +7,28 @@ import (
 	"github.com/TriangleSide/GoBase/pkg/network/udp"
 )
 
-// Config is configured by the caller with the Option functions.
-type Config struct {
+// config is configured by the caller with the Option functions.
+type config struct {
 	localAddress *net.UDPAddr
 }
 
 // Option is used to configure the UDP client.
-type Option func(*Config) error
+type Option func(*config)
 
 // WithLocalAddress makes the UDP client connect to a specific local host and port.
-func WithLocalAddress(localHost string, localPort uint16) Option {
-	return func(config *Config) error {
-		resolvedAddress, err := udp.ResolveAddr(localHost, localPort)
-		config.localAddress = resolvedAddress
-		return err
+func WithLocalAddress(localAddress *net.UDPAddr) Option {
+	return func(cfg *config) {
+		cfg.localAddress = localAddress
 	}
 }
 
 // New dials a remote UDP address.
 func New(remoteHost string, remotePort uint16, opts ...Option) (udp.Conn, error) {
-	config := &Config{
+	cfg := &config{
 		localAddress: nil,
 	}
 	for _, opt := range opts {
-		if err := opt(config); err != nil {
-			return nil, fmt.Errorf("failed to configure UDP client (%s)", err.Error())
-		}
+		opt(cfg)
 	}
 
 	resolvedAddress, err := udp.ResolveAddr(remoteHost, remotePort)
@@ -40,7 +36,7 @@ func New(remoteHost string, remotePort uint16, opts ...Option) (udp.Conn, error)
 		return nil, fmt.Errorf("failed to resolve the UDP address (%s)", err.Error())
 	}
 
-	conn, err := net.DialUDP("udp", config.localAddress, resolvedAddress)
+	conn, err := net.DialUDP("udp", cfg.localAddress, resolvedAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial the UDP address (%s)", err.Error())
 	}

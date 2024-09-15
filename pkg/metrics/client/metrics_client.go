@@ -15,7 +15,7 @@ import (
 	udpclient "github.com/TriangleSide/GoBase/pkg/network/udp/client"
 )
 
-// Config is configured by the caller with the Option functions.
+// clientConfig is configured by the caller with the Option functions.
 type clientConfig struct {
 	configProvider    func() (*config.MetricsClient, error)
 	udpClientProvider func(remoteHost string, remotePort uint16) (udp.Conn, error)

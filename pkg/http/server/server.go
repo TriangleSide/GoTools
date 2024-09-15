@@ -18,7 +18,7 @@ import (
 	tcplistener "github.com/TriangleSide/GoBase/pkg/network/tcp/listener"
 )
 
-// Config is configured by the caller with the Option functions.
+// serverConfig is configured by the caller with the Option functions.
 type serverConfig struct {
 	configProvider   func() (*config.HTTPServer, error)
 	listenerProvider func(localHost string, localPort uint16) (tcp.Listener, error)

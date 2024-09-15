@@ -24,39 +24,39 @@ type serverConfig struct {
 	errorHandler        func(err error)
 }
 
-// Options is used to configure the metrics server.
-type Options func(*serverConfig)
+// Option is used to configure the metrics server.
+type Option func(*serverConfig)
 
 // WithEncryptorProvider overwrites the default encryptor provider.
-func WithEncryptorProvider(provider func(key string) (symmetric.Encryptor, error)) Options {
+func WithEncryptorProvider(provider func(key string) (symmetric.Encryptor, error)) Option {
 	return func(cfg *serverConfig) {
 		cfg.encryptorProvider = provider
 	}
 }
 
 // WithUDPListenerProvider overwrites the default UDP listener provider.
-func WithUDPListenerProvider(provider func(localHost string, localPort uint16) (udp.Conn, error)) Options {
+func WithUDPListenerProvider(provider func(localHost string, localPort uint16) (udp.Conn, error)) Option {
 	return func(cfg *serverConfig) {
 		cfg.udpListenerProvider = provider
 	}
 }
 
 // WithConfigProvider overwrites the default config provider.
-func WithConfigProvider(provider func() (*config.MetricsServer, error)) Options {
+func WithConfigProvider(provider func() (*config.MetricsServer, error)) Option {
 	return func(cfg *serverConfig) {
 		cfg.configProvider = provider
 	}
 }
 
 // WithUnmarshallingFunc overwrites the default unmarshalling function.
-func WithUnmarshallingFunc(unmarshallingFunc func(data []byte, v any) error) Options {
+func WithUnmarshallingFunc(unmarshallingFunc func(data []byte, v any) error) Option {
 	return func(cfg *serverConfig) {
 		cfg.unmarshallingFunc = unmarshallingFunc
 	}
 }
 
 // WithErrorHandler overwrites the default error handling function.
-func WithErrorHandler(errorHandler func(err error)) Options {
+func WithErrorHandler(errorHandler func(err error)) Option {
 	return func(cfg *serverConfig) {
 		cfg.errorHandler = errorHandler
 	}
@@ -76,7 +76,7 @@ type Server struct {
 }
 
 // New creates a new Server instance from a configuration parsed from the environment variables.
-func New(opts ...Options) (*Server, error) {
+func New(opts ...Option) (*Server, error) {
 	serverCfg := &serverConfig{
 		configProvider: func() (*config.MetricsServer, error) {
 			return envprocessor.ProcessAndValidate[config.MetricsServer]()
