@@ -67,31 +67,31 @@ func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) e
 				return fmt.Errorf("json unmarshal error (%s)", err.Error())
 			}
 		case reflect.String:
-			fieldPtr.Elem().Set(reflect.ValueOf(stringEncodedValue))
+			fieldPtr.Elem().SetString(stringEncodedValue)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			parsed, err := strconv.ParseInt(stringEncodedValue, 10, fieldType.Bits())
 			if err != nil {
 				return fmt.Errorf("int parsing error (%s)", err.Error())
 			}
-			fieldPtr.Elem().Set(reflect.ValueOf(parsed).Convert(fieldType))
+			fieldPtr.Elem().SetInt(parsed)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			parsed, err := strconv.ParseUint(stringEncodedValue, 10, fieldType.Bits())
 			if err != nil {
 				return fmt.Errorf("unsigned int parsing error (%s)", err.Error())
 			}
-			fieldPtr.Elem().Set(reflect.ValueOf(parsed).Convert(fieldType))
+			fieldPtr.Elem().SetUint(parsed)
 		case reflect.Float32, reflect.Float64:
 			parsed, err := strconv.ParseFloat(stringEncodedValue, fieldType.Bits())
 			if err != nil {
 				return fmt.Errorf("float parsing error (%s)", err.Error())
 			}
-			fieldPtr.Elem().Set(reflect.ValueOf(parsed).Convert(fieldType))
+			fieldPtr.Elem().SetFloat(parsed)
 		case reflect.Bool:
 			parsed, err := strconv.ParseBool(stringEncodedValue)
 			if err != nil {
 				return fmt.Errorf("bool parsing error (%s)", err.Error())
 			}
-			fieldPtr.Elem().Set(reflect.ValueOf(parsed))
+			fieldPtr.Elem().SetBool(parsed)
 		default:
 			return fmt.Errorf("unsupported field type: %s", fieldType)
 		}

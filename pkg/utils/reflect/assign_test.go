@@ -38,7 +38,10 @@ var _ = Describe("assign a struct field with a string value", func() {
 
 		StringValue     string
 		IntValue        int
+		Int8Value       int8
 		UintValue       uint
+		Uint8Value      uint8
+		Float32Value    float32
 		FloatValue      float64
 		BoolValue       bool
 		StructValue     testInternalStruct
@@ -48,7 +51,10 @@ var _ = Describe("assign a struct field with a string value", func() {
 
 		StringPtrValue     *string
 		IntPtrValue        *int
+		Int8PtrValue       *int8
 		UintPtrValue       *uint
+		Uint8PtrValue      *uint8
+		Float32PtrValue    *float32
 		FloatPtrValue      *float64
 		BoolPtrValue       *bool
 		StructPtrValue     *testInternalStruct
@@ -113,16 +119,34 @@ var _ = Describe("assign a struct field with a string value", func() {
 				Expect(values.IntValue).To(BeNumerically("==", -123))
 			})
 
+			It("should set the Int8Value field", func() {
+				const setValue = "-32"
+				Expect(reflect.AssignToField(values, "Int8Value", setValue)).To(Succeed())
+				Expect(values.Int8Value).To(BeNumerically("==", -32))
+			})
+
 			It("should set the UintValue field", func() {
 				const setValue = "123"
 				Expect(reflect.AssignToField(values, "UintValue", setValue)).To(Succeed())
 				Expect(values.UintValue).To(BeNumerically("==", 123))
 			})
 
+			It("should set the Uint8Value field", func() {
+				const setValue = "32"
+				Expect(reflect.AssignToField(values, "Uint8Value", setValue)).To(Succeed())
+				Expect(values.Uint8Value).To(BeNumerically("==", 32))
+			})
+
 			It("should set the FloatValue field", func() {
 				const setValue = "123.456"
 				Expect(reflect.AssignToField(values, "FloatValue", setValue)).To(Succeed())
 				Expect(values.FloatValue).To(BeNumerically("~", 123.456, 0.001))
+			})
+
+			It("should set the Float32Value field", func() {
+				const setValue = "123.456"
+				Expect(reflect.AssignToField(values, "Float32Value", setValue)).To(Succeed())
+				Expect(values.Float32Value).To(BeNumerically("~", 123.456, 0.001))
 			})
 
 			It("should set the BoolValue field", func() {
@@ -178,11 +202,32 @@ var _ = Describe("assign a struct field with a string value", func() {
 				Expect(*values.IntPtrValue).To(BeNumerically("==", -321))
 			})
 
+			It("should set the IntPtrValue field", func() {
+				const setValue = "-32"
+				Expect(reflect.AssignToField(values, "Int8PtrValue", setValue)).To(Succeed())
+				Expect(values.Int8PtrValue).NotTo(BeNil())
+				Expect(*values.Int8PtrValue).To(BeNumerically("==", -32))
+			})
+
 			It("should set the UintPtrValue field", func() {
 				const setValue = "321"
 				Expect(reflect.AssignToField(values, "UintPtrValue", setValue)).To(Succeed())
 				Expect(values.UintPtrValue).NotTo(BeNil())
 				Expect(*values.UintPtrValue).To(BeNumerically("==", 321))
+			})
+
+			It("should set the Uint8PtrValue field", func() {
+				const setValue = "32"
+				Expect(reflect.AssignToField(values, "Uint8PtrValue", setValue)).To(Succeed())
+				Expect(values.Uint8PtrValue).NotTo(BeNil())
+				Expect(*values.Uint8PtrValue).To(BeNumerically("==", 32))
+			})
+
+			It("should set the Float32PtrValue field", func() {
+				const setValue = "123.456"
+				Expect(reflect.AssignToField(values, "Float32PtrValue", setValue)).To(Succeed())
+				Expect(values.Float32PtrValue).NotTo(BeNil())
+				Expect(*values.Float32PtrValue).To(BeNumerically("~", 123.456, 0.001))
 			})
 
 			It("should set the FloatPtrValue field", func() {
@@ -438,7 +483,6 @@ var _ = Describe("assign a struct field with a string value", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("unsupported field type"))
 			})
-
 		})
 	})
 })
