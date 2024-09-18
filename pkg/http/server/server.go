@@ -3,9 +3,11 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -53,9 +55,9 @@ type Server struct {
 	wg       sync.WaitGroup
 }
 
-// New allocates and sets the required configuration for a Server.
+// New instantiates an HTTP server with the provided options.
 func New(opts ...Option) (*Server, error) {
-	cfg := &serverConfig{
+	srvCfg := &serverConfig{
 		configProvider: func() (*config.HTTPServer, error) {
 			return envprocessor.ProcessAndValidate[config.HTTPServer]()
 		},
@@ -63,10 +65,10 @@ func New(opts ...Option) (*Server, error) {
 	}
 
 	for _, opt := range opts {
-		opt(cfg)
+		opt(srvCfg)
 	}
 
-	envConfig, err := cfg.configProvider()
+	envConfig, err := srvCfg.configProvider()
 	if err != nil {
 		return nil, fmt.Errorf("could not load configuration (%s)", err.Error())
 	}
@@ -78,7 +80,7 @@ func New(opts ...Option) (*Server, error) {
 	shutdown.Store(false)
 
 	return &Server{
-		cfg:      cfg,
+		cfg:      srvCfg,
 		envConf:  envConfig,
 		srv:      nil,
 		ran:      ran,
@@ -112,8 +114,11 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 		}
 	}
 
-	var tlsConfig *tls.Config = nil
-	if server.envConf.HTTPServerTLS {
+	var tlsConfig *tls.Config
+	switch server.envConf.HTTPServerTLSMode {
+	case config.HTTPServerTLSModeOff:
+		tlsConfig = nil
+	case config.HTTPServerTLSModeTLS:
 		serverCert, err := tls.LoadX509KeyPair(server.envConf.HTTPServerCert, server.envConf.HTTPServerKey)
 		if err != nil {
 			return fmt.Errorf("failed to load the server certificates (%s)", err.Error())
@@ -122,6 +127,23 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 			MinVersion:   tls.VersionTLS12,
 			Certificates: []tls.Certificate{serverCert},
 		}
+	case config.HTTPServerTLSModeMutualTLS:
+		serverCert, err := tls.LoadX509KeyPair(server.envConf.HTTPServerCert, server.envConf.HTTPServerKey)
+		if err != nil {
+			return fmt.Errorf("failed to load the server certificates (%s)", err.Error())
+		}
+		clientCAs, err := server.loadMutualTLSClientCAs()
+		if err != nil {
+			return fmt.Errorf("failed to load client CA certificates (%s)", err.Error())
+		}
+		tlsConfig = &tls.Config{
+			MinVersion:   tls.VersionTLS12,
+			Certificates: []tls.Certificate{serverCert},
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    clientCAs,
+		}
+	default:
+		return fmt.Errorf("invalid TLS mode: %s", server.envConf.HTTPServerTLSMode)
 	}
 
 	server.srv = &http.Server{
@@ -144,11 +166,11 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 
 	readyCallback()
 
-	// ServeTLS always returns as error as it is meant to be blocking.
-	if server.envConf.HTTPServerTLS {
-		err = server.srv.ServeTLS(server.listener, "", "")
-	} else {
+	// The serve methods always returns as error as it is meant to be blocking.
+	if server.envConf.HTTPServerTLSMode == config.HTTPServerTLSModeOff {
 		err = server.srv.Serve(server.listener)
+	} else {
+		err = server.srv.ServeTLS(server.listener, "", "")
 	}
 
 	// The server blocks until there is an error, or it is shutdown.
@@ -164,9 +186,28 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 func (server *Server) Shutdown(ctx context.Context) error {
 	var err error
 	if !server.shutdown.Swap(true) {
-		err = server.srv.Shutdown(ctx)
-		_ = server.listener.Close()
+		if server.srv != nil {
+			err = server.srv.Shutdown(ctx)
+		}
+		if server.listener != nil {
+			_ = server.listener.Close()
+		}
 	}
 	server.wg.Wait()
 	return err
+}
+
+// loadMutualTLSClientCAs loads client CA certificates for mutual TLS.
+func (server *Server) loadMutualTLSClientCAs() (*x509.CertPool, error) {
+	clientCAs := x509.NewCertPool()
+	for _, caCertPath := range server.envConf.HTTPServerClientCACerts {
+		caCert, err := os.ReadFile(caCertPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not read client CA certificate on path %s (%s)", caCertPath, err.Error())
+		}
+		if ok := clientCAs.AppendCertsFromPEM(caCert); !ok {
+			return nil, fmt.Errorf("failed to append client CA certificate (%s)", caCertPath)
+		}
+	}
+	return clientCAs, nil
 }

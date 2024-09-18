@@ -73,13 +73,13 @@ func ProcessAndValidate[T any](opts ...Option) (*T, error) {
 		envValue, hasEnvValue := os.LookupEnv(formattedEnvName)
 		if hasEnvValue {
 			if err := reflectutils.AssignToField(conf, fieldName, envValue); err != nil {
-				return nil, fmt.Errorf("failed to assign env var %s to field %s", envValue, fieldName)
+				return nil, fmt.Errorf("failed to assign env var %s to field %s (%s)", envValue, fieldName, err.Error())
 			}
 		} else {
 			defaultValue, hasDefaultTag := fieldMetadata.Tags[DefaultTag]
 			if hasDefaultTag {
 				if err := reflectutils.AssignToField(conf, fieldName, defaultValue); err != nil {
-					return nil, fmt.Errorf("failed to assign default value %s to field %s", defaultValue, fieldName)
+					return nil, fmt.Errorf("failed to assign default value %s to field %s (%s)", defaultValue, fieldName, err.Error())
 				}
 			}
 		}

@@ -17,7 +17,8 @@ func Test(t *testing.T) {
 
 func unsetEnvironmentVariables() {
 	Expect(os.Unsetenv(string(config.HTTPServerBindPortEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.HTTPServerTLSModeEnvName))).To(Succeed())
 	Expect(os.Unsetenv(string(config.HTTPServerCertEnvName))).To(Succeed())
 	Expect(os.Unsetenv(string(config.HTTPServerKeyEnvName))).To(Succeed())
-	Expect(os.Unsetenv(string(config.HTTPServerTLSEnvName))).To(Succeed())
+	Expect(os.Unsetenv(string(config.HTTPServerClientCACertsEnvName))).To(Succeed())
 }

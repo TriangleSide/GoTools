@@ -5,64 +5,63 @@ import (
 )
 
 const (
-	HTTPServerCertEnvName     envprocessor.EnvName = "HTTP_SERVER_CERT"
-	HTTPServerKeyEnvName      envprocessor.EnvName = "HTTP_SERVER_KEY"
-	HTTPServerBindPortEnvName envprocessor.EnvName = "HTTP_SERVER_BIND_PORT"
-	HTTPServerTLSEnvName      envprocessor.EnvName = "HTTP_SERVER_TLS"
+	HTTPServerBindPortEnvName      envprocessor.EnvName = "HTTP_SERVER_BIND_PORT"
+	HTTPServerTLSModeEnvName       envprocessor.EnvName = "HTTP_SERVER_TLS_MODE"
+	HTTPServerCertEnvName          envprocessor.EnvName = "HTTP_SERVER_CERT"
+	HTTPServerKeyEnvName           envprocessor.EnvName = "HTTP_SERVER_KEY"
+	HTTPServerClientCACertsEnvName envprocessor.EnvName = "HTTP_SERVER_CLIENT_CA_CERTS"
 )
 
-// HTTPServer contains the parameters needed to configure an HTTP server.
+// HTTPServerTLSMode represents the TLS mode of the HTTP server.
+type HTTPServerTLSMode string
+
+const (
+	// HTTPServerTLSModeOff represents plain HTTP without TLS.
+	HTTPServerTLSModeOff HTTPServerTLSMode = "off"
+
+	// HTTPServerTLSModeTLS represents HTTP over TLS.
+	HTTPServerTLSModeTLS HTTPServerTLSMode = "tls"
+
+	// HTTPServerTLSModeMutualTLS represents HTTP over mutual TLS.
+	HTTPServerTLSModeMutualTLS HTTPServerTLSMode = "mutual_tls"
+)
+
+// HTTPServer holds configuration parameters for an HTTP server.
 type HTTPServer struct {
-	// HTTPServerBindIP specifies which network interface a server uses to handle incoming connections,
-	// controlling access based on network location.
+	// HTTPServerBindIP is the IP address the server listens on.
 	HTTPServerBindIP string `config_format:"snake" config_default:"::1" validate:"required,ip_addr"`
 
-	// HTTPServerBindPort designates a specific port number for an application to listen on,
-	// uniquely identifying the service and managing incoming data traffic.
+	// HTTPServerBindPort is the port number the server listens on.
 	HTTPServerBindPort uint16 `config_format:"snake" config_default:"36963" validate:"gt=0"`
 
-	// HTTPServerReadTimeout is the maximum duration for reading the entire request,
-	// including the body. A zero or negative value means there will be no timeout.
+	// HTTPServerReadTimeoutSeconds is the maximum time (in seconds) to read the request.
+	// Zero or negative means no timeout.
 	HTTPServerReadTimeoutSeconds int `config_format:"snake" config_default:"120" validate:"gte=0"`
 
-	// HTTPServerWriteTimeout is the maximum duration before timing out writes of the response.
-	// A zero or negative value means there will be no timeout.
+	// HTTPServerWriteTimeoutSeconds is the maximum time (in seconds) to write the response.
+	// Zero or negative means no timeout.
 	HTTPServerWriteTimeoutSeconds int `config_format:"snake" config_default:"120" validate:"gte=0"`
 
-	// IdleTimeout is the maximum amount of time to wait for the next request when keep-alives are enabled.
-	// If IdleTimeout is zero, the value of ReadTimeout is used. If both are zero, there is no timeout.
+	// HTTPServerIdleTimeoutSeconds sets the max idle time (in seconds) between requests when keep-alives are enabled.
+	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
 	HTTPServerIdleTimeoutSeconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
 
-	// ReadHeaderTimeout is the amount of time allowed to read request headers. The connection's
-	// read deadline is reset after reading the headers and the Handler can decide what is considered
-	// too slow for the body. If ReadHeaderTimeout is zero, the value of ReadTimeout is used. If both are
-	// zero, there is no timeout.
+	// HTTPServerHeaderReadTimeoutSeconds is the maximum time (in seconds) to read request headers.
+	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
 	HTTPServerHeaderReadTimeoutSeconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
 
-	// The HTTPServerTLS flag is used to enable or disable the use of TLS (Transport Layer Security)
-	// for the HTTP server. When set to true, TLS is enabled, and the server will use the TLS protocol
-	// to provide secure communications. When set to false, the server operates over plain HTTP,
-	// which does not provide encryption.
-	HTTPServerTLS bool `config_format:"snake" config_default:"true"`
+	// HTTPServerTLSMode specifies the TLS mode of the server: off, tls, or mutual_tls.
+	HTTPServerTLSMode HTTPServerTLSMode `config_format:"snake" config_default:"tls" validate:"oneof=off tls mutual_tls"`
 
-	// HTTPServerCert is the file path to the server's TLS certificate.
-	// This certificate contains the public key part of the key pair used by the server
-	// to establish its identity with clients during the TLS handshake. The certificate
-	// must be issued by a trusted certificate authority (CA) or be a self-signed certificate
-	// that clients trust. The certificate includes the server's public key along with
-	// the identity of the server (like hostname), and it is encoded in PEM format.
-	HTTPServerCert string `config_format:"snake" config_default:"" validate:"omitempty,filepath"`
+	// HTTPServerCert is the path to the TLS certificate file.
+	HTTPServerCert string `config_format:"snake" config_default:"" validate:"required_if=HTTPServerTLSMode tls HTTPServerTLSMode mutual_tls,omitempty,filepath"`
 
-	// HTTPServerKey is the file path to the server's private key.
-	// This key is the private part of the key pair associated with the server's certificate.
-	// It is crucial for decrypting the information encrypted with the server's public key
-	// by clients during the TLS handshake. The server's private key must be kept secure
-	// and confidential because unauthorized access to this key compromises the entire
-	// security of the TLS encryption. This key is typically also encoded in PEM format.
-	HTTPServerKey string `config_format:"snake" config_default:"" validate:"omitempty,filepath"`
+	// HTTPServerKey is the path to the TLS private key file.
+	HTTPServerKey string `config_format:"snake" config_default:"" validate:"required_if=HTTPServerTLSMode tls HTTPServerTLSMode mutual_tls,omitempty,filepath"`
 
-	// HTTPServerMaxHeaderBytes controls the maximum number of bytes the server will read parsing
-	// the request header's keys and values, including the request line. It does not limit the
-	// size of the request body.
+	// HTTPServerClientCACerts is a list of paths to client CA certificate files (used in mutual TLS).
+	HTTPServerClientCACerts []string `config_format:"snake" config_default:"[]" validate:"required_if=HTTPServerTLSMode mutual_tls,dive,required,filepath"`
+
+	// HTTPServerMaxHeaderBytes sets the maximum size in bytes of request headers. It doesn't limit the request body size.
 	HTTPServerMaxHeaderBytes int `config_format:"snake" config_default:"1048576" validate:"gte=4096,lte=1073741824"`
 }
