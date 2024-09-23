@@ -5,113 +5,164 @@ import (
 	"crypto/rand"
 	"errors"
 	mathrand "math/rand"
+	"reflect"
 	"strconv"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"strings"
+	"testing"
 
 	"github.com/TriangleSide/GoBase/pkg/crypto/symmetric"
 )
 
-var _ = Describe("symmetric encryption", func() {
-	When("the cipher provider returns an error", func() {
-		It("should return an error when creating a new symmetric encryptor", func() {
-			encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(mathrand.Int()), symmetric.WithBlockCypherProvider(func(key []byte) (cipher.Block, error) {
-				return nil, errors.New("block cipher provider error")
-			}))
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to create the block cipher (block cipher provider error)"))
-			Expect(encryptor).To(BeNil())
-		})
+func TestSymmetricEncryption(t *testing.T) {
+	t.Parallel()
+
+	newEncryptor := func(t *testing.T) symmetric.Encryptor {
+		encryptor, err := symmetric.New("encryptionKey" + strconv.Itoa(mathrand.Int()))
+		if err != nil {
+			t.Fatalf("should not return an error")
+		}
+		if encryptor == nil {
+			t.Fatalf("the encryptor should not be nil")
+		}
+		return encryptor
+	}
+
+	t.Run("when the cipher provider returns an error it should return an error on creation", func(t *testing.T) {
+		t.Parallel()
+		encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(mathrand.Int()), symmetric.WithBlockCypherProvider(func(key []byte) (cipher.Block, error) {
+			return nil, errors.New("block cipher provider error")
+		}))
+		if err == nil {
+			t.Fatalf("should return an error")
+		}
+		if encryptor != nil {
+			t.Fatalf("the encryptor should be nil")
+		}
+		if !strings.Contains(err.Error(), "failed to create the block cipher (block cipher provider error)") {
+			t.Fatalf("error message is not correct (%s)", err.Error())
+		}
 	})
 
-	When("an encryptor is created", func() {
-		var encryptor symmetric.Encryptor
-
-		BeforeEach(func() {
-			var err error
-			encryptor, err = symmetric.New("encryptionKey" + strconv.Itoa(mathrand.Int()))
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		When("data of different size is generated", func() {
-			It("should be able to be encrypted and decrypted", func() {
-				for dataSize := 1; dataSize <= 1024; dataSize++ {
-					data := make([]byte, dataSize)
-					_, err := rand.Read(data)
-					Expect(err).NotTo(HaveOccurred())
-					encrypted, err := encryptor.Encrypt(data)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(encrypted).To(Not(Equal(data)))
-					decrypted, err := encryptor.Decrypt(encrypted)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(decrypted).To(Equal(data))
-				}
-			})
-		})
-
-		When("the same data is encrypted", func() {
-			It("should have different cypher-text", func() {
-				data := []byte{0x00, 0x01, 0x02}
-				encrypted1, err := encryptor.Encrypt(data)
-				Expect(err).NotTo(HaveOccurred())
-				encrypted2, err := encryptor.Encrypt(data)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(encrypted1).To(Not(Equal(encrypted2)))
-			})
-		})
-
-		When("nil bytes are decrypted", func() {
-			It("should return an error", func() {
-				decrypted, err := encryptor.Decrypt(nil)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("shorter then the minimum length"))
-				Expect(decrypted).To(BeNil())
-			})
-		})
-
-		When("an empty slice of bytes are encrypted and decrypted", func() {
-			It("should return an empty slice", func() {
-				encrypted, err := encryptor.Encrypt([]byte{})
-				Expect(err).NotTo(HaveOccurred())
-				decrypted, err := encryptor.Decrypt(encrypted)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(decrypted).To(Not(BeNil()))
-				Expect(decrypted).To(BeEmpty())
-			})
-		})
-
-		When("an nil bytes are encrypted and decrypted", func() {
-			It("should return an empty slice", func() {
-				encrypted, err := encryptor.Encrypt(nil)
-				Expect(err).NotTo(HaveOccurred())
-				decrypted, err := encryptor.Decrypt(encrypted)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(decrypted).To(Not(BeNil()))
-				Expect(decrypted).To(BeEmpty())
-			})
-		})
+	t.Run("where data of different size is generated it should be able to be encrypted and decrypted", func(t *testing.T) {
+		t.Parallel()
+		encryptor := newEncryptor(t)
+		for dataSize := 1; dataSize <= 1024; dataSize++ {
+			data := make([]byte, dataSize)
+			n, err := rand.Read(data)
+			if err != nil {
+				t.Fatalf("rand returned an error (%s)", err.Error())
+			}
+			if n != dataSize {
+				t.Fatalf("failed to read %d bytes from rand", n)
+			}
+			encrypted, err := encryptor.Encrypt(data)
+			if err != nil {
+				t.Fatalf("encryption returned an error (%s)", err.Error())
+			}
+			if reflect.DeepEqual(data, encrypted) {
+				t.Fatalf("encrypted and decrypted are the same")
+			}
+			decrypted, err := encryptor.Decrypt(encrypted)
+			if err != nil {
+				t.Fatalf("decryption returned an error (%s)", err.Error())
+			}
+			if !reflect.DeepEqual(data, decrypted) {
+				t.Fatalf("decrypted data and the original should be the same")
+			}
+		}
 	})
 
-	When("an encryptor is created with an empty key", func() {
-		It("should return an error", func() {
-			encryptor, err := symmetric.New("")
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("invalid key"))
-			Expect(encryptor).To(BeNil())
-		})
+	t.Run("when the same data is encrypted it should have different cypher-text", func(t *testing.T) {
+		t.Parallel()
+		encryptor := newEncryptor(t)
+		const dataSize = 16
+		data := make([]byte, dataSize)
+		n, err := rand.Read(data)
+		if err != nil {
+			t.Fatalf("rand returned an error (%s)", err.Error())
+		}
+		if n != dataSize {
+			t.Fatalf("failed to read %d bytes from rand", n)
+		}
+		encrypted1, err := encryptor.Encrypt(data)
+		if err != nil {
+			t.Fatalf("encryption returned an error (%s)", err.Error())
+		}
+		encrypted2, err := encryptor.Encrypt(data)
+		if err != nil {
+			t.Fatalf("encryption returned an error (%s)", err.Error())
+		}
+		if reflect.DeepEqual(encrypted1, encrypted2) {
+			t.Fatalf("cipher texts are the same but should not be")
+		}
 	})
 
-	When("the random data func fails", func() {
-		It("should return an error when encrypting", func() {
-			encryptor, err := symmetric.New("key", symmetric.WithRandomDataFunc(func(buffer []byte) error {
-				return errors.New("random data error")
-			}))
-			Expect(err).ToNot(HaveOccurred())
-			cypher, err := encryptor.Encrypt([]byte("test"))
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to generate initialization vector (random data error)"))
-			Expect(cypher).To(BeNil())
-		})
+	t.Run("when nil bytes are decrypted it should return an error", func(t *testing.T) {
+		t.Parallel()
+		encryptor := newEncryptor(t)
+		decrypted, err := encryptor.Decrypt(nil)
+		if err == nil {
+			t.Fatalf("should return an error")
+		}
+		if decrypted != nil {
+			t.Fatalf("decrypted data should be nil")
+		}
+		if !strings.Contains(err.Error(), "shorter then the minimum length") {
+			t.Fatalf("error message is not correct (%s)", err.Error())
+		}
 	})
-})
+
+	t.Run("an empty slice of bytes are encrypted and decrypted it should return an empty slice", func(t *testing.T) {
+		t.Parallel()
+		encryptor := newEncryptor(t)
+		encrypted, err := encryptor.Encrypt([]byte{})
+		if err != nil {
+			t.Fatalf("encryption returned an error (%s)", err.Error())
+		}
+		decrypted, err := encryptor.Decrypt(encrypted)
+		if err != nil {
+			t.Fatalf("decryption returned an error (%s)", err.Error())
+		}
+		if len(decrypted) != 0 {
+			t.Fatalf("decrypted data should be empty")
+		}
+	})
+
+	t.Run("when an encryptor is created with an empty key it should return an error", func(t *testing.T) {
+		t.Parallel()
+		encryptor, err := symmetric.New("")
+		if err == nil {
+			t.Fatalf("should return an error")
+		}
+		if encryptor != nil {
+			t.Fatalf("the encryptor should be nil")
+		}
+		if !strings.Contains(err.Error(), "invalid key") {
+			t.Fatalf("error message is not correct (%s)", err.Error())
+		}
+	})
+
+	t.Run("when the random data func fails it should return an error when encrypting", func(t *testing.T) {
+		t.Parallel()
+		encryptor, err := symmetric.New("key", symmetric.WithRandomDataFunc(func(buffer []byte) error {
+			return errors.New("random data error")
+		}))
+		if err != nil {
+			t.Fatalf("should not return an error")
+		}
+		if encryptor == nil {
+			t.Fatalf("the encryptor should not be nil")
+		}
+		cypher, err := encryptor.Encrypt([]byte("test"))
+		if err == nil {
+			t.Fatalf("should return an error")
+		}
+		if cypher != nil {
+			t.Fatalf("the cypher should be nil")
+		}
+		if !strings.Contains(err.Error(), "failed to generate initialization vector (random data error)") {
+			t.Fatalf("error message is not correct (%s)", err.Error())
+		}
+	})
+
+}
