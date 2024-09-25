@@ -3,83 +3,75 @@ package middleware_test
 import (
 	"net/http"
 	"net/http/httptest"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"testing"
 
 	"github.com/TriangleSide/GoBase/pkg/http/middleware"
 )
 
-var _ = Describe("middleware", func() {
-	When("an http handler is created", func() {
-		const (
-			handlerInvocationName = "handler"
-		)
+func TestHTTPMiddleware(t *testing.T) {
+	t.Parallel()
 
-		var (
-			mwInvocations []string
-			handler       http.HandlerFunc
-		)
+	t.Run("when the middleware chain is created with a nil middleware list it should only call the handler", func(t *testing.T) {
+		t.Parallel()
 
-		BeforeEach(func() {
-			mwInvocations = []string{}
-			handler = func(w http.ResponseWriter, req *http.Request) {
-				mwInvocations = append(mwInvocations, handlerInvocationName)
-			}
-		})
-
-		When("the middleware chain is created and invoked with a nil middleware list and the handler", func() {
-			BeforeEach(func() {
-				mwChain := middleware.CreateChain(nil, handler)
-				mwChain.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
-			})
-
-			It("should only call the handler", func() {
-				Expect(mwInvocations).To(Equal([]string{handlerInvocationName}))
-			})
-		})
-
-		When("the middleware chain is created and invoked with an empty middleware list and the handler", func() {
-			BeforeEach(func() {
-				mw := make([]middleware.Middleware, 0)
-				mwChain := middleware.CreateChain(mw, handler)
-				mwChain.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
-			})
-
-			It("should only call the handler", func() {
-				Expect(mwInvocations).To(Equal([]string{handlerInvocationName}))
-			})
-		})
-
-		When("the middleware chain is created and invoked with two middleware and the handler", func() {
-			const (
-				mw1InvocationName = "mw1"
-				mw2InvocationName = "mw2"
-			)
-
-			BeforeEach(func() {
-				mwList := []middleware.Middleware{
-					func(next http.HandlerFunc) http.HandlerFunc {
-						return func(writer http.ResponseWriter, request *http.Request) {
-							mwInvocations = append(mwInvocations, mw1InvocationName)
-							next(writer, request)
-						}
-					},
-					func(next http.HandlerFunc) http.HandlerFunc {
-						return func(writer http.ResponseWriter, request *http.Request) {
-							mwInvocations = append(mwInvocations, mw2InvocationName)
-							next(writer, request)
-						}
-					},
-				}
-				mwChain := middleware.CreateChain(mwList, handler)
-				mwChain.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
-			})
-
-			It("should have executed the middleware and handler in order", func() {
-				Expect(mwInvocations).To(Equal([]string{mw1InvocationName, mw2InvocationName, handlerInvocationName}))
-			})
-		})
-
+		called := false
+		handler := func(w http.ResponseWriter, req *http.Request) {
+			called = true
+		}
+		mwChain := middleware.CreateChain(nil, handler)
+		mwChain.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+		if called == false {
+			t.Fatalf("the handler should have been called but it was not")
+		}
 	})
-})
+
+	t.Run("when the middleware chain is created with an empty middleware list it should only call the handler", func(t *testing.T) {
+		t.Parallel()
+
+		called := false
+		handler := func(w http.ResponseWriter, req *http.Request) {
+			called = true
+		}
+		mwChain := middleware.CreateChain(make([]middleware.Middleware, 0), handler)
+		mwChain.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+		if called == false {
+			t.Fatalf("the handler should have been called but it was not")
+		}
+	})
+
+	t.Run("when the middleware chain is created it should invoke them in order", func(t *testing.T) {
+		invocations := make([]string, 0)
+		mwList := []middleware.Middleware{
+			func(next http.HandlerFunc) http.HandlerFunc {
+				return func(writer http.ResponseWriter, request *http.Request) {
+					invocations = append(invocations, "first")
+					next(writer, request)
+				}
+			},
+			func(next http.HandlerFunc) http.HandlerFunc {
+				return func(writer http.ResponseWriter, request *http.Request) {
+					invocations = append(invocations, "second")
+					next(writer, request)
+				}
+			},
+		}
+		handler := func(w http.ResponseWriter, req *http.Request) {
+			invocations = append(invocations, "handler")
+		}
+		mwChain := middleware.CreateChain(mwList, handler)
+		mwChain.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+
+		if len(invocations) != 3 {
+			t.Fatalf("excepting 3 invocations")
+		}
+		if invocations[0] != "first" {
+			t.Fatalf("the first mw should have been invoked but it was not")
+		}
+		if invocations[1] != "second" {
+			t.Fatalf("the second mw should have been invoked but it was not")
+		}
+		if invocations[2] != "handler" {
+			t.Fatalf("the handler should have been invoked but it was not")
+		}
+	})
+}
