@@ -3,250 +3,362 @@ package api_test
 import (
 	"net/http"
 	"net/http/httptest"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"strings"
+	"testing"
 
 	"github.com/TriangleSide/GoBase/pkg/http/api"
 	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
-var _ = Describe("handler", func() {
-	When("an HTTP API builder is created", func() {
-		var (
-			builder *api.HTTPAPIBuilder
-		)
+func TestHTTPApi(t *testing.T) {
+	t.Parallel()
 
-		BeforeEach(func() {
-			builder = api.NewHTTPAPIBuilder()
-		})
+	t.Run("when Handlers() is called it should have nothing", func(t *testing.T) {
+		t.Parallel()
+		builder := api.NewHTTPAPIBuilder()
+		handlers := builder.Handlers()
+		if len(handlers) != 0 {
+			t.Fatalf("handlers should be empty")
+		}
+	})
 
-		It("should have nothing when Handlers() is called", func() {
-			Expect(builder.Handlers()).To(BeEmpty())
-		})
-
-		It("should panic when an invalid method is registered", func() {
-			Expect(func() {
-				builder.MustRegister("/", "BAD_METHOD", &api.Handler{
-					Middleware: nil,
-					Handler:    func(writer http.ResponseWriter, request *http.Request) {},
-				})
-			}).To(PanicWith(ContainSubstring("HTTP method 'BAD_METHOD' is invalid ")))
-		})
-
-		It("should panic when an invalid path is registered", func() {
-			Expect(func() {
-				builder.MustRegister("/!@#$%/{}", http.MethodGet, &api.Handler{
-					Middleware: nil,
-					Handler:    func(writer http.ResponseWriter, request *http.Request) {},
-				})
-			}).To(PanicWith(ContainSubstring("path contains invalid characters")))
-		})
-
-		It("should panic when path and method is registered twice", func() {
-			Expect(func() {
-				for i := 0; i < 2; i++ {
-					builder.MustRegister("/", http.MethodGet, &api.Handler{
-						Middleware: nil,
-						Handler:    func(writer http.ResponseWriter, request *http.Request) {},
-					})
+	t.Run("when an invalid method is registered it should panic", func(t *testing.T) {
+		t.Parallel()
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("the code did not panic")
+			} else {
+				errorMsg := r.(string)
+				if !strings.Contains(errorMsg, "method") {
+					t.Errorf("the error message is not correct")
 				}
-			}).To(PanicWith(ContainSubstring("method 'GET' already registered for path '/'")))
-		})
-
-		When("a nil handler is registered", func() {
-			var (
-				path     api.Path
-				recorder *httptest.ResponseRecorder
-				request  *http.Request
-			)
-
-			BeforeEach(func() {
-				var err error
-				path = "/"
-				builder.MustRegister("/", http.MethodGet, nil)
-				recorder = httptest.NewRecorder()
-				request, err = http.NewRequest(http.MethodGet, "/", nil)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("should create a handler that returns the not implemented status", func() {
-				pathToMethodToHandler := builder.Handlers()
-				Expect(pathToMethodToHandler).To(Not(BeNil()))
-
-				methodToHandler, pathFound := pathToMethodToHandler[path]
-				Expect(pathFound).To(BeTrue())
-				Expect(methodToHandler).To(Not(BeNil()))
-
-				handler, methodFound := methodToHandler[http.MethodGet]
-				Expect(methodFound).To(BeTrue())
-				Expect(handler).To(Not(BeNil()))
-				Expect(handler.Handler).To(Not(BeNil()))
-				Expect(handler.Middleware).To(BeNil())
-
-				handler.Handler.ServeHTTP(recorder, request)
-				Expect(recorder.Code).To(Equal(http.StatusNotImplemented))
-			})
-		})
-
-		When("a nil handler func is registered", func() {
-			var (
-				path     api.Path
-				recorder *httptest.ResponseRecorder
-				request  *http.Request
-			)
-
-			BeforeEach(func() {
-				var err error
-				path = "/"
-				builder.MustRegister("/", http.MethodGet, nil)
-				recorder = httptest.NewRecorder()
-				request, err = http.NewRequest(http.MethodGet, "/", nil)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("should create a handler that returns the not implemented status", func() {
-				pathToMethodToHandler := builder.Handlers()
-				Expect(pathToMethodToHandler).To(Not(BeNil()))
-
-				methodToHandler, pathFound := pathToMethodToHandler[path]
-				Expect(pathFound).To(BeTrue())
-				Expect(methodToHandler).To(Not(BeNil()))
-
-				handler, methodFound := methodToHandler[http.MethodGet]
-				Expect(methodFound).To(BeTrue())
-				Expect(handler).To(Not(BeNil()))
-				Expect(handler.Handler).To(Not(BeNil()))
-				Expect(handler.Middleware).To(BeNil())
-
-				handler.Handler.ServeHTTP(recorder, request)
-				Expect(recorder.Code).To(Equal(http.StatusNotImplemented))
-			})
-		})
-
-		When("a path of / with a method of GET is registered", func() {
-			var (
-				path api.Path
-			)
-
-			BeforeEach(func() {
-				path = "/"
-				builder.MustRegister(path, http.MethodGet, &api.Handler{
-					Middleware: nil,
-					Handler:    func(writer http.ResponseWriter, request *http.Request) {},
-				})
-			})
-
-			It("should be present when calling Handlers()", func() {
-				pathToMethodToHandler := builder.Handlers()
-				Expect(pathToMethodToHandler).To(Not(BeNil()))
-
-				methodToHandler, pathFound := pathToMethodToHandler[path]
-				Expect(pathFound).To(BeTrue())
-				Expect(methodToHandler).To(Not(BeNil()))
-
-				handler, methodFound := methodToHandler[http.MethodGet]
-				Expect(methodFound).To(BeTrue())
-				Expect(handler).To(Not(BeNil()))
-				Expect(handler.Handler).To(Not(BeNil()))
-				Expect(handler.Middleware).To(BeNil())
-			})
-		})
-
-		When("a path of / with methods of GET and POST is registered", func() {
-			var (
-				path api.Path
-			)
-
-			BeforeEach(func() {
-				path = "/"
-				builder.MustRegister(path, http.MethodGet, &api.Handler{
-					Middleware: nil,
-					Handler:    func(writer http.ResponseWriter, request *http.Request) {},
-				})
-				builder.MustRegister(path, http.MethodPost, &api.Handler{
-					Middleware: nil,
-					Handler:    func(writer http.ResponseWriter, request *http.Request) {},
-				})
-			})
-
-			It("should be present when calling Handlers()", func() {
-				pathToMethodToHandler := builder.Handlers()
-				Expect(pathToMethodToHandler).To(Not(BeNil()))
-
-				methodToHandler, pathFound := pathToMethodToHandler[path]
-				Expect(pathFound).To(BeTrue())
-				Expect(methodToHandler).To(Not(BeNil()))
-
-				getHandler, getMethodFound := methodToHandler[http.MethodGet]
-				Expect(getMethodFound).To(BeTrue())
-				Expect(getHandler).To(Not(BeNil()))
-				Expect(getHandler.Handler).To(Not(BeNil()))
-				Expect(getHandler.Middleware).To(BeNil())
-
-				postHandler, postMethodFound := methodToHandler[http.MethodPost]
-				Expect(postMethodFound).To(BeTrue())
-				Expect(postHandler).To(Not(BeNil()))
-				Expect(postHandler.Handler).To(Not(BeNil()))
-				Expect(postHandler.Middleware).To(BeNil())
-			})
-		})
-
-		When("paths of /test1 and /test2 with a method of GET respectively are registered", func() {
-			var (
-				path1 api.Path
-				path2 api.Path
-			)
-
-			BeforeEach(func() {
-				path1 = "/test1"
-				path2 = "/test2"
-
-				builder.MustRegister(path1, http.MethodGet, &api.Handler{
-					Middleware: nil,
-					Handler:    func(writer http.ResponseWriter, request *http.Request) {},
-				})
-				builder.MustRegister(path2, http.MethodGet, &api.Handler{
-					Middleware: nil,
-					Handler:    func(writer http.ResponseWriter, request *http.Request) {},
-				})
-			})
-
-			It("should be present when calling Handlers()", func() {
-				pathToMethodToHandler := builder.Handlers()
-				Expect(pathToMethodToHandler).To(Not(BeNil()))
-
-				path1MethodToHandler, path1Found := pathToMethodToHandler[path1]
-				Expect(path1Found).To(BeTrue())
-				Expect(path1MethodToHandler).To(Not(BeNil()))
-
-				get1Handler, get1MethodFound := path1MethodToHandler[http.MethodGet]
-				Expect(get1MethodFound).To(BeTrue())
-				Expect(get1Handler).To(Not(BeNil()))
-				Expect(get1Handler.Handler).To(Not(BeNil()))
-				Expect(get1Handler.Middleware).To(BeNil())
-
-				path2MethodToHandler, path2Found := pathToMethodToHandler[path2]
-				Expect(path2Found).To(BeTrue())
-				Expect(path2MethodToHandler).To(Not(BeNil()))
-
-				get2Handler, get2MethodFound := path2MethodToHandler[http.MethodGet]
-				Expect(get2MethodFound).To(BeTrue())
-				Expect(get2Handler).To(Not(BeNil()))
-				Expect(get2Handler.Handler).To(Not(BeNil()))
-				Expect(get2Handler.Middleware).To(BeNil())
-			})
+			}
+		}()
+		builder := api.NewHTTPAPIBuilder()
+		builder.MustRegister("/", "BAD_METHOD", &api.Handler{
+			Middleware: nil,
+			Handler:    func(writer http.ResponseWriter, request *http.Request) {},
 		})
 	})
 
-	DescribeTable("path validation",
-		func(path string, expectedErrorMsg string) {
+	t.Run("when an invalid path is registered it should panic", func(t *testing.T) {
+		t.Parallel()
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("the code did not panic")
+			} else {
+				errorMsg := r.(string)
+				if !strings.Contains(errorMsg, "path contains invalid characters") {
+					t.Errorf("the error message is not correct")
+				}
+			}
+		}()
+		builder := api.NewHTTPAPIBuilder()
+		builder.MustRegister("/!@#$%/{}", http.MethodGet, &api.Handler{
+			Middleware: nil,
+			Handler:    func(writer http.ResponseWriter, request *http.Request) {},
+		})
+	})
+
+	t.Run("when register is called twice with a path and method it should panic", func(t *testing.T) {
+		t.Parallel()
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("the code did not panic")
+			} else {
+				errorMsg := r.(string)
+				if !strings.Contains(errorMsg, "method 'GET' already registered for path '/'") {
+					t.Errorf("the error message is not correct")
+				}
+			}
+		}()
+		builder := api.NewHTTPAPIBuilder()
+		for i := 0; i < 2; i++ {
+			builder.MustRegister("/", http.MethodGet, &api.Handler{
+				Middleware: nil,
+				Handler:    func(writer http.ResponseWriter, request *http.Request) {},
+			})
+		}
+	})
+
+	t.Run("when a nil handler is registered it should create a handler that returns the not implemented status", func(t *testing.T) {
+		t.Parallel()
+		const path = "/"
+
+		builder := api.NewHTTPAPIBuilder()
+		builder.MustRegister("/", http.MethodGet, nil)
+
+		pathToMethodToHandler := builder.Handlers()
+		if pathToMethodToHandler == nil {
+			t.Fatalf("handlers should not be nil")
+		}
+
+		methodToHandler, pathFound := pathToMethodToHandler[path]
+		if !pathFound {
+			t.Fatalf("handler should have been registered at path '%s'", path)
+		}
+		if methodToHandler == nil {
+			t.Fatalf("methodToHandler should not be nil")
+		}
+
+		handler, methodFound := methodToHandler[http.MethodGet]
+		if !methodFound {
+			t.Fatalf("method get should have been registered at path '%s'", path)
+		}
+		if handler == nil {
+			t.Fatalf("handler wrapper should not be nil")
+		}
+		if handler.Handler == nil {
+			t.Fatalf("handler should not be nil")
+		}
+		if handler.Middleware != nil {
+			t.Fatalf("middleware should be nil")
+		}
+
+		request, err := http.NewRequest(http.MethodGet, path, nil)
+		if err != nil {
+			t.Fatalf("failed to create request (%s)", err.Error())
+		}
+		recorder := httptest.NewRecorder()
+		handler.Handler.ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusNotImplemented {
+			t.Fatalf("handler should have returned a 501 status code")
+		}
+	})
+
+	t.Run("when a path of / with a method of GET is registered it should be present when calling Handlers()", func(t *testing.T) {
+		t.Parallel()
+		const path = "/"
+
+		builder := api.NewHTTPAPIBuilder()
+		builder.MustRegister(path, http.MethodGet, &api.Handler{
+			Middleware: nil,
+			Handler: func(writer http.ResponseWriter, request *http.Request) {
+				writer.WriteHeader(http.StatusOK)
+			},
+		})
+
+		pathToMethodToHandler := builder.Handlers()
+		if pathToMethodToHandler == nil {
+			t.Fatalf("pathToMethodToHandler should not be nil")
+		}
+
+		methodToHandler, pathFound := pathToMethodToHandler[path]
+		if !pathFound {
+			t.Fatalf("handler should have been registered at path '%s'", path)
+		}
+		if methodToHandler == nil {
+			t.Fatalf("methodToHandler should not be nil")
+		}
+
+		handler, methodFound := methodToHandler[http.MethodGet]
+		if !methodFound {
+			t.Fatalf("method get should have been registered at path '%s'", path)
+		}
+		if handler == nil {
+			t.Fatalf("handler wrapper should not be nil")
+		}
+		if handler.Handler == nil {
+			t.Fatalf("handler should not be nil")
+		}
+		if handler.Middleware != nil {
+			t.Fatalf("middleware should be nil")
+		}
+
+		request, err := http.NewRequest(http.MethodGet, path, nil)
+		if err != nil {
+			t.Fatalf("failed to create request (%s)", err.Error())
+		}
+		recorder := httptest.NewRecorder()
+		handler.Handler.ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("handler should have returned a 200 status code")
+		}
+	})
+
+	t.Run("when two methods are registered for the same path it should be present when calling Handlers()", func(t *testing.T) {
+		t.Parallel()
+		const path = "/"
+
+		builder := api.NewHTTPAPIBuilder()
+		builder.MustRegister(path, http.MethodGet, &api.Handler{
+			Middleware: nil,
+			Handler: func(writer http.ResponseWriter, request *http.Request) {
+				writer.WriteHeader(http.StatusOK)
+			},
+		})
+		builder.MustRegister(path, http.MethodPost, &api.Handler{
+			Middleware: nil,
+			Handler: func(writer http.ResponseWriter, request *http.Request) {
+				writer.WriteHeader(http.StatusAccepted)
+			},
+		})
+
+		pathToMethodToHandler := builder.Handlers()
+		if pathToMethodToHandler == nil {
+			t.Fatalf("pathToMethodToHandler should not be nil")
+		}
+
+		methodToHandler, pathFound := pathToMethodToHandler[path]
+		if !pathFound {
+			t.Fatalf("handler should have been registered at path '%s'", path)
+		}
+		if methodToHandler == nil {
+			t.Fatalf("methodToHandler should not be nil")
+		}
+
+		getHandler, getMethodFound := methodToHandler[http.MethodGet]
+		if !getMethodFound {
+			t.Fatalf("method get should have been registered at path '%s'", path)
+		}
+		if getHandler == nil {
+			t.Fatalf("handler wrapper should not be nil")
+		}
+		if getHandler.Handler == nil {
+			t.Fatalf("handler should not be nil")
+		}
+		if getHandler.Middleware != nil {
+			t.Fatalf("middleware should be nil")
+		}
+
+		postHandler, postMethodFound := methodToHandler[http.MethodPost]
+		if !postMethodFound {
+			t.Fatalf("method get should have been registered at path '%s'", path)
+		}
+		if postHandler == nil {
+			t.Fatalf("handler wrapper should not be nil")
+		}
+		if postHandler.Handler == nil {
+			t.Fatalf("handler should not be nil")
+		}
+		if postHandler.Middleware != nil {
+			t.Fatalf("middleware should be nil")
+		}
+
+		getRequest, err := http.NewRequest(http.MethodGet, path, nil)
+		if err != nil {
+			t.Fatalf("failed to create request (%s)", err.Error())
+		}
+		getRecorder := httptest.NewRecorder()
+		getHandler.Handler.ServeHTTP(getRecorder, getRequest)
+		if getRecorder.Code != http.StatusOK {
+			t.Fatalf("handler should have returned a 200 status code")
+		}
+
+		postRequest, err := http.NewRequest(http.MethodPost, path, nil)
+		if err != nil {
+			t.Fatalf("failed to create request (%s)", err.Error())
+		}
+		postRecorder := httptest.NewRecorder()
+		postHandler.Handler.ServeHTTP(postRecorder, postRequest)
+		if postRecorder.Code != http.StatusAccepted {
+			t.Fatalf("handler should have returned a 201 status code")
+		}
+	})
+
+	t.Run("when two paths are registered for the same method it should be present when calling Handlers()", func(t *testing.T) {
+		t.Parallel()
+
+		builder := api.NewHTTPAPIBuilder()
+		builder.MustRegister("/test1", http.MethodGet, &api.Handler{
+			Middleware: nil,
+			Handler: func(writer http.ResponseWriter, request *http.Request) {
+				writer.WriteHeader(http.StatusOK)
+			},
+		})
+		builder.MustRegister("/test2", http.MethodGet, &api.Handler{
+			Middleware: nil,
+			Handler: func(writer http.ResponseWriter, request *http.Request) {
+				writer.WriteHeader(http.StatusAccepted)
+			},
+		})
+
+		pathToMethodToHandler := builder.Handlers()
+		if pathToMethodToHandler == nil {
+			t.Fatalf("pathToMethodToHandler should not be nil")
+		}
+
+		methodToHandler1, pathFound1 := pathToMethodToHandler["/test1"]
+		if !pathFound1 {
+			t.Fatalf("handler should have been registered at path /test1")
+		}
+		if methodToHandler1 == nil {
+			t.Fatalf("methodToHandler should not be nil")
+		}
+
+		getHandler1, getMethodFound1 := methodToHandler1[http.MethodGet]
+		if !getMethodFound1 {
+			t.Fatalf("method get should have been registered at path /test1")
+		}
+		if getHandler1 == nil {
+			t.Fatalf("handler wrapper should not be nil")
+		}
+		if getHandler1.Handler == nil {
+			t.Fatalf("handler should not be nil")
+		}
+		if getHandler1.Middleware != nil {
+			t.Fatalf("middleware should be nil")
+		}
+
+		methodToHandler2, pathFound2 := pathToMethodToHandler["/test2"]
+		if !pathFound2 {
+			t.Fatalf("handler should have been registered at path /test2")
+		}
+		if methodToHandler2 == nil {
+			t.Fatalf("methodToHandler should not be nil")
+		}
+
+		getHandler2, getMethodFound2 := methodToHandler2[http.MethodGet]
+		if !getMethodFound2 {
+			t.Fatalf("method get should have been registered at path /test2")
+		}
+		if getHandler2 == nil {
+			t.Fatalf("handler wrapper should not be nil")
+		}
+		if getHandler2.Handler == nil {
+			t.Fatalf("handler should not be nil")
+		}
+		if getHandler2.Middleware != nil {
+			t.Fatalf("middleware should be nil")
+		}
+
+		getRequest1, err := http.NewRequest(http.MethodGet, "/test1", nil)
+		if err != nil {
+			t.Fatalf("failed to create request (%s)", err.Error())
+		}
+		getRecorder1 := httptest.NewRecorder()
+		getHandler1.Handler.ServeHTTP(getRecorder1, getRequest1)
+		if getRecorder1.Code != http.StatusOK {
+			t.Fatalf("handler should have returned a 200 status code")
+		}
+
+		getRequest2, err := http.NewRequest(http.MethodGet, "/test2", nil)
+		if err != nil {
+			t.Fatalf("failed to create request (%s)", err.Error())
+		}
+		getRecorder2 := httptest.NewRecorder()
+		getHandler2.Handler.ServeHTTP(getRecorder2, getRequest2)
+		if getRecorder2.Code != http.StatusAccepted {
+			t.Fatalf("handler should have returned a 201 status code")
+		}
+	})
+
+	t.Run("cases for path validation", func(t *testing.T) {
+		t.Parallel()
+
+		validationFunc := func(path string, expectedErrorMsg string) {
 			errCheck := func(err error) {
 				if expectedErrorMsg != "" {
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal(expectedErrorMsg))
+					if err == nil {
+						t.Errorf("error should not be nil")
+					}
+					if !strings.Contains(err.Error(), expectedErrorMsg) {
+						t.Fatalf("error should contain '%s'", expectedErrorMsg)
+					}
 				} else {
-					Expect(err).To(Succeed())
+					if err != nil {
+						t.Fatalf("error should be nil")
+					}
 				}
 			}
 
@@ -259,71 +371,66 @@ var _ = Describe("handler", func() {
 				Path *string `validate:"api_path"`
 			}
 			errCheck(validation.Struct(&testStructPtr{Path: &path}))
-		},
-		Entry("root path", "/", ""),
-		Entry("sub paths", "/a/b/c/1/2/3", ""),
-		Entry("sub paths with a param", "/a/{b}/c", ""),
-		Entry("empty string", "", "path cannot be empty"),
-		Entry("invalid characters", "/+", "path contains invalid characters"),
-		Entry("invalid characters", " /a", "path contains invalid characters"),
-		Entry("invalid characters", "/a ", "path contains invalid characters"),
-		Entry("end with /", "/a/", "path cannot end with '/'"),
-		Entry("start with /", "a/b", "path must start with '/'"),
-		Entry("start with /", "a", "path must start with '/'"),
-		Entry("empty path part", "/a//b", "path parts cannot be empty"),
-		Entry("empty path part", "//a", "path parts cannot be empty"),
-		Entry("no matching }", "/a/{b", "path parameters must start with '{' and end with '}'"),
-		Entry("no matching {", "/a/b}", "path parameters must start with '{' and end with '}'"),
-		Entry("many {", "/a/{{b}", "path parameters have only one '{' and '}'"),
-		Entry("many }", "/a/{b}}", "path parameters have only one '{' and '}'"),
-		Entry("empty param", "/a/{}", "path parameters cannot be empty"),
-		Entry("reused param", "/a/{b}/{b}", "path part must be unique"),
-		Entry("reused part", "/a/a", "path part must be unique"),
-		Entry("reused part", "/a/b/a", "path part must be unique"),
-	)
+		}
 
-	When("path validation is done on a reference field that it not a string", func() {
+		validationFunc("/", "")
+		validationFunc("/a/b/c/1/2/3", "")
+		validationFunc("/a/{b}/c", "")
+		validationFunc("", "path cannot be empty")
+		validationFunc("/+", "path contains invalid characters")
+		validationFunc(" /a", "path contains invalid characters")
+		validationFunc("/a ", "path contains invalid characters")
+		validationFunc("/a/", "path cannot end with '/'")
+		validationFunc("a/b", "path must start with '/'")
+		validationFunc("a", "path must start with '/'")
+		validationFunc("/a//b", "path parts cannot be empty")
+		validationFunc("//a", "path parts cannot be empty")
+		validationFunc("/a/{b", "path parameters must start with '{' and end with '}'")
+		validationFunc("/a/b}", "path parameters must start with '{' and end with '}'")
+		validationFunc("/a/{{b}", "path parameters have only one '{' and '}'")
+		validationFunc("/a/{b}}", "path parameters have only one '{' and '}'")
+		validationFunc("/a/{}", "path parameters cannot be empty")
+		validationFunc("/a/{b}/{b}", "path part must be unique")
+		validationFunc("/a/a", "path part must be unique")
+		validationFunc("/a/b/a", "path part must be unique")
+	})
+
+	t.Run("path validation is done on a reference field that it not a string it should return an error", func(t *testing.T) {
+		t.Parallel()
+
 		type testStruct struct {
 			Path int `validate:"api_path"`
 		}
+		test := testStruct{
+			Path: 1,
+		}
 
-		var (
-			test testStruct
-		)
-
-		BeforeEach(func() {
-			test = testStruct{
-				Path: 1,
-			}
-		})
-
-		It("should fail the validation", func() {
-			err := validation.Struct(&test)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("path must be a string"))
-		})
+		err := validation.Struct(&test)
+		if err == nil {
+			t.Fatalf("validation should have returned an error")
+		}
+		if !strings.Contains(err.Error(), "path must be a string") {
+			t.Fatalf("error message is not correct")
+		}
 	})
 
-	When("path validation is done on a pointer field that it not a string", func() {
+	t.Run("when path validation is done on a pointer field that it not a string it should return an error", func(t *testing.T) {
+		t.Parallel()
+
 		type testStruct struct {
 			Path *int `validate:"api_path"`
 		}
+		i := 0
+		test := testStruct{
+			Path: &i,
+		}
 
-		var (
-			test testStruct
-		)
-
-		BeforeEach(func() {
-			i := 0
-			test = testStruct{
-				Path: &i,
-			}
-		})
-
-		It("should fail the validation", func() {
-			err := validation.Struct(&test)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("path must be a string"))
-		})
+		err := validation.Struct(&test)
+		if err == nil {
+			t.Fatalf("validation should have returned an error")
+		}
+		if !strings.Contains(err.Error(), "path must be a string") {
+			t.Fatalf("error message is not correct")
+		}
 	})
-})
+}
