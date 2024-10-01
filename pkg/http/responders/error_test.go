@@ -5,12 +5,11 @@ import (
 	goerrors "errors"
 	"net/http"
 	"net/http/httptest"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"testing"
 
 	"github.com/TriangleSide/GoBase/pkg/http/errors"
 	"github.com/TriangleSide/GoBase/pkg/http/responders"
+	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
 type testError struct{}
@@ -29,97 +28,86 @@ func (fw *failingWriter) Write([]byte) (int, error) {
 	return 0, goerrors.New("simulated write failure")
 }
 
-func mustDeserializeError(recorder *httptest.ResponseRecorder) *errors.Error {
+func mustDeserializeError(t *testing.T, recorder *httptest.ResponseRecorder) *errors.Error {
+	t.Helper()
 	httpError := &errors.Error{}
-	Expect(json.NewDecoder(recorder.Body).Decode(httpError)).To(Succeed())
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(httpError))
 	return httpError
 }
 
-var _ = Describe("error responder", Ordered, func() {
-	var (
-		standardError error
-		recorder      *httptest.ResponseRecorder
-	)
+func TestErrorResponder(t *testing.T) {
+	t.Parallel()
 
-	BeforeAll(func() {
-		responders.MustRegisterErrorResponse[testError](http.StatusFound, func(err *testError) string {
-			return "custom message"
+	responders.MustRegisterErrorResponse[testError](http.StatusFound, func(err *testError) string {
+		return "custom message"
+	})
+
+	t.Run("when the option to return an error is registered twice it should panic", func(t *testing.T) {
+		t.Parallel()
+		assert.Panic(t, func() {
+			responders.MustRegisterErrorResponse[testError](http.StatusFound, func(err *testError) string {
+				return "registered twice"
+			})
 		})
 	})
 
-	BeforeEach(func() {
-		standardError = goerrors.New("standard error")
-		recorder = httptest.NewRecorder()
+	t.Run("when a pointer generic is registered it should panic", func(t *testing.T) {
+		t.Parallel()
+		assert.PanicPart(t, func() {
+			responders.MustRegisterErrorResponse[*testError](http.StatusFound, func(err **testError) string {
+				return "pointer is registered"
+			})
+		}, "cannot be a pointer")
 	})
 
-	When("an error type is registered twice", func() {
-		It("should panic", func() {
-			Expect(func() {
-				responders.MustRegisterErrorResponse[testError](http.StatusFound, func(err *testError) string {
-					return "registered twice"
-				})
-			}).To(Panic())
-		})
+	t.Run("when the error is unknown it should return internal server error", func(t *testing.T) {
+		t.Parallel()
+		recorder := httptest.NewRecorder()
+		standardError := goerrors.New("standard error")
+		responders.Error(recorder, standardError)
+		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
+		httpError := mustDeserializeError(t, recorder)
+		assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
 	})
 
-	When("a pointer generic is registered", func() {
-		It("should panic", func() {
-			Expect(func() {
-				responders.MustRegisterErrorResponse[*testError](http.StatusFound, func(err **testError) string {
-					return "pointer is registered"
-				})
-			}).To(Panic())
-		})
+	t.Run("when the error is known it should return the correct status and message", func(t *testing.T) {
+		t.Parallel()
+		recorder := httptest.NewRecorder()
+		badRequestErr := &errors.BadRequest{
+			Err: goerrors.New("bad request"),
+		}
+		responders.Error(recorder, badRequestErr)
+		assert.Equals(t, recorder.Code, http.StatusBadRequest)
+		httpError := mustDeserializeError(t, recorder)
+		assert.Equals(t, httpError.Message, badRequestErr.Error())
 	})
 
-	When("the error is unknown", func() {
-		It("should return an internal server error", func() {
-			responders.Error(recorder, standardError)
-			Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
-			httpError := mustDeserializeError(recorder)
-			Expect(httpError.Message).To(Equal(http.StatusText(http.StatusInternalServerError)))
-		})
+	t.Run("when the error is nil it should return internal server error", func(t *testing.T) {
+		t.Parallel()
+		recorder := httptest.NewRecorder()
+		responders.Error(recorder, nil)
+		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
+		httpError := mustDeserializeError(t, recorder)
+		assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
 	})
 
-	When("the error is known", func() {
-		It("should return the correct status and message", func() {
-			badRequestErr := &errors.BadRequest{
-				Err: goerrors.New("bad request"),
-			}
-			responders.Error(recorder, badRequestErr)
-			Expect(recorder.Code).To(Equal(http.StatusBadRequest))
-			httpError := mustDeserializeError(recorder)
-			Expect(httpError.Message).To(Equal(badRequestErr.Error()))
-		})
+	t.Run("when the error is a custom registered type it should return its custom message and status", func(t *testing.T) {
+		t.Parallel()
+		recorder := httptest.NewRecorder()
+		responders.Error(recorder, &testError{})
+		assert.Equals(t, recorder.Code, http.StatusFound)
+		httpError := mustDeserializeError(t, recorder)
+		assert.Equals(t, httpError.Message, "custom message")
 	})
 
-	When("the error is nil", func() {
-		It("should return an internal server error", func() {
-			responders.Error(recorder, nil)
-			Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
-			httpError := mustDeserializeError(recorder)
-			Expect(httpError.Message).To(Equal(http.StatusText(http.StatusInternalServerError)))
-		})
+	t.Run("when the JSON encoding fails it should not write a response", func(t *testing.T) {
+		t.Parallel()
+		recorder := httptest.NewRecorder()
+		fw := &failingWriter{
+			WriteFailed:    false,
+			ResponseWriter: recorder,
+		}
+		responders.Error(fw, goerrors.New("some error"))
+		assert.True(t, fw.WriteFailed)
 	})
-
-	When("the error is a custom registered type", func() {
-		It("should return its custom message and status", func() {
-			responders.Error(recorder, &testError{})
-			Expect(recorder.Code).To(Equal(http.StatusFound))
-			httpError := mustDeserializeError(recorder)
-			Expect(httpError.Message).To(Equal("custom message"))
-		})
-	})
-
-	When("the JSON encoding fails", func() {
-		It("not write a response", func() {
-			recorder := httptest.NewRecorder()
-			failingWriter := &failingWriter{
-				WriteFailed:    false,
-				ResponseWriter: recorder,
-			}
-			responders.Error(failingWriter, goerrors.New("some error"))
-			Expect(failingWriter.WriteFailed).To(BeTrue())
-		})
-	})
-})
+}

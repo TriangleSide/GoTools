@@ -1,6 +1,7 @@
 package assert_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -239,7 +240,7 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("PanicPart positive case - Panic message contains expected part", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.PanicPart(tr, func() { panic("some panic message") }, "panic")
+		assert.PanicPart(tr, func() { panic(errors.New("some panic message")) }, "panic")
 		checkRecorder(t, tr, 2, 0, 0, []string{})
 	})
 
