@@ -163,3 +163,19 @@ func NotNil(t Testing, value any, options ...Option) {
 		tCtx.fail("Expecting the value to not be nil.")
 	}
 }
+
+func True(t Testing, value bool, options ...Option) {
+	tCtx := newTestContext(t, options...)
+	tCtx.Helper()
+	if !value {
+		tCtx.fail("Expecting the value to be true.")
+	}
+}
+
+func False(t Testing, value bool, options ...Option) {
+	tCtx := newTestContext(t, options...)
+	tCtx.Helper()
+	if value {
+		tCtx.fail("Expecting the value to be false.")
+	}
+}

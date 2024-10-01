@@ -458,6 +458,34 @@ func TestAssertFunctions(t *testing.T) {
 		checkRecorder(t, tr, 1, 0, 0, []string{})
 	})
 
+	t.Run("True positive case", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.True(tr, true)
+		checkRecorder(t, tr, 1, 0, 0, []string{})
+	})
+
+	t.Run("True negative case", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.True(tr, false)
+		checkRecorder(t, tr, 2, 0, 1, []string{
+			"Expecting the value to be true.",
+		})
+	})
+
+	t.Run("False positive case", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.False(tr, false)
+		checkRecorder(t, tr, 1, 0, 0, []string{})
+	})
+
+	t.Run("False negative case", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.False(tr, true)
+		checkRecorder(t, tr, 2, 0, 1, []string{
+			"Expecting the value to be false.",
+		})
+	})
+
 	t.Run("Equals positive case with Continue - Comparing equal integers", func(t *testing.T) {
 		tr := newTestRecorder()
 		assert.Equals(tr, 1, 1, assert.Continue())
@@ -609,6 +637,34 @@ func TestAssertFunctions(t *testing.T) {
 		assert.NotNil(tr, nil, assert.Continue())
 		checkRecorder(t, tr, 2, 1, 0, []string{
 			"Expecting the value to not be nil.",
+		})
+	})
+
+	t.Run("True positive case with Continue", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.True(tr, true, assert.Continue())
+		checkRecorder(t, tr, 1, 0, 0, []string{})
+	})
+
+	t.Run("True negative case with Continue", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.True(tr, false, assert.Continue())
+		checkRecorder(t, tr, 2, 1, 0, []string{
+			"Expecting the value to be true.",
+		})
+	})
+
+	t.Run("False positive case with Continue", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.False(tr, false, assert.Continue())
+		checkRecorder(t, tr, 1, 0, 0, []string{})
+	})
+
+	t.Run("False negative case with Continue", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.False(tr, true, assert.Continue())
+		checkRecorder(t, tr, 2, 1, 0, []string{
+			"Expecting the value to be false.",
 		})
 	})
 }
