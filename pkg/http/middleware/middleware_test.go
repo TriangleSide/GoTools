@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/TriangleSide/GoBase/pkg/http/middleware"
+	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
 func TestHTTPMiddleware(t *testing.T) {
@@ -20,9 +21,7 @@ func TestHTTPMiddleware(t *testing.T) {
 		}
 		mwChain := middleware.CreateChain(nil, handler)
 		mwChain.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
-		if called == false {
-			t.Fatalf("the handler should have been called but it was not")
-		}
+		assert.True(t, called)
 	})
 
 	t.Run("when the middleware chain is created with an empty middleware list it should only call the handler", func(t *testing.T) {
@@ -32,15 +31,15 @@ func TestHTTPMiddleware(t *testing.T) {
 		handler := func(w http.ResponseWriter, req *http.Request) {
 			called = true
 		}
-		mwChain := middleware.CreateChain(make([]middleware.Middleware, 0), handler)
+		mwChain := middleware.CreateChain([]middleware.Middleware{}, handler)
 		mwChain.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
-		if called == false {
-			t.Fatalf("the handler should have been called but it was not")
-		}
+		assert.True(t, called)
 	})
 
 	t.Run("when the middleware chain is created it should invoke them in order", func(t *testing.T) {
-		invocations := make([]string, 0)
+		t.Parallel()
+
+		invocations := []string{}
 		mwList := []middleware.Middleware{
 			func(next http.HandlerFunc) http.HandlerFunc {
 				return func(writer http.ResponseWriter, request *http.Request) {
@@ -61,17 +60,9 @@ func TestHTTPMiddleware(t *testing.T) {
 		mwChain := middleware.CreateChain(mwList, handler)
 		mwChain.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
 
-		if len(invocations) != 3 {
-			t.Fatalf("excepting 3 invocations")
-		}
-		if invocations[0] != "first" {
-			t.Fatalf("the first mw should have been invoked but it was not")
-		}
-		if invocations[1] != "second" {
-			t.Fatalf("the second mw should have been invoked but it was not")
-		}
-		if invocations[2] != "handler" {
-			t.Fatalf("the handler should have been invoked but it was not")
-		}
+		assert.Equals(t, len(invocations), 3)
+		assert.Equals(t, invocations[0], "first")
+		assert.Equals(t, invocations[1], "second")
+		assert.Equals(t, invocations[2], "handler")
 	})
 }
