@@ -6,7 +6,9 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -16,168 +18,203 @@ import (
 	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
 	"github.com/TriangleSide/GoBase/pkg/http/api"
 	"github.com/TriangleSide/GoBase/pkg/http/middleware"
-	"github.com/TriangleSide/GoBase/pkg/network/tcp"
-	tcplistener "github.com/TriangleSide/GoBase/pkg/network/tcp/listener"
 )
 
-// serverConfig is configured by the caller with the Option functions.
-type serverConfig struct {
+// serverOptions is configured by the caller with the Option functions.
+type serverOptions struct {
 	configProvider   func() (*config.HTTPServer, error)
-	listenerProvider func(localHost string, localPort uint16) (tcp.Listener, error)
+	listenerProvider func(bindIP string, bindPort uint16) (*net.TCPListener, error)
+	boundCallback    func(tcpAddr *net.TCPAddr)
+	commonMiddleware []middleware.Middleware
+	endpointHandlers []api.HTTPEndpointHandler
 }
 
 // Option is used to configure the HTTP server.
-type Option func(config *serverConfig)
+type Option func(srvOpts *serverOptions)
 
 // WithConfigProvider sets the provider for the config.HTTPServer.
 func WithConfigProvider(provider func() (*config.HTTPServer, error)) Option {
-	return func(config *serverConfig) {
-		config.configProvider = provider
+	return func(srvOpts *serverOptions) {
+		srvOpts.configProvider = provider
 	}
 }
 
 // WithListenerProvider sets the provider for the tcp.Listener.
-func WithListenerProvider(provider func(localHost string, localPort uint16) (tcp.Listener, error)) Option {
-	return func(config *serverConfig) {
-		config.listenerProvider = provider
+func WithListenerProvider(provider func(bindIP string, bindPort uint16) (*net.TCPListener, error)) Option {
+	return func(srvOpts *serverOptions) {
+		srvOpts.listenerProvider = provider
+	}
+}
+
+// WithBoundCallback sets the bound callback for the server.
+// The callback is invoked when the network listener is bound to the configured IP and port.
+func WithBoundCallback(callback func(tcpAddr *net.TCPAddr)) Option {
+	return func(srvOpts *serverOptions) {
+		srvOpts.boundCallback = callback
+	}
+}
+
+// WithCommonMiddleware adds common middleware for the server.
+// The middleware gets executed on every request to the server.
+func WithCommonMiddleware(commonMiddleware ...middleware.Middleware) Option {
+	return func(srvOpts *serverOptions) {
+		srvOpts.commonMiddleware = append(srvOpts.commonMiddleware, commonMiddleware...)
+	}
+}
+
+// WithEndpointHandlers adds the handlers to the server.
+func WithEndpointHandlers(endpointHandlers ...api.HTTPEndpointHandler) Option {
+	return func(srvOpts *serverOptions) {
+		srvOpts.endpointHandlers = append(srvOpts.endpointHandlers, endpointHandlers...)
 	}
 }
 
 // Server handles requests via the Hypertext Transfer Protocol (HTTP) and sends back responses.
 // The Server must be allocated using New since the zero value for Server is not valid configuration.
 type Server struct {
-	cfg      *serverConfig
-	envConf  *config.HTTPServer
-	listener tcp.Listener
-	srv      *http.Server
-	ran      *atomic.Bool
-	shutdown *atomic.Bool
-	wg       sync.WaitGroup
+	srv              http.Server
+	ran              atomic.Bool
+	shutdown         atomic.Bool
+	wg               sync.WaitGroup
+	listenerProvider func() (*net.TCPListener, error)
+	boundCallback    func(tcpAddr *net.TCPAddr)
 }
 
-// New instantiates an HTTP server with the provided options.
+// New configures an HTTP server with the provided options.
 func New(opts ...Option) (*Server, error) {
-	srvCfg := &serverConfig{
+	srvOpts := &serverOptions{
 		configProvider: func() (*config.HTTPServer, error) {
 			return envprocessor.ProcessAndValidate[config.HTTPServer]()
 		},
-		listenerProvider: tcplistener.New,
+		listenerProvider: func(bindIp string, bindPort uint16) (*net.TCPListener, error) {
+			ip, err := netip.ParseAddr(bindIp)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse bind IP: %w", err)
+			}
+			addrPort := netip.AddrPortFrom(ip, bindPort)
+			tcpAddr := net.TCPAddrFromAddrPort(addrPort)
+			return net.ListenTCP(tcpAddr.Network(), tcpAddr)
+		},
 	}
 
 	for _, opt := range opts {
-		opt(srvCfg)
+		opt(srvOpts)
 	}
 
-	envConfig, err := srvCfg.configProvider()
+	envConfig, err := srvOpts.configProvider()
 	if err != nil {
-		return nil, fmt.Errorf("could not load configuration (%s)", err.Error())
+		return nil, fmt.Errorf("could not load configuration (%w)", err)
 	}
-
-	ran := &atomic.Bool{}
-	ran.Store(false)
-
-	shutdown := &atomic.Bool{}
-	shutdown.Store(false)
-
-	return &Server{
-		cfg:      srvCfg,
-		envConf:  envConfig,
-		srv:      nil,
-		ran:      ran,
-		shutdown: shutdown,
-		wg:       sync.WaitGroup{},
-	}, nil
-}
-
-// Run configures and starts an HTTP server.
-// After the HTTP server is bound to its IP and port, it invokes the callback function.
-// This function blocks as long as it is serving HTTP.
-func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHandlers []api.HTTPEndpointHandler, readyCallback func()) error {
-	if server.ran.Swap(true) {
-		panic("HTTP server can only be run once per instance")
-	}
-
-	server.wg.Add(1)
-	defer func() { server.wg.Done() }()
 
 	builder := api.NewHTTPAPIBuilder()
-	for _, endpointHandler := range endpointHandlers {
+	for _, endpointHandler := range srvOpts.endpointHandlers {
 		endpointHandler.AcceptHTTPAPIBuilder(builder)
 	}
 
 	serveMux := http.NewServeMux()
 	for apiPath, methodToEndpointHandlerMap := range builder.Handlers() {
 		for method, endpointHandler := range methodToEndpointHandlerMap {
-			allMiddleware := append(commonMiddleware, endpointHandler.Middleware...)
-			handlerChain := middleware.CreateChain(allMiddleware, endpointHandler.Handler)
+			endpointHandlerMw := make([]middleware.Middleware, 0)
+			for _, mw := range srvOpts.commonMiddleware {
+				endpointHandlerMw = append(endpointHandlerMw, mw)
+			}
+			for _, mw := range endpointHandler.Middleware {
+				endpointHandlerMw = append(endpointHandlerMw, mw)
+			}
+			handlerChain := middleware.CreateChain(endpointHandlerMw, endpointHandler.Handler)
 			serveMux.HandleFunc(fmt.Sprintf("%s %s", method, apiPath), handlerChain)
 		}
 	}
 
 	var tlsConfig *tls.Config
-	switch server.envConf.HTTPServerTLSMode {
+	switch envConfig.HTTPServerTLSMode {
 	case config.HTTPServerTLSModeOff:
 		tlsConfig = nil
 	case config.HTTPServerTLSModeTLS:
-		serverCert, err := tls.LoadX509KeyPair(server.envConf.HTTPServerCert, server.envConf.HTTPServerKey)
+		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
-			return fmt.Errorf("failed to load the server certificates (%s)", err.Error())
+			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
 		}
 		tlsConfig = &tls.Config{
-			MinVersion:   tls.VersionTLS12,
+			MinVersion:   tls.VersionTLS13,
 			Certificates: []tls.Certificate{serverCert},
 		}
 	case config.HTTPServerTLSModeMutualTLS:
-		serverCert, err := tls.LoadX509KeyPair(server.envConf.HTTPServerCert, server.envConf.HTTPServerKey)
-		if err != nil {
-			return fmt.Errorf("failed to load the server certificates (%s)", err.Error())
+		if len(envConfig.HTTPServerClientCACerts) == 0 {
+			return nil, errors.New("no client CAs provided")
 		}
-		clientCAs, err := server.loadMutualTLSClientCAs()
+		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
-			return fmt.Errorf("failed to load client CA certificates (%s)", err.Error())
+			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
+		}
+		clientCAs, err := loadMutualTLSClientCAs(envConfig.HTTPServerClientCACerts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client CA certificates (%w)", err)
 		}
 		tlsConfig = &tls.Config{
-			MinVersion:   tls.VersionTLS12,
+			MinVersion:   tls.VersionTLS13,
 			Certificates: []tls.Certificate{serverCert},
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			ClientCAs:    clientCAs,
 		}
 	default:
-		return fmt.Errorf("invalid TLS mode: %s", server.envConf.HTTPServerTLSMode)
+		return nil, fmt.Errorf("invalid TLS mode: %s", envConfig.HTTPServerTLSMode)
 	}
 
-	server.srv = &http.Server{
-		Handler:           serveMux,
-		ReadTimeout:       time.Second * time.Duration(server.envConf.HTTPServerReadTimeoutSeconds),
-		WriteTimeout:      time.Second * time.Duration(server.envConf.HTTPServerWriteTimeoutSeconds),
-		IdleTimeout:       time.Second * time.Duration(server.envConf.HTTPServerIdleTimeoutSeconds),
-		ReadHeaderTimeout: time.Second * time.Duration(server.envConf.HTTPServerHeaderReadTimeoutSeconds),
-		MaxHeaderBytes:    server.envConf.HTTPServerMaxHeaderBytes,
-		TLSConfig:         tlsConfig,
+	srv := &Server{
+		srv: http.Server{
+			Handler:           serveMux,
+			ReadTimeout:       time.Second * time.Duration(envConfig.HTTPServerReadTimeoutSeconds),
+			WriteTimeout:      time.Second * time.Duration(envConfig.HTTPServerWriteTimeoutSeconds),
+			IdleTimeout:       time.Second * time.Duration(envConfig.HTTPServerIdleTimeoutSeconds),
+			ReadHeaderTimeout: time.Second * time.Duration(envConfig.HTTPServerHeaderReadTimeoutSeconds),
+			MaxHeaderBytes:    envConfig.HTTPServerMaxHeaderBytes,
+			TLSConfig:         tlsConfig,
+		},
+		ran:      atomic.Bool{},
+		shutdown: atomic.Bool{},
+		wg:       sync.WaitGroup{},
+		listenerProvider: func() (*net.TCPListener, error) {
+			return srvOpts.listenerProvider(envConfig.HTTPServerBindIP, envConfig.HTTPServerBindPort)
+		},
+		boundCallback: srvOpts.boundCallback,
 	}
 
-	// Manually creating the listener first ensures the server can start receiving connections before
-	// it is marked as ready by the callback.
-	var err error
-	server.listener, err = server.cfg.listenerProvider(server.envConf.HTTPServerBindIP, server.envConf.HTTPServerBindPort)
+	srv.ran.Store(false)
+	srv.shutdown.Store(false)
+
+	return srv, nil
+}
+
+// Run starts an HTTP server.
+// This function blocks as long as its serving HTTP requests.
+func (server *Server) Run() error {
+	if server.ran.Swap(true) {
+		panic("HTTP server can only be run once per instance")
+	}
+	server.wg.Add(1)
+	defer func() { server.wg.Done() }()
+
+	listener, err := server.listenerProvider()
 	if err != nil {
-		return fmt.Errorf("failed to create the network listener (%s)", err.Error())
+		return fmt.Errorf("failed to create the network listener (%w)", err)
 	}
 
-	readyCallback()
+	if server.boundCallback != nil {
+		tcpAddr := listener.Addr().(*net.TCPAddr)
+		server.boundCallback(tcpAddr)
+	}
 
-	// The serve methods always returns as error as it is meant to be blocking.
-	if server.envConf.HTTPServerTLSMode == config.HTTPServerTLSModeOff {
-		err = server.srv.Serve(server.listener)
+	if server.srv.TLSConfig == nil {
+		err = server.srv.Serve(listener)
 	} else {
-		err = server.srv.ServeTLS(server.listener, "", "")
+		err = server.srv.ServeTLS(listener, "", "")
 	}
 
-	// The server blocks until there is an error, or it is shutdown.
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	} else {
-		return fmt.Errorf("error encountered while serving http requests (%s)", err.Error())
+		return fmt.Errorf("error encountered while serving http requests (%w)", err)
 	}
 }
 
@@ -186,24 +223,19 @@ func (server *Server) Run(commonMiddleware []middleware.Middleware, endpointHand
 func (server *Server) Shutdown(ctx context.Context) error {
 	var err error
 	if !server.shutdown.Swap(true) {
-		if server.srv != nil {
-			err = server.srv.Shutdown(ctx)
-		}
-		if server.listener != nil {
-			_ = server.listener.Close()
-		}
+		err = server.srv.Shutdown(ctx)
 	}
 	server.wg.Wait()
 	return err
 }
 
 // loadMutualTLSClientCAs loads client CA certificates for mutual TLS.
-func (server *Server) loadMutualTLSClientCAs() (*x509.CertPool, error) {
+func loadMutualTLSClientCAs(clientCaCertPaths []string) (*x509.CertPool, error) {
 	clientCAs := x509.NewCertPool()
-	for _, caCertPath := range server.envConf.HTTPServerClientCACerts {
+	for _, caCertPath := range clientCaCertPaths {
 		caCert, err := os.ReadFile(caCertPath)
 		if err != nil {
-			return nil, fmt.Errorf("could not read client CA certificate on path %s (%s)", caCertPath, err.Error())
+			return nil, fmt.Errorf("could not read client CA certificate on path %s (%w)", caCertPath, err)
 		}
 		if ok := clientCAs.AppendCertsFromPEM(caCert); !ok {
 			return nil, fmt.Errorf("failed to append client CA certificate (%s)", caCertPath)

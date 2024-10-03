@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -17,18 +16,15 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"testing"
 	"time"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 
 	"github.com/TriangleSide/GoBase/pkg/config"
 	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
 	"github.com/TriangleSide/GoBase/pkg/http/api"
 	"github.com/TriangleSide/GoBase/pkg/http/middleware"
 	"github.com/TriangleSide/GoBase/pkg/http/server"
-	"github.com/TriangleSide/GoBase/pkg/network/tcp"
-	tcplistener "github.com/TriangleSide/GoBase/pkg/network/tcp/listener"
+	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
 type testHandler struct {
@@ -45,738 +41,592 @@ func (t *testHandler) AcceptHTTPAPIBuilder(builder *api.HTTPAPIBuilder) {
 	})
 }
 
-var _ = Describe("http server", Ordered, func() {
-	AfterEach(func() {
-		unsetEnvironmentVariables()
+// TODO: add middleware tests
+func TestServer(t *testing.T) {
+	t.Parallel()
+
+	assert.NoError(t, os.Setenv(string(config.HTTPServerTLSModeEnvName), string(config.HTTPServerTLSModeOff)))
+	t.Cleanup(func() {
+		assert.NoError(t, os.Unsetenv(string(config.HTTPServerTLSModeEnvName)))
 	})
 
-	When("a handler with middleware and common middleware is created", func() {
-		const (
-			path             = "/"
-			body             = "PONG"
-			mwSetValue       = "set"
-			commonMwValueSet = "commonMwValueSet"
-		)
+	handler := &testHandler{
+		Path:       "/",
+		Method:     http.MethodGet,
+		Middleware: nil,
+		Handler: func(writer http.ResponseWriter, request *http.Request) {
+			writer.WriteHeader(http.StatusOK)
+			_, err := io.WriteString(writer, "PONG")
+			assert.NoError(t, err)
+		},
+	}
 
-		var (
-			ctx            context.Context
-			handlerMwValue string
-			handlerMw      []middleware.Middleware
-			handlers       []api.HTTPEndpointHandler
-			commonMwValue  string
-			commonMw       []middleware.Middleware
-		)
-
-		BeforeEach(func() {
-			ctx = context.Background()
-
-			handlerMwValue = ""
-			handlerMw = []middleware.Middleware{
-				func(next http.HandlerFunc) http.HandlerFunc {
-					return func(writer http.ResponseWriter, request *http.Request) {
-						handlerMwValue = mwSetValue
-						next(writer, request)
-					}
-				},
-			}
-
-			handlers = []api.HTTPEndpointHandler{
-				&testHandler{
-					Path:       path,
-					Method:     http.MethodGet,
-					Middleware: handlerMw,
-					Handler: func(writer http.ResponseWriter, request *http.Request) {
-						writer.WriteHeader(http.StatusOK)
-						_, err := io.WriteString(writer, body)
-						Expect(err).ToNot(HaveOccurred())
-					},
-				},
-			}
-
-			commonMwValue = ""
-			commonMw = []middleware.Middleware{
-				func(next http.HandlerFunc) http.HandlerFunc {
-					return func(writer http.ResponseWriter, request *http.Request) {
-						commonMwValue = commonMwValueSet
-						next(writer, request)
-					}
-				},
-			}
+	startServer := func(t *testing.T, options ...server.Option) string {
+		t.Helper()
+		waitUntilReady := make(chan bool)
+		var address string
+		allOpts := append(options, server.WithBoundCallback(func(addr *net.TCPAddr) {
+			address = addr.String()
+			close(waitUntilReady)
+		}), server.WithEndpointHandlers(handler))
+		srv, err := server.New(allOpts...)
+		assert.NoError(t, err)
+		assert.NotNil(t, srv)
+		t.Cleanup(func() {
+			assert.NoError(t, srv.Shutdown(context.Background()))
 		})
+		go func() {
+			assert.NoError(t, srv.Run())
+		}()
+		<-waitUntilReady
+		return address
+	}
 
-		When("server error cases", func() {
-			var (
-				err error
-				srv *server.Server
-			)
+	assertRootRequestSuccess := func(t *testing.T, httpClient *http.Client, addr string, tls bool) {
+		t.Helper()
+		var protocol string
+		if tls {
+			protocol = "https"
+		} else {
+			protocol = "http"
+		}
+		request, err := http.NewRequest(http.MethodGet, protocol+"://"+addr, nil)
+		assert.NoError(t, err)
+		assert.NotNil(t, request)
+		response, err := httpClient.Do(request)
+		assert.NoError(t, err)
+		assert.Equals(t, http.StatusOK, response.StatusCode)
+		assert.NotNil(t, response.Body)
+		bodyContents, err := io.ReadAll(response.Body)
+		assert.NoError(t, err)
+		assert.Equals(t, bodyContents, []byte("PONG"))
+		assert.NoError(t, response.Body.Close())
+	}
 
-			BeforeEach(func() {
-				err = nil
-				srv = nil
-				Expect(os.Setenv(string(config.HTTPServerTLSModeEnvName), string(config.HTTPServerTLSModeOff))).To(Succeed())
-			})
+	t.Run("when a server is instantiated it should fail if there's an error when parsing the environment variables", func(t *testing.T) {
+		t.Parallel()
+		srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+			return nil, errors.New("config error")
+		}))
+		assert.ErrorPart(t, err, "could not load configuration (config error)")
+		assert.Nil(t, srv)
+	})
 
-			AfterEach(func() {
-				if srv != nil {
-					Expect(srv.Shutdown(ctx)).To(Succeed())
+	t.Run("when a server is started it should fail if the TLS mode is invalid", func(t *testing.T) {
+		t.Parallel()
+		srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+			cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
+			assert.NoError(t, err)
+			cfg.HTTPServerTLSMode = "invalid_mode"
+			return cfg, nil
+		}))
+		assert.ErrorPart(t, err, "invalid TLS mode: invalid_mode")
+		assert.Nil(t, srv)
+	})
+
+	t.Run("when a server is run it should fail if when the address is incorrectly formatted", func(t *testing.T) {
+		t.Parallel()
+		srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+			cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
+			assert.NoError(t, err)
+			cfg.HTTPServerBindIP = "not_an_ip"
+			return cfg, nil
+		}))
+		assert.NoError(t, err)
+		assert.NotNil(t, srv)
+		err = srv.Run()
+		assert.ErrorPart(t, err, "failed to create the network listener")
+	})
+
+	t.Run("when a server is started it should fail if the keys are missing when the TLS mode is TLS", func(t *testing.T) {
+		t.Parallel()
+		srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+			cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
+			assert.NoError(t, err)
+			cfg.HTTPServerTLSMode = config.HTTPServerTLSModeTLS
+			cfg.HTTPServerKey = ""
+			cfg.HTTPServerCert = ""
+			return cfg, nil
+		}))
+		assert.ErrorPart(t, err, "failed to load the server certificates")
+		assert.Nil(t, srv)
+	})
+
+	t.Run("when the server bind port is already take it should fail when starting", func(t *testing.T) {
+		t.Parallel()
+		const ip = "::1"
+		listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP(ip), Port: 0})
+		assert.NoError(t, err)
+		t.Cleanup(func() {
+			assert.NoError(t, listener.Close())
+		})
+		addr, ok := listener.Addr().(*net.TCPAddr)
+		assert.True(t, ok)
+		listenerPort := addr.AddrPort().Port()
+		srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+			cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
+			assert.NoError(t, err)
+			cfg.HTTPServerBindIP = ip
+			cfg.HTTPServerBindPort = listenerPort
+			return cfg, nil
+		}))
+		assert.NoError(t, err)
+		assert.NotNil(t, srv)
+		err = srv.Run()
+		assert.ErrorPart(t, err, "address already in use")
+	})
+
+	t.Run("when the server is started twice it should panic", func(t *testing.T) {
+		t.Parallel()
+		waitUntilReady := make(chan bool)
+		srv, err := server.New(server.WithBoundCallback(func(*net.TCPAddr) {
+			close(waitUntilReady)
+		}))
+		assert.NoError(t, err)
+		assert.NotNil(t, srv)
+
+		go func() {
+			assert.NoError(t, srv.Run())
+		}()
+		<-waitUntilReady
+
+		assert.PanicPart(t, func() {
+			_ = srv.Run()
+		}, "HTTP server can only be run once per instance")
+	})
+
+	t.Run("when a server is started it should be able to be shutdown multiple times", func(t *testing.T) {
+		t.Parallel()
+		waitUntilReady := make(chan bool)
+		srv, err := server.New(server.WithBoundCallback(func(*net.TCPAddr) {
+			close(waitUntilReady)
+		}))
+		assert.NoError(t, err)
+		assert.NotNil(t, srv)
+		go func() {
+			assert.NoError(t, srv.Run())
+		}()
+		<-waitUntilReady
+		for i := 0; i < 3; i++ {
+			assert.NoError(t, srv.Shutdown(context.Background()))
+		}
+	})
+
+	t.Run("when a server is started it should return an error when the TCP listener is closed unexpectedly", func(t *testing.T) {
+		t.Parallel()
+		listener, err := net.ListenTCP("tcp6", &net.TCPAddr{IP: net.ParseIP("::1"), Port: 0})
+		waitUntilReady := make(chan bool)
+		srv, err := server.New(server.WithListenerProvider(func(bindIP string, bindPort uint16) (*net.TCPListener, error) {
+			return listener, err
+		}), server.WithBoundCallback(func(*net.TCPAddr) {
+			close(waitUntilReady)
+		}))
+		assert.NoError(t, err)
+		assert.NotNil(t, srv)
+		srvErrChan := make(chan error, 1)
+		go func() {
+			srvErrChan <- srv.Run()
+		}()
+		<-waitUntilReady
+		assert.NoError(t, listener.Close())
+		err = <-srvErrChan
+		assert.ErrorPart(t, err, "error encountered while serving http requests")
+	})
+
+	t.Run("when common middleware is added to the server it should execute in order", func(t *testing.T) {
+		t.Parallel()
+		seq := make([]string, 0)
+		serverAddr := startServer(t, server.WithCommonMiddleware(
+			func(next http.HandlerFunc) http.HandlerFunc {
+				return func(writer http.ResponseWriter, request *http.Request) {
+					seq = append(seq, "0")
+					next(writer, request)
 				}
-			})
+			},
+			func(next http.HandlerFunc) http.HandlerFunc {
+				return func(writer http.ResponseWriter, request *http.Request) {
+					seq = append(seq, "1")
+					next(writer, request)
+				}
+			},
+		), server.WithEndpointHandlers(&testHandler{
+			Path:   "/test",
+			Method: http.MethodGet,
+			Middleware: []middleware.Middleware{
+				func(next http.HandlerFunc) http.HandlerFunc {
+					return func(writer http.ResponseWriter, request *http.Request) {
+						seq = append(seq, "2")
+						next(writer, request)
+					}
+				},
+				func(next http.HandlerFunc) http.HandlerFunc {
+					return func(writer http.ResponseWriter, request *http.Request) {
+						seq = append(seq, "3")
+						next(writer, request)
+					}
+				},
+			},
+			Handler: func(writer http.ResponseWriter, request *http.Request) {
+				seq = append(seq, "4")
+				writer.WriteHeader(http.StatusOK)
+			},
+		}))
+		httpClient := &http.Client{}
+		request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://"+serverAddr+"/test"), nil)
+		assert.NoError(t, err)
+		response, err := httpClient.Do(request)
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.Equals(t, seq, []string{"0", "1", "2", "3", "4"})
+	})
 
-			It("should fail if the environment variables fail to be parsed", func() {
-				srv, err = server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-					return nil, errors.New("config error")
-				}))
-				Expect(srv).To(BeNil())
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("could not load configuration (config error)"))
-			})
+	t.Run("when a server is started without TLS an HTTP client should be able to make requests", func(t *testing.T) {
+		t.Parallel()
+		serverAddr := startServer(t)
+		httpClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: false,
+					MinVersion:         tls.VersionTLS13,
+				},
+			},
+		}
+		assertRootRequestSuccess(t, httpClient, serverAddr, false)
+	})
 
-			It("should fail if an invalid tls mode is provided", func() {
-				srv, err = server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-					cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
-					Expect(err).ToNot(HaveOccurred())
-					cfg.HTTPServerTLSMode = "invalid_mode"
-					return cfg, nil
-				}))
-				Expect(srv).To(Not(BeNil()))
-				Expect(err).NotTo(HaveOccurred())
-				err = srv.Run(commonMw, handlers, func() {})
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("invalid TLS mode: invalid_mode"))
-			})
+	t.Run("when certificates are generated for TLS and mTLS", func(t *testing.T) {
+		t.Parallel()
+		tempDir := t.TempDir()
 
-			It("should fail if the server address is incorrectly formatted", func() {
-				srv, err = server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-					cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
-					Expect(err).ToNot(HaveOccurred())
-					cfg.HTTPServerBindIP = "not_an_ip"
-					return cfg, nil
-				}))
-				Expect(srv).To(Not(BeNil()))
-				Expect(err).NotTo(HaveOccurred())
-				err = srv.Run(commonMw, handlers, func() {})
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to create the network listener"))
-			})
+		caPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		assert.NoError(t, err)
 
-			It("should fail if the server keys are missing when the tls mode is tls", func() {
-				srv, err = server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-					cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
-					Expect(err).ToNot(HaveOccurred())
-					cfg.HTTPServerTLSMode = config.HTTPServerTLSModeTLS
-					cfg.HTTPServerKey = ""
+		caCertTemplate := x509.Certificate{
+			SerialNumber: big.NewInt(1),
+			Subject: pkix.Name{
+				Organization: []string{"Test CA"},
+			},
+			NotBefore:             time.Now(),
+			NotAfter:              time.Now().Add(24 * time.Hour),
+			IsCA:                  true,
+			KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+			BasicConstraintsValid: true,
+		}
+
+		caCertBytes, err := x509.CreateCertificate(rand.Reader, &caCertTemplate, &caCertTemplate, &caPrivateKey.PublicKey, caPrivateKey)
+		assert.NoError(t, err)
+		caCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
+
+		clientCACertPath := filepath.Join(tempDir, "ca_cert.pem")
+		assert.NoError(t, os.WriteFile(clientCACertPath, caCertPEM, 0644))
+		clientCaCertPaths := []string{clientCACertPath}
+
+		serverPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		assert.NoError(t, err)
+		serverPrivateKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(serverPrivateKey)})
+
+		serverCertTemplate := x509.Certificate{
+			SerialNumber: big.NewInt(2),
+			Subject: pkix.Name{
+				Organization: []string{"Server Tests Inc."},
+			},
+			NotBefore:             time.Now(),
+			NotAfter:              time.Now().Add(24 * time.Hour),
+			KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+			BasicConstraintsValid: true,
+			IPAddresses:           []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
+		}
+		serverCertBytes, err := x509.CreateCertificate(rand.Reader, &serverCertTemplate, &caCertTemplate, &serverPrivateKey.PublicKey, caPrivateKey)
+		assert.NoError(t, err)
+		serverCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverCertBytes})
+
+		serverPrivateKeyPath := filepath.Join(tempDir, "server_key.pem")
+		assert.NoError(t, os.WriteFile(serverPrivateKeyPath, serverPrivateKeyPEM, 0600))
+
+		serverCertificatePath := filepath.Join(tempDir, "server_cert.pem")
+		assert.NoError(t, os.WriteFile(serverCertificatePath, serverCertPEM, 0644))
+
+		clientPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		assert.NoError(t, err)
+		clientPrivateKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(clientPrivateKey)})
+
+		clientCertTemplate := x509.Certificate{
+			SerialNumber: big.NewInt(3),
+			Subject: pkix.Name{
+				Organization: []string{"Client Tests Inc."},
+			},
+			NotBefore:             time.Now(),
+			NotAfter:              time.Now().Add(24 * time.Hour),
+			KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+			BasicConstraintsValid: true,
+		}
+		clientCertBytes, err := x509.CreateCertificate(rand.Reader, &clientCertTemplate, &caCertTemplate, &clientPrivateKey.PublicKey, caPrivateKey)
+		assert.NoError(t, err)
+		clientCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: clientCertBytes})
+
+		clientPrivateKeyPath := filepath.Join(tempDir, "client_key.pem")
+		assert.NoError(t, os.WriteFile(clientPrivateKeyPath, clientPrivateKeyPEM, 0600))
+
+		clientCertificatePath := filepath.Join(tempDir, "client_cert.pem")
+		assert.NoError(t, os.WriteFile(clientCertificatePath, clientCertPEM, 0644))
+
+		clientCertificateKeyPair, err := tls.LoadX509KeyPair(clientCertificatePath, clientPrivateKeyPath)
+		assert.NoError(t, err)
+
+		invalidClientPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		assert.NoError(t, err)
+
+		invalidClientCertTemplate := x509.Certificate{
+			SerialNumber: big.NewInt(4),
+			Subject: pkix.Name{
+				Organization: []string{"Invalid Client"},
+			},
+			NotBefore:             time.Now(),
+			NotAfter:              time.Now().Add(24 * time.Hour),
+			KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+			BasicConstraintsValid: true,
+		}
+		invalidClientCertBytes, err := x509.CreateCertificate(rand.Reader, &invalidClientCertTemplate, &invalidClientCertTemplate, &invalidClientPrivateKey.PublicKey, invalidClientPrivateKey)
+		assert.NoError(t, err)
+		invalidClientCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: invalidClientCertBytes})
+		invalidClientKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(invalidClientPrivateKey)})
+
+		invalidClientCert, err := tls.X509KeyPair(invalidClientCertPEM, invalidClientKeyPEM)
+		assert.NoError(t, err)
+
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(clientCertPEM)
+		caCertPool.AppendCertsFromPEM(serverCertPEM)
+
+		certPathsConfigProvider := func(t *testing.T) *config.HTTPServer {
+			cfg, configErr := envprocessor.ProcessAndValidate[config.HTTPServer]()
+			assert.NoError(t, configErr)
+			cfg.HTTPServerKey = serverPrivateKeyPath
+			cfg.HTTPServerCert = serverCertificatePath
+			cfg.HTTPServerClientCACerts = clientCaCertPaths
+			return cfg
+		}
+
+		t.Run("when the server certificate is missing it should fail to create the server", func(t *testing.T) {
+			t.Parallel()
+			for _, mode := range []config.HTTPServerTLSMode{config.HTTPServerTLSModeTLS, config.HTTPServerTLSModeMutualTLS} {
+				srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+					cfg := certPathsConfigProvider(t)
 					cfg.HTTPServerCert = ""
+					cfg.HTTPServerTLSMode = mode
 					return cfg, nil
 				}))
-				Expect(srv).To(Not(BeNil()))
-				Expect(err).NotTo(HaveOccurred())
-				err = srv.Run(commonMw, handlers, func() {})
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to load the server certificates"))
-			})
-
-			It("should fail if the port is already bound", func() {
-				const ip = "::1"
-				const port = 6789
-				ln, err := tcplistener.New(ip, port)
-				Expect(err).ToNot(HaveOccurred())
-				defer func() {
-					Expect(ln.Close()).To(Succeed())
-				}()
-				srv, err = server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-					cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
-					Expect(err).ToNot(HaveOccurred())
-					cfg.HTTPServerBindIP = ip
-					cfg.HTTPServerBindPort = port
-					return cfg, nil
-				}))
-				Expect(srv).To(Not(BeNil()))
-				Expect(err).NotTo(HaveOccurred())
-				err = srv.Run(commonMw, handlers, func() {})
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("address already in use"))
-			})
-
-			It("should panic when the server is started twice", func() {
-				srv, err = server.New()
-				Expect(srv).To(Not(BeNil()))
-				Expect(err).NotTo(HaveOccurred())
-
-				waitUntilReady := make(chan bool)
-				go func() {
-					defer GinkgoRecover()
-					Expect(srv.Run(commonMw, handlers, func() {
-						close(waitUntilReady)
-					})).To(Succeed())
-				}()
-				<-waitUntilReady
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(func() {
-					_ = srv.Run(commonMw, handlers, func() {})
-				}).Should(PanicWith(ContainSubstring("HTTP server can only be run once per instance")))
-			})
-
-			It("should be able to be shutdown multiple times", func() {
-				srv, err = server.New()
-				Expect(srv).To(Not(BeNil()))
-				Expect(err).NotTo(HaveOccurred())
-
-				waitUntilReady := make(chan bool)
-				go func() {
-					defer GinkgoRecover()
-					Expect(srv.Run(commonMw, handlers, func() {
-						close(waitUntilReady)
-					})).To(Succeed())
-				}()
-				<-waitUntilReady
-
-				for i := 0; i < 3; i++ {
-					Expect(srv.Shutdown(ctx)).To(Succeed())
-				}
-			})
-
-			It("should return an error when the TCP listener is closed unexpectedly while the server is running", func() {
-				var listener tcp.Listener
-				srv, err = server.New(server.WithListenerProvider(func(host string, port uint16) (tcp.Listener, error) {
-					listener, err = tcplistener.New(host, port)
-					return listener, err
-				}))
-				Expect(srv).To(Not(BeNil()))
-				Expect(err).NotTo(HaveOccurred())
-
-				srvErrChan := make(chan error, 1)
-				waitUntilReady := make(chan bool)
-				go func() {
-					defer GinkgoRecover()
-					srvErrChan <- srv.Run(commonMw, handlers, func() {
-						close(waitUntilReady)
-					})
-				}()
-				<-waitUntilReady
-
-				Expect(listener.Close()).To(Succeed())
-				err = <-srvErrChan
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("error encountered while serving http requests"))
-			})
+				assert.ErrorPart(t, err, "failed to load the server certificates")
+				assert.Nil(t, srv)
+			}
 		})
 
-		expectSuccessfulRootGet := func(httpClient *http.Client, host string, port uint16, protocol string) {
-			request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s://%s:%d%s", protocol, host, port, path), nil)
-			Expect(err).NotTo(HaveOccurred())
+		t.Run("when the server key is missing it should fail to create the server", func(t *testing.T) {
+			t.Parallel()
+			for _, mode := range []config.HTTPServerTLSMode{config.HTTPServerTLSModeTLS, config.HTTPServerTLSModeMutualTLS} {
+				srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+					cfg := certPathsConfigProvider(t)
+					cfg.HTTPServerKey = ""
+					cfg.HTTPServerTLSMode = mode
+					return cfg, nil
+				}))
+				assert.ErrorPart(t, err, "failed to load the server certificates")
+				assert.Nil(t, srv)
+			}
+		})
+
+		t.Run("when the client CA is missing it should fail to create the server", func(t *testing.T) {
+			t.Parallel()
+			srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+				cfg := certPathsConfigProvider(t)
+				cfg.HTTPServerClientCACerts = []string{}
+				cfg.HTTPServerTLSMode = config.HTTPServerTLSModeMutualTLS
+				return cfg, nil
+			}))
+			assert.ErrorPart(t, err, "no client CAs provided")
+			assert.Nil(t, srv)
+		})
+
+		t.Run("when the client CA doesn't exist should fail to create the server", func(t *testing.T) {
+			t.Parallel()
+			srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+				cfg := certPathsConfigProvider(t)
+				cfg.HTTPServerClientCACerts = []string{"does_not_exist.pem"}
+				cfg.HTTPServerTLSMode = config.HTTPServerTLSModeMutualTLS
+				return cfg, nil
+			}))
+			assert.ErrorPart(t, err, "could not read client CA certificate")
+			assert.Nil(t, srv)
+		})
+
+		t.Run("when the server certificate is invalid it should fail to be created", func(t *testing.T) {
+			t.Parallel()
+			invalidCertPath := filepath.Join(tempDir, "invalid_cert.pem")
+			assert.NoError(t, os.WriteFile(invalidCertPath, []byte("invalid data"), 0644))
+			for _, mode := range []config.HTTPServerTLSMode{config.HTTPServerTLSModeTLS, config.HTTPServerTLSModeMutualTLS} {
+				srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+					cfg := certPathsConfigProvider(t)
+					cfg.HTTPServerTLSMode = mode
+					cfg.HTTPServerCert = invalidCertPath
+					return cfg, nil
+				}))
+				assert.ErrorPart(t, err, "failed to load the server certificates")
+				assert.Nil(t, srv)
+			}
+		})
+
+		t.Run("when the server key is invalid it should fail to be created", func(t *testing.T) {
+			t.Parallel()
+			invalidKeyPath := filepath.Join(tempDir, "invalid_key.pem")
+			assert.NoError(t, os.WriteFile(invalidKeyPath, []byte("invalid data"), 0644))
+			for _, mode := range []config.HTTPServerTLSMode{config.HTTPServerTLSModeTLS, config.HTTPServerTLSModeMutualTLS} {
+				srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+					cfg := certPathsConfigProvider(t)
+					cfg.HTTPServerTLSMode = mode
+					cfg.HTTPServerKey = invalidKeyPath
+					return cfg, nil
+				}))
+				assert.ErrorPart(t, err, "failed to load the server certificates")
+				assert.Nil(t, srv)
+			}
+		})
+
+		t.Run("when the client CA is invalid it should fail to be created", func(t *testing.T) {
+			t.Parallel()
+			invalidCertPath := filepath.Join(tempDir, "invalid_ca.pem")
+			assert.NoError(t, os.WriteFile(invalidCertPath, []byte("invalid data"), 0644))
+			srv, err := server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
+				cfg := certPathsConfigProvider(t)
+				cfg.HTTPServerTLSMode = config.HTTPServerTLSModeMutualTLS
+				cfg.HTTPServerClientCACerts = []string{invalidCertPath}
+				return cfg, nil
+			}))
+			assert.ErrorPart(t, err, "failed to load client CA certificates")
+			assert.Nil(t, srv)
+		})
+
+		t.Run("when a server is run with TLS it should fail with client that don't recognize the CA", func(t *testing.T) {
+			t.Parallel()
+			serverAddr := startServer(t, server.WithConfigProvider(func() (*config.HTTPServer, error) {
+				cfg := certPathsConfigProvider(t)
+				cfg.HTTPServerTLSMode = config.HTTPServerTLSModeTLS
+				return cfg, nil
+			}))
+			httpClient := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: false,
+					},
+				},
+			}
+			request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://"+serverAddr), nil)
+			assert.NoError(t, err)
 			response, err := httpClient.Do(request)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-			Expect(response.Body).To(Not(BeNil()))
-			responseBody, err := io.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(responseBody)).To(Equal(body))
-			Expect(commonMwValue).To(Equal(commonMwValueSet))
-			Expect(handlerMwValue).To(Equal(mwSetValue))
-			Expect(response.Body.Close()).To(Succeed())
-		}
-
-		generateServerTests := func(host string, port uint16, clientTests func(host string, port uint16)) {
-			When(fmt.Sprintf("a server is bound to IP %s and port %d is started", host, port), func() {
-				var (
-					srv        *server.Server
-					srvErrChan chan error
-				)
-
-				BeforeEach(func() {
-					var err error
-
-					srvErrChan = make(chan error, 1)
-					waitUntilReady := make(chan bool)
-
-					srv, err = server.New(server.WithConfigProvider(func() (*config.HTTPServer, error) {
-						cfg, err := envprocessor.ProcessAndValidate[config.HTTPServer]()
-						Expect(err).ToNot(HaveOccurred())
-						cfg.HTTPServerBindIP = host
-						cfg.HTTPServerBindPort = port
-						return cfg, nil
-					}))
-					Expect(srv).To(Not(BeNil()))
-					Expect(err).ToNot(HaveOccurred())
-
-					go func() {
-						defer GinkgoRecover()
-						srvErrChan <- srv.Run(commonMw, handlers, func() {
-							close(waitUntilReady)
-						})
-					}()
-					<-waitUntilReady
-				})
-
-				AfterEach(func() {
-					Expect(srv).To(Not(BeNil()))
-					Expect(srv.Shutdown(ctx)).To(Succeed())
-					Expect(<-srvErrChan).To(Not(HaveOccurred()))
-				})
-
-				clientTests(host, port)
-			})
-		}
-
-		When("the tls mode is set to off", func() {
-			BeforeEach(func() {
-				Expect(os.Setenv(string(config.HTTPServerTLSModeEnvName), string(config.HTTPServerTLSModeOff))).To(Succeed())
-			})
-
-			generateInsecureClientTests := func(host string, port uint16) {
-				When("an HTTPS client is created for the HTTP server", func() {
-					var (
-						strictHttpClient *http.Client
-					)
-
-					BeforeEach(func() {
-						strictHttpClient = &http.Client{
-							Transport: &http.Transport{
-								TLSClientConfig: &tls.Config{
-									InsecureSkipVerify: false,
-								},
-							},
-						}
-					})
-
-					It("should fail to connect to the server", func() {
-						request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s:%d%s", host, port, path), nil)
-						Expect(err).NotTo(HaveOccurred())
-						response, err := strictHttpClient.Do(request)
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("server gave HTTP response to HTTPS client"))
-						Expect(response).To(BeNil())
-					})
-				})
-
-				When("an HTTP client is created", func() {
-					var (
-						httpClient *http.Client
-					)
-
-					BeforeEach(func() {
-						httpClient = &http.Client{}
-					})
-
-					It("should be able to get the root contents", func() {
-						expectSuccessfulRootGet(httpClient, host, port, "http")
-					})
-				})
-			}
-
-			generateServerTests("::1", 18080, generateInsecureClientTests)
+			assert.ErrorPart(t, err, "unknown authority")
+			assert.Nil(t, response)
 		})
 
-		When("the tls mode is set to tls", func() {
-			var (
-				tempDir         string
-				privateKeyPath  string
-				certificatePath string
-			)
-
-			BeforeEach(func() {
-				var err error
-				tempDir, err = os.MkdirTemp("", "server-test-*")
-				Expect(err).ToNot(HaveOccurred())
-
-				privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-				Expect(err).ToNot(HaveOccurred())
-				privateKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
-
-				privateKeyPath = filepath.Join(tempDir, "key.pem")
-				Expect(os.WriteFile(privateKeyPath, privateKeyPEM, 0600)).To(Succeed())
-
-				certificateTemplate := x509.Certificate{
-					SerialNumber: big.NewInt(1),
-					Subject: pkix.Name{
-						Organization: []string{"Server Tests Inc."},
+		t.Run("when a server is run with TLS it should succeed if the client is properly configured", func(t *testing.T) {
+			t.Parallel()
+			serverAddress := startServer(t, server.WithConfigProvider(func() (*config.HTTPServer, error) {
+				cfg := certPathsConfigProvider(t)
+				cfg.HTTPServerTLSMode = config.HTTPServerTLSModeTLS
+				return cfg, nil
+			}))
+			httpClient := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: false,
+						RootCAs:            caCertPool,
 					},
-					NotBefore:             time.Now(),
-					NotAfter:              time.Now().Add(24 * time.Hour),
-					KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-					ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-					BasicConstraintsValid: true,
-					IPAddresses:           []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
-				}
-				certBytes, err := x509.CreateCertificate(rand.Reader, &certificateTemplate, &certificateTemplate, &privateKey.PublicKey, privateKey)
-				Expect(err).ToNot(HaveOccurred())
-				certificatePEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
-
-				certificatePath = filepath.Join(tempDir, "cert.pem")
-				Expect(os.WriteFile(certificatePath, certificatePEM, 0644)).To(Succeed())
-
-				Expect(os.Setenv(string(config.HTTPServerTLSModeEnvName), string(config.HTTPServerTLSModeTLS))).To(Succeed())
-				Expect(os.Setenv(string(config.HTTPServerKeyEnvName), privateKeyPath)).To(Succeed())
-				Expect(os.Setenv(string(config.HTTPServerCertEnvName), certificatePath)).To(Succeed())
-			})
-
-			AfterEach(func() {
-				Expect(os.RemoveAll(tempDir)).To(Succeed())
-			})
-
-			When("the server certificate files cannot be loaded", func() {
-				It("should fail to start the server when certificate file is missing", func() {
-					Expect(os.Remove(certificatePath)).To(Succeed())
-					srv, err := server.New()
-					Expect(err).NotTo(HaveOccurred())
-					err = srv.Run(commonMw, handlers, func() {})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to load the server certificates"))
-				})
-
-				It("should fail to start the server when key file is missing", func() {
-					Expect(os.Remove(privateKeyPath)).To(Succeed())
-					srv, err := server.New()
-					Expect(err).NotTo(HaveOccurred())
-					err = srv.Run(commonMw, handlers, func() {})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to load the server certificates"))
-				})
-
-				It("should fail to start the server when certificate file is invalid", func() {
-					Expect(os.WriteFile(certificatePath, []byte("invalid data"), 0644)).To(Succeed())
-					srv, err := server.New()
-					Expect(err).NotTo(HaveOccurred())
-					err = srv.Run(commonMw, handlers, func() {})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to load the server certificates"))
-				})
-
-				It("should fail to start the server when key file is invalid", func() {
-					Expect(os.WriteFile(privateKeyPath, []byte("invalid data"), 0600)).To(Succeed())
-					srv, err := server.New()
-					Expect(err).NotTo(HaveOccurred())
-					err = srv.Run(commonMw, handlers, func() {})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to load the server certificates"))
-				})
-			})
-
-			generateTLSClientTests := func(host string, port uint16) {
-				When("an HTTPS client is created that verifies the server certificate without trusting it", func() {
-					var (
-						strictHttpClient *http.Client
-					)
-
-					BeforeEach(func() {
-						strictHttpClient = &http.Client{
-							Transport: &http.Transport{
-								TLSClientConfig: &tls.Config{
-									InsecureSkipVerify: false,
-								},
-							},
-						}
-					})
-
-					It("should fail to connect to the server", func() {
-						request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s:%d%s", host, port, path), nil)
-						Expect(err).NotTo(HaveOccurred())
-						response, err := strictHttpClient.Do(request)
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("certificate signed by unknown authority"))
-						Expect(response).To(BeNil())
-					})
-				})
-
-				When("an HTTPS client is created that verifies the server certificate and trusts it", func() {
-					var (
-						httpClient *http.Client
-					)
-
-					BeforeEach(func() {
-						caCert, err := os.ReadFile(certificatePath)
-						Expect(err).To(Not(HaveOccurred()))
-						caCertPool := x509.NewCertPool()
-						caCertPool.AppendCertsFromPEM(caCert)
-						httpClient = &http.Client{
-							Transport: &http.Transport{
-								TLSClientConfig: &tls.Config{
-									InsecureSkipVerify: false,
-									RootCAs:            caCertPool,
-								},
-							},
-						}
-					})
-
-					It("should be able to get the root contents", func() {
-						expectSuccessfulRootGet(httpClient, host, port, "https")
-					})
-				})
-
-				When("an HTTPS client is created that doesn't verify the server certificate", func() {
-					var (
-						httpClient *http.Client
-					)
-
-					BeforeEach(func() {
-						httpClient = &http.Client{
-							Transport: &http.Transport{
-								TLSClientConfig: &tls.Config{
-									InsecureSkipVerify: true,
-								},
-							},
-						}
-					})
-
-					It("should be able to get the root contents", func() {
-						expectSuccessfulRootGet(httpClient, host, port, "https")
-					})
-				})
+				},
 			}
-
-			generateServerTests("::1", 5093, generateTLSClientTests)
+			assertRootRequestSuccess(t, httpClient, serverAddress, true)
 		})
 
-		When("the tls mode is set to mutual_tls", func() {
-			var (
-				tempDir                  string
-				serverPrivateKeyPath     string
-				serverCertificatePath    string
-				clientCACertPath         string
-				clientPrivateKeyPath     string
-				clientCertificatePath    string
-				clientCertificateKeyPair tls.Certificate
-			)
-
-			BeforeEach(func() {
-				var err error
-				tempDir, err = os.MkdirTemp("", "server-test-*")
-				Expect(err).ToNot(HaveOccurred())
-
-				caPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-				Expect(err).ToNot(HaveOccurred())
-
-				caCertTemplate := x509.Certificate{
-					SerialNumber: big.NewInt(1),
-					Subject: pkix.Name{
-						Organization: []string{"Test CA"},
+		t.Run("when a server is run with TLS it should succeed if the client doesn't trust the CA but insecure is set", func(t *testing.T) {
+			t.Parallel()
+			serverAddress := startServer(t, server.WithConfigProvider(func() (*config.HTTPServer, error) {
+				cfg := certPathsConfigProvider(t)
+				cfg.HTTPServerTLSMode = config.HTTPServerTLSModeTLS
+				return cfg, nil
+			}))
+			httpClient := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
 					},
-					NotBefore:             time.Now(),
-					NotAfter:              time.Now().Add(24 * time.Hour),
-					IsCA:                  true,
-					KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
-					BasicConstraintsValid: true,
-				}
-
-				caCertBytes, err := x509.CreateCertificate(rand.Reader, &caCertTemplate, &caCertTemplate, &caPrivateKey.PublicKey, caPrivateKey)
-				Expect(err).ToNot(HaveOccurred())
-				caCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
-
-				clientCACertPath = filepath.Join(tempDir, "ca_cert.pem")
-				Expect(os.WriteFile(clientCACertPath, caCertPEM, 0644)).To(Succeed())
-				clientCaCertPaths := []string{clientCACertPath}
-				clientCaCertPathsBytes, err := json.Marshal(clientCaCertPaths)
-				Expect(err).ToNot(HaveOccurred())
-				clientCaCertPathsStr := string(clientCaCertPathsBytes)
-
-				serverPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-				Expect(err).ToNot(HaveOccurred())
-				serverPrivateKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(serverPrivateKey)})
-
-				serverCertTemplate := x509.Certificate{
-					SerialNumber: big.NewInt(2),
-					Subject: pkix.Name{
-						Organization: []string{"Server Tests Inc."},
-					},
-					NotBefore:             time.Now(),
-					NotAfter:              time.Now().Add(24 * time.Hour),
-					KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-					ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-					BasicConstraintsValid: true,
-					IPAddresses:           []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
-				}
-				serverCertBytes, err := x509.CreateCertificate(rand.Reader, &serverCertTemplate, &caCertTemplate, &serverPrivateKey.PublicKey, caPrivateKey)
-				Expect(err).ToNot(HaveOccurred())
-				serverCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverCertBytes})
-
-				serverPrivateKeyPath = filepath.Join(tempDir, "server_key.pem")
-				Expect(os.WriteFile(serverPrivateKeyPath, serverPrivateKeyPEM, 0600)).To(Succeed())
-
-				serverCertificatePath = filepath.Join(tempDir, "server_cert.pem")
-				Expect(os.WriteFile(serverCertificatePath, serverCertPEM, 0644)).To(Succeed())
-
-				clientPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-				Expect(err).ToNot(HaveOccurred())
-				clientPrivateKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(clientPrivateKey)})
-
-				clientCertTemplate := x509.Certificate{
-					SerialNumber: big.NewInt(3),
-					Subject: pkix.Name{
-						Organization: []string{"Client Tests Inc."},
-					},
-					NotBefore:             time.Now(),
-					NotAfter:              time.Now().Add(24 * time.Hour),
-					KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-					ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-					BasicConstraintsValid: true,
-				}
-				clientCertBytes, err := x509.CreateCertificate(rand.Reader, &clientCertTemplate, &caCertTemplate, &clientPrivateKey.PublicKey, caPrivateKey)
-				Expect(err).ToNot(HaveOccurred())
-				clientCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: clientCertBytes})
-
-				clientPrivateKeyPath = filepath.Join(tempDir, "client_key.pem")
-				Expect(os.WriteFile(clientPrivateKeyPath, clientPrivateKeyPEM, 0600)).To(Succeed())
-
-				clientCertificatePath = filepath.Join(tempDir, "client_cert.pem")
-				Expect(os.WriteFile(clientCertificatePath, clientCertPEM, 0644)).To(Succeed())
-
-				clientCertificateKeyPair, err = tls.LoadX509KeyPair(clientCertificatePath, clientPrivateKeyPath)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(os.Setenv(string(config.HTTPServerTLSModeEnvName), string(config.HTTPServerTLSModeMutualTLS))).To(Succeed())
-				Expect(os.Setenv(string(config.HTTPServerKeyEnvName), serverPrivateKeyPath)).To(Succeed())
-				Expect(os.Setenv(string(config.HTTPServerCertEnvName), serverCertificatePath)).To(Succeed())
-				Expect(os.Setenv(string(config.HTTPServerClientCACertsEnvName), clientCaCertPathsStr)).To(Succeed())
-			})
-
-			AfterEach(func() {
-				Expect(os.RemoveAll(tempDir)).To(Succeed())
-			})
-
-			When("the server certificate files cannot be loaded", func() {
-				It("should fail to start the server when server certificate file is missing", func() {
-					Expect(os.Remove(serverCertificatePath)).To(Succeed())
-					srv, err := server.New()
-					Expect(err).NotTo(HaveOccurred())
-					err = srv.Run(commonMw, handlers, func() {})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to load the server certificates"))
-				})
-
-				It("should fail to start the server when client CA certificates cannot be loaded", func() {
-					Expect(os.Remove(clientCACertPath)).To(Succeed())
-					srv, err := server.New()
-					Expect(err).NotTo(HaveOccurred())
-					err = srv.Run(commonMw, handlers, func() {})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to load client CA certificates"))
-				})
-
-				It("should fail to start the server when client CA certificate is invalid", func() {
-					Expect(os.WriteFile(clientCACertPath, []byte("invalid data"), 0644)).To(Succeed())
-					srv, err := server.New()
-					Expect(err).NotTo(HaveOccurred())
-					err = srv.Run(commonMw, handlers, func() {})
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("failed to append client CA certificate"))
-				})
-			})
-
-			generateMutualTLSClientTests := func(host string, port uint16) {
-				When("an HTTPS client is created without a client certificate", func() {
-					var (
-						httpClient *http.Client
-					)
-
-					BeforeEach(func() {
-						caCert, err := os.ReadFile(clientCACertPath)
-						Expect(err).To(Not(HaveOccurred()))
-						caCertPool := x509.NewCertPool()
-						caCertPool.AppendCertsFromPEM(caCert)
-						httpClient = &http.Client{
-							Transport: &http.Transport{
-								TLSClientConfig: &tls.Config{
-									InsecureSkipVerify: false,
-									RootCAs:            caCertPool,
-								},
-							},
-						}
-					})
-
-					It("should fail to connect to the server", func() {
-						request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s:%d%s", host, port, path), nil)
-						Expect(err).NotTo(HaveOccurred())
-						response, err := httpClient.Do(request)
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("tls: certificate required"))
-						Expect(response).To(BeNil())
-					})
-				})
-
-				When("an HTTPS client is created with a client certificate signed by the trusted CA", func() {
-					var (
-						httpClient *http.Client
-					)
-
-					BeforeEach(func() {
-						caCert, err := os.ReadFile(serverCertificatePath)
-						Expect(err).To(Not(HaveOccurred()))
-						caCertPool := x509.NewCertPool()
-						caCertPool.AppendCertsFromPEM(caCert)
-
-						httpClient = &http.Client{
-							Transport: &http.Transport{
-								TLSClientConfig: &tls.Config{
-									InsecureSkipVerify: false,
-									RootCAs:            caCertPool,
-									Certificates:       []tls.Certificate{clientCertificateKeyPair},
-								},
-							},
-						}
-					})
-
-					It("should be able to get the root contents", func() {
-						expectSuccessfulRootGet(httpClient, host, port, "https")
-					})
-				})
-
-				When("an HTTPS client is created with an invalid client certificate", func() {
-					var (
-						httpClient *http.Client
-					)
-
-					BeforeEach(func() {
-						invalidClientPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-						Expect(err).ToNot(HaveOccurred())
-
-						invalidClientCertTemplate := x509.Certificate{
-							SerialNumber: big.NewInt(4),
-							Subject: pkix.Name{
-								Organization: []string{"Invalid Client"},
-							},
-							NotBefore:             time.Now(),
-							NotAfter:              time.Now().Add(24 * time.Hour),
-							KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-							ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-							BasicConstraintsValid: true,
-						}
-						invalidClientCertBytes, err := x509.CreateCertificate(rand.Reader, &invalidClientCertTemplate, &invalidClientCertTemplate, &invalidClientPrivateKey.PublicKey, invalidClientPrivateKey)
-						Expect(err).ToNot(HaveOccurred())
-						invalidClientCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: invalidClientCertBytes})
-						invalidClientKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(invalidClientPrivateKey)})
-
-						invalidClientCert, err := tls.X509KeyPair(invalidClientCertPEM, invalidClientKeyPEM)
-						Expect(err).ToNot(HaveOccurred())
-
-						caCert, err := os.ReadFile(serverCertificatePath)
-						Expect(err).To(Not(HaveOccurred()))
-						caCertPool := x509.NewCertPool()
-						caCertPool.AppendCertsFromPEM(caCert)
-
-						httpClient = &http.Client{
-							Transport: &http.Transport{
-								TLSClientConfig: &tls.Config{
-									InsecureSkipVerify: false,
-									RootCAs:            caCertPool,
-									Certificates:       []tls.Certificate{invalidClientCert},
-								},
-							},
-						}
-					})
-
-					It("should fail to connect to the server", func() {
-						request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s:%d%s", host, port, path), nil)
-						Expect(err).NotTo(HaveOccurred())
-						response, err := httpClient.Do(request)
-						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring("tls: certificate required"))
-						Expect(response).To(BeNil())
-					})
-				})
+				},
 			}
+			assertRootRequestSuccess(t, httpClient, serverAddress, true)
+		})
 
-			generateServerTests("127.0.0.1", 4444, generateMutualTLSClientTests)
+		t.Run("when an HTTP client is created without a client certificate it should fail to connect to an mTLS server", func(t *testing.T) {
+			t.Parallel()
+			serverAddress := startServer(t, server.WithConfigProvider(func() (*config.HTTPServer, error) {
+				cfg := certPathsConfigProvider(t)
+				cfg.HTTPServerTLSMode = config.HTTPServerTLSModeMutualTLS
+				return cfg, nil
+			}))
+			httpClient := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: false,
+						RootCAs:            caCertPool,
+					},
+				},
+			}
+			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddress, nil)
+			assert.NoError(t, err)
+			assert.NotNil(t, request)
+			response, err := httpClient.Do(request)
+			assert.ErrorPart(t, err, "tls: certificate required")
+			assert.Nil(t, response)
+		})
+
+		t.Run("when an HTTP client is created with a client certificate signed by the trusted CA it should be able to get the contents of an mTLS server", func(t *testing.T) {
+			t.Parallel()
+			serverAddress := startServer(t, server.WithConfigProvider(func() (*config.HTTPServer, error) {
+				cfg := certPathsConfigProvider(t)
+				cfg.HTTPServerTLSMode = config.HTTPServerTLSModeMutualTLS
+				return cfg, nil
+			}))
+			httpClient := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: false,
+						RootCAs:            caCertPool,
+						Certificates:       []tls.Certificate{clientCertificateKeyPair},
+					},
+				},
+			}
+			assertRootRequestSuccess(t, httpClient, serverAddress, true)
+		})
+
+		t.Run("when an HTTP client is created with an invalid client certificate it should fail to connect to an mTLS server", func(t *testing.T) {
+			t.Parallel()
+			serverAddress := startServer(t, server.WithConfigProvider(func() (*config.HTTPServer, error) {
+				cfg := certPathsConfigProvider(t)
+				cfg.HTTPServerTLSMode = config.HTTPServerTLSModeMutualTLS
+				return cfg, nil
+			}))
+			httpClient := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: false,
+						RootCAs:            caCertPool,
+						Certificates:       []tls.Certificate{invalidClientCert},
+					},
+				},
+			}
+			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddress, nil)
+			assert.NoError(t, err)
+			response, err := httpClient.Do(request)
+			assert.ErrorPart(t, err, "tls: certificate required")
+			assert.Nil(t, response)
 		})
 	})
-})
+}

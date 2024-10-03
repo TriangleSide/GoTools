@@ -32,7 +32,7 @@ type HTTPServer struct {
 	HTTPServerBindIP string `config_format:"snake" config_default:"::1" validate:"required,ip_addr"`
 
 	// HTTPServerBindPort is the port number the server listens on.
-	HTTPServerBindPort uint16 `config_format:"snake" config_default:"36963" validate:"gt=0"`
+	HTTPServerBindPort uint16 `config_format:"snake" config_default:"0" validate:"gte=0"`
 
 	// HTTPServerReadTimeoutSeconds is the maximum time (in seconds) to read the request.
 	// Zero or negative means no timeout.
