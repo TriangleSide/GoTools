@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// LogLevel represents the various log levels
+// LogLevel represents the various log levels.
 type LogLevel int
 
 const (
@@ -24,7 +24,7 @@ func SetLevel(level LogLevel) {
 	appLogLevel = level
 }
 
-// String converts a LogLevel to its string representation
+// String converts a LogLevel to its string representation.
 func (l LogLevel) String() string {
 	switch l {
 	case LevelError:
@@ -42,7 +42,7 @@ func (l LogLevel) String() string {
 	}
 }
 
-// ParseLevel parses a string into a LogLevel
+// ParseLevel parses a string into a LogLevel.
 func ParseLevel(level string) (LogLevel, error) {
 	switch strings.ToUpper(level) {
 	case "ERROR":
@@ -60,12 +60,12 @@ func ParseLevel(level string) (LogLevel, error) {
 	}
 }
 
-// MarshalText serializes the LogLevel into text
+// MarshalText serializes the LogLevel into text.
 func (l LogLevel) MarshalText() ([]byte, error) {
 	return []byte(l.String()), nil
 }
 
-// UnmarshalText deserializes text into a LogLevel
+// UnmarshalText deserializes text into a LogLevel.
 func (l *LogLevel) UnmarshalText(text []byte) error {
 	levelStr := string(text)
 	level, err := ParseLevel(levelStr)

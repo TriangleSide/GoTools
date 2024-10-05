@@ -39,6 +39,9 @@ func TestStatus(t *testing.T) {
 		defer server.Close()
 
 		response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":123}`))
+		t.Cleanup(func() {
+			assert.NoError(t, response.Body.Close())
+		})
 		assert.NoError(t, err)
 		assert.Equals(t, response.StatusCode, http.StatusOK)
 	})

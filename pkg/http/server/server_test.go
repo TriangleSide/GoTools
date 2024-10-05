@@ -9,7 +9,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"net"
@@ -41,14 +40,8 @@ func (t *testHandler) AcceptHTTPAPIBuilder(builder *api.HTTPAPIBuilder) {
 	})
 }
 
-// TODO: add middleware tests
 func TestServer(t *testing.T) {
-	t.Parallel()
-
-	assert.NoError(t, os.Setenv(string(config.HTTPServerTLSModeEnvName), string(config.HTTPServerTLSModeOff)))
-	t.Cleanup(func() {
-		assert.NoError(t, os.Unsetenv(string(config.HTTPServerTLSModeEnvName)))
-	})
+	t.Setenv(string(config.HTTPServerTLSModeEnvName), string(config.HTTPServerTLSModeOff))
 
 	handler := &testHandler{
 		Path:       "/",
@@ -272,9 +265,12 @@ func TestServer(t *testing.T) {
 			},
 		}))
 		httpClient := &http.Client{}
-		request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://"+serverAddr+"/test"), nil)
+		request, err := http.NewRequest(http.MethodGet, "http://"+serverAddr+"/test", nil)
 		assert.NoError(t, err)
 		response, err := httpClient.Do(request)
+		t.Cleanup(func() {
+			assert.NoError(t, response.Body.Close())
+		})
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Equals(t, seq, []string{"0", "1", "2", "3", "4"})
@@ -522,7 +518,7 @@ func TestServer(t *testing.T) {
 					},
 				},
 			}
-			request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://"+serverAddr), nil)
+			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddr, nil)
 			assert.NoError(t, err)
 			response, err := httpClient.Do(request)
 			assert.ErrorPart(t, err, "unknown authority")

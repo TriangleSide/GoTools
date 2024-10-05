@@ -133,7 +133,10 @@ func TestDecodeHTTPParameters(t *testing.T) {
 		listener, err := net.Listen("tcp", "[::1]:0")
 		assert.NoError(t, err)
 		go func() { _ = server.Serve(listener) }()
-		_, err = http.Get("http://" + listener.Addr().String() + "/NotAnInt")
+		response, err := http.Get("http://" + listener.Addr().String() + "/NotAnInt")
+		t.Cleanup(func() {
+			assert.NoError(t, response.Body.Close())
+		})
 		assert.NoError(t, err)
 		assert.ErrorPart(t, decodeErr, `failed to set value for path parameter urlTestPath`)
 	})
@@ -336,6 +339,9 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 		client := &http.Client{}
 		response, err := client.Do(request)
+		t.Cleanup(func() {
+			assert.NoError(t, response.Body.Close())
+		})
 		assert.NoError(t, err)
 		assert.Equals(t, response.StatusCode, http.StatusOK)
 		assert.NoError(t, validation.Struct(params))

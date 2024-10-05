@@ -102,5 +102,4 @@ func TestSymmetricEncryption(t *testing.T) {
 		assert.ErrorPart(t, err, "failed to generate initialization vector (random data error)")
 		assert.Nil(t, cypher)
 	})
-
 }

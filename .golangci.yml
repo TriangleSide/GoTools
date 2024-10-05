@@ -7,8 +7,10 @@ linters:
     - durationcheck
     - errcheck
     - errchkjson
+    - errorlint
     - ginkgolinter
     - goconst
+    - godot
     - gofmt
     - goimports
     - gosec
@@ -22,6 +24,7 @@ linters:
     - reassign
     - sqlclosecheck
     - staticcheck
+    - tenv
     - unparam
     - unused
     - whitespace

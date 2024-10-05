@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -20,8 +19,8 @@ func TestSetOutput(t *testing.T) {
 	t.Cleanup(func() {
 		logger.SetOutput(os.Stdout)
 	})
-	logger.Error(nil, "test message")
-	assert.Contains(t, string(output.Bytes()), "test message")
+	logger.Error(context.TODO(), "test message")
+	assert.Contains(t, output.String(), "test message")
 }
 
 func TestLogger(t *testing.T) {
@@ -83,7 +82,7 @@ func TestLogger(t *testing.T) {
 			logger.Trace(ctx, "T")
 			logger.Tracef(ctx, "T")
 			logger.TraceFn(ctx, func() []any { return []any{"T"} })
-			assert.Equals(t, strings.ReplaceAll(string(output.Bytes()), "\n", ""), tc.expected)
+			assert.Equals(t, strings.ReplaceAll(output.String(), "\n", ""), tc.expected)
 		}
 	})
 }
@@ -95,8 +94,8 @@ func testFatalScenario(t *testing.T, uniqueEnvName string, testName string, fata
 		fatalCallback()
 		os.Exit(0) // Shouldn't reach here.
 	}
-	cmd := exec.Command(os.Args[0], fmt.Sprintf("-test.run=%s", testName))
-	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=1", uniqueEnvName))
+	cmd := exec.Command(os.Args[0], "-test.run="+testName)
+	cmd.Env = append(os.Environ(), uniqueEnvName+"=1")
 	var output bytes.Buffer
 	cmd.Stdout = &output
 	cmd.Stderr = &output

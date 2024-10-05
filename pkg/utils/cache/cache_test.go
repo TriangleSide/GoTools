@@ -11,9 +11,9 @@ import (
 )
 
 func cacheMustHaveKeyAndValue[Key comparable, Value any](cache cache.Cache[Key, Value], key Key, value Value) {
-	value, gotten := cache.Get(key)
+	gottenValue, gotten := cache.Get(key)
 	ExpectWithOffset(1, gotten).To(BeTrue())
-	ExpectWithOffset(1, value).To(Equal(value))
+	ExpectWithOffset(1, value).To(Equal(gottenValue))
 }
 
 var _ = Describe("cache", Ordered, func() {
@@ -109,7 +109,7 @@ var _ = Describe("cache", Ordered, func() {
 				return otherValue, cache.DoesNotExpire, nil
 			})
 			Expect(fnCalled).To(BeFalse())
-			Expect(err).To(BeNil())
+			Expect(err).To(Not(HaveOccurred()))
 			Expect(returnVal).To(Equal(value))
 			cacheMustHaveKeyAndValue(testCache, key, value)
 		})
@@ -161,7 +161,7 @@ var _ = Describe("cache", Ordered, func() {
 				return otherValue, cache.DoesNotExpire, nil
 			})
 			Expect(fnCalled).To(BeTrue())
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(returnVal).To(Equal(otherValue))
 			cacheMustHaveKeyAndValue(testCache, key, otherValue)
 		})

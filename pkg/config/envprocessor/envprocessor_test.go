@@ -1,7 +1,6 @@
 package envprocessor_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
@@ -9,18 +8,6 @@ import (
 )
 
 func TestEnvProcessor(t *testing.T) {
-	setEnv := func(t *testing.T, envName string, value string) {
-		t.Helper()
-		err := os.Setenv(envName, value)
-		assert.NoError(t, err)
-	}
-
-	unsetEnv := func(t *testing.T, envName string) {
-		t.Helper()
-		err := os.Unsetenv(envName)
-		assert.NoError(t, err)
-	}
-
 	t.Run("when config_format is an invalid value", func(t *testing.T) {
 		assert.PanicPart(t, func() {
 			type testStruct struct {
@@ -50,20 +37,14 @@ func TestEnvProcessor(t *testing.T) {
 		}
 
 		t.Run("when the environment variable VALUE is set to NOT_AN_INT", func(t *testing.T) {
-			t.Cleanup(func() {
-				unsetEnv(t, EnvName)
-			})
-			setEnv(t, EnvName, "NOT_AN_INT")
+			t.Setenv(EnvName, "NOT_AN_INT")
 			conf, err := envprocessor.ProcessAndValidate[testStruct]()
 			assert.ErrorPart(t, err, "failed to assign env var NOT_AN_INT to field Value")
 			assert.Nil(t, conf)
 		})
 
 		t.Run("when the environment variable VALUE is set to 2", func(t *testing.T) {
-			t.Cleanup(func() {
-				unsetEnv(t, EnvName)
-			})
-			setEnv(t, EnvName, "2")
+			t.Setenv(EnvName, "2")
 
 			t.Run("it should be set in the Value field of the struct", func(t *testing.T) {
 				conf, err := envprocessor.ProcessAndValidate[testStruct]()
@@ -81,10 +62,7 @@ func TestEnvProcessor(t *testing.T) {
 
 			t.Run("when an environment variable called TEST_VALUE is set with a value of 3 it should able to be set with a prefix", func(t *testing.T) {
 				const EnvNameWithPrefix = "TEST_VALUE"
-				t.Cleanup(func() {
-					unsetEnv(t, EnvNameWithPrefix)
-				})
-				setEnv(t, EnvNameWithPrefix, "3")
+				t.Setenv(EnvNameWithPrefix, "3")
 				conf, err := envprocessor.ProcessAndValidate[testStruct](envprocessor.WithPrefix("TEST"))
 				assert.NoError(t, err)
 				assert.NotNil(t, conf)
@@ -93,10 +71,7 @@ func TestEnvProcessor(t *testing.T) {
 		})
 
 		t.Run("when the validation rule fails it should fail to process", func(t *testing.T) {
-			t.Cleanup(func() {
-				unsetEnv(t, EnvName)
-			})
-			setEnv(t, EnvName, "-1")
+			t.Setenv(EnvName, "-1")
 			conf, err := envprocessor.ProcessAndValidate[testStruct]()
 			assert.ErrorPart(t, err, "validation failed")
 			assert.Nil(t, conf)
@@ -146,12 +121,8 @@ func TestEnvProcessor(t *testing.T) {
 			FieldValue      = "field"
 		)
 
-		t.Cleanup(func() {
-			unsetEnv(t, EmbeddedEnvName)
-			unsetEnv(t, FieldEnvName)
-		})
-		setEnv(t, EmbeddedEnvName, EmbeddedValue)
-		setEnv(t, FieldEnvName, FieldValue)
+		t.Setenv(EmbeddedEnvName, EmbeddedValue)
+		t.Setenv(FieldEnvName, FieldValue)
 
 		conf, err := envprocessor.ProcessAndValidate[testStruct]()
 		assert.NoError(t, err)

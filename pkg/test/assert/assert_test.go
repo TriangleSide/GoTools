@@ -262,7 +262,7 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("Error positive case - Error is not nil", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.Error(tr, fmt.Errorf("some error"))
+		assert.Error(tr, errors.New("some error"))
 		checkRecorder(t, tr, 1, 0, 0, []string{})
 	})
 
@@ -285,13 +285,13 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("ErrorExact positive case - Error message matches exactly", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.ErrorExact(tr, fmt.Errorf("exact error"), "exact error")
+		assert.ErrorExact(tr, errors.New("exact error"), "exact error")
 		checkRecorder(t, tr, 1, 0, 0, []string{})
 	})
 
 	t.Run("ErrorExact negative case - Error message differs", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.ErrorExact(tr, fmt.Errorf("wrong error"), "exact error")
+		assert.ErrorExact(tr, errors.New("wrong error"), "exact error")
 		checkRecorder(t, tr, 2, 0, 1, []string{
 			"Expected the error message 'exact error' but got 'wrong error'.",
 		})
@@ -308,20 +308,20 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("ErrorExact positive case - Error message is empty string", func(t *testing.T) {
 		tr := newTestRecorder()
-		err := fmt.Errorf("")
+		err := errors.New("")
 		assert.ErrorExact(tr, err, "")
 		checkRecorder(t, tr, 1, 0, 0, []string{})
 	})
 
 	t.Run("ErrorPart positive case - Error message contains part", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.ErrorPart(tr, fmt.Errorf("some error occurred"), "error")
+		assert.ErrorPart(tr, errors.New("some error occurred"), "error")
 		checkRecorder(t, tr, 1, 0, 0, []string{})
 	})
 
 	t.Run("ErrorPart negative case - Error message does not contain part", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.ErrorPart(tr, fmt.Errorf("wrong error"), "expected part")
+		assert.ErrorPart(tr, errors.New("wrong error"), "expected part")
 		checkRecorder(t, tr, 2, 0, 1, []string{
 			"Expected the error message to contain 'expected part' but got 'wrong error'.",
 		})
@@ -344,7 +344,7 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("NoError negative case - Error is not nil", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.NoError(tr, fmt.Errorf("unexpected error"))
+		assert.NoError(tr, errors.New("unexpected error"))
 		checkRecorder(t, tr, 2, 0, 1, []string{
 			"Not expecting an error to occur. Got unexpected error.",
 		})
@@ -359,7 +359,7 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("NoError negative case - Error is non-nil", func(t *testing.T) {
 		tr := newTestRecorder()
-		err := fmt.Errorf("some error")
+		err := errors.New("some error")
 		assert.NoError(tr, err)
 		checkRecorder(t, tr, 2, 0, 1, []string{
 			"Not expecting an error to occur. Got some error.",
@@ -581,7 +581,7 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("Error positive case with Continue - Error is not nil", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.Error(tr, fmt.Errorf("some error"), assert.Continue())
+		assert.Error(tr, errors.New("some error"), assert.Continue())
 		checkRecorder(t, tr, 1, 0, 0, []string{})
 	})
 
@@ -595,13 +595,13 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("ErrorExact positive case with Continue - Error message matches exactly", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.ErrorExact(tr, fmt.Errorf("exact error"), "exact error", assert.Continue())
+		assert.ErrorExact(tr, errors.New("exact error"), "exact error", assert.Continue())
 		checkRecorder(t, tr, 1, 0, 0, []string{})
 	})
 
 	t.Run("ErrorExact negative case with Continue - Error message differs", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.ErrorExact(tr, fmt.Errorf("wrong error"), "exact error", assert.Continue())
+		assert.ErrorExact(tr, errors.New("wrong error"), "exact error", assert.Continue())
 		checkRecorder(t, tr, 2, 1, 0, []string{
 			"Expected the error message 'exact error' but got 'wrong error'.",
 		})
@@ -609,13 +609,13 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("ErrorPart positive case with Continue - Error message contains part", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.ErrorPart(tr, fmt.Errorf("some error occurred"), "error", assert.Continue())
+		assert.ErrorPart(tr, errors.New("some error occurred"), "error", assert.Continue())
 		checkRecorder(t, tr, 1, 0, 0, []string{})
 	})
 
 	t.Run("ErrorPart negative case with Continue - Error message does not contain part", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.ErrorPart(tr, fmt.Errorf("wrong error"), "expected part", assert.Continue())
+		assert.ErrorPart(tr, errors.New("wrong error"), "expected part", assert.Continue())
 		checkRecorder(t, tr, 2, 1, 0, []string{
 			"Expected the error message to contain 'expected part' but got 'wrong error'.",
 		})
@@ -629,7 +629,7 @@ func TestAssertFunctions(t *testing.T) {
 
 	t.Run("NoError negative case with Continue - Error is not nil", func(t *testing.T) {
 		tr := newTestRecorder()
-		assert.NoError(tr, fmt.Errorf("unexpected error"), assert.Continue())
+		assert.NoError(tr, errors.New("unexpected error"), assert.Continue())
 		checkRecorder(t, tr, 2, 1, 0, []string{
 			"Not expecting an error to occur. Got unexpected error.",
 		})

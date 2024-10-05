@@ -9,7 +9,8 @@ import (
 
 func TestFormatter(t *testing.T) {
 	t.Run("when context is nil it should format without fields", func(t *testing.T) {
-		msg := formatLog(nil, "test message")
+		var ctx context.Context
+		msg := formatLog(ctx, "test message")
 		assert.Contains(t, msg, "test message")
 	})
 
@@ -37,7 +38,7 @@ func TestFormatter(t *testing.T) {
 		SetFormatter(func(fields map[string]any, msg string) string {
 			return "custom: " + msg
 		})
-		msg := formatLog(nil, "test message")
+		msg := formatLog(context.TODO(), "test message")
 		assert.Contains(t, msg, "custom: test message")
 	})
 }

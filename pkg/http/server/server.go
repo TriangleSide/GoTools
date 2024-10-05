@@ -114,13 +114,7 @@ func New(opts ...Option) (*Server, error) {
 	serveMux := http.NewServeMux()
 	for apiPath, methodToEndpointHandlerMap := range builder.Handlers() {
 		for method, endpointHandler := range methodToEndpointHandlerMap {
-			endpointHandlerMw := make([]middleware.Middleware, 0)
-			for _, mw := range srvOpts.commonMiddleware {
-				endpointHandlerMw = append(endpointHandlerMw, mw)
-			}
-			for _, mw := range endpointHandler.Middleware {
-				endpointHandlerMw = append(endpointHandlerMw, mw)
-			}
+			endpointHandlerMw := append(srvOpts.commonMiddleware, endpointHandler.Middleware...)
 			handlerChain := middleware.CreateChain(endpointHandlerMw, endpointHandler.Handler)
 			serveMux.HandleFunc(fmt.Sprintf("%s %s", method, apiPath), handlerChain)
 		}
