@@ -65,6 +65,7 @@ func TestLogger(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			logger.SetLevel(tc.level)
+			assert.Equals(t, logger.GetLevel(), tc.level)
 			output := setAndRecordOutput()
 			assert.Equals(t, len(output.Bytes()), 0)
 			logger.Error(ctx, "E")

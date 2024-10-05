@@ -24,6 +24,11 @@ func SetLevel(level LogLevel) {
 	appLogLevel = level
 }
 
+// GetLevel returns the applications log level.
+func GetLevel() LogLevel {
+	return appLogLevel
+}
+
 // String converts a LogLevel to its string representation.
 func (l LogLevel) String() string {
 	switch l {
