@@ -64,7 +64,7 @@ func TestErrorResponder(t *testing.T) {
 		t.Parallel()
 		recorder := httptest.NewRecorder()
 		standardError := goerrors.New("standard error")
-		responders.Error(recorder, standardError)
+		responders.Error(&http.Request{}, recorder, standardError)
 		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
@@ -76,7 +76,7 @@ func TestErrorResponder(t *testing.T) {
 		badRequestErr := &errors.BadRequest{
 			Err: goerrors.New("bad request"),
 		}
-		responders.Error(recorder, badRequestErr)
+		responders.Error(&http.Request{}, recorder, badRequestErr)
 		assert.Equals(t, recorder.Code, http.StatusBadRequest)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, badRequestErr.Error())
@@ -85,7 +85,7 @@ func TestErrorResponder(t *testing.T) {
 	t.Run("when the error is nil it should return internal server error", func(t *testing.T) {
 		t.Parallel()
 		recorder := httptest.NewRecorder()
-		responders.Error(recorder, nil)
+		responders.Error(&http.Request{}, recorder, nil)
 		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
@@ -94,7 +94,7 @@ func TestErrorResponder(t *testing.T) {
 	t.Run("when the error is a custom registered type it should return its custom message and status", func(t *testing.T) {
 		t.Parallel()
 		recorder := httptest.NewRecorder()
-		responders.Error(recorder, &testError{})
+		responders.Error(&http.Request{}, recorder, &testError{})
 		assert.Equals(t, recorder.Code, http.StatusFound)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, "custom message")
@@ -107,7 +107,7 @@ func TestErrorResponder(t *testing.T) {
 			WriteFailed:    false,
 			ResponseWriter: recorder,
 		}
-		responders.Error(fw, goerrors.New("some error"))
+		responders.Error(&http.Request{}, fw, goerrors.New("some error"))
 		assert.True(t, fw.WriteFailed)
 	})
 }

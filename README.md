@@ -1,6 +1,6 @@
 # GoBase
 
-GoBase is a foundational project serving as a starting point for other Go (Golang) projects. It provides essential infrastructure, libraries, and configurations designed to standardize development practices and streamline the creation of new applications.
+GoBase is a starting point for other GoLang projects. It provides utilities designed to standardize development practices and streamline the creation of new applications.
 
 ## Documentation
 

@@ -2,14 +2,13 @@ package responders
 
 import (
 	"encoding/json"
-	goerrors "errors"
+	"errors"
 	"net/http"
 	"reflect"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/TriangleSide/GoBase/pkg/http/errors"
+	httperrors "github.com/TriangleSide/GoBase/pkg/http/errors"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
+	"github.com/TriangleSide/GoBase/pkg/logger"
 )
 
 // registeredErrorTypeResponse is used by the Error responder to format the response.
@@ -45,9 +44,9 @@ func MustRegisterErrorResponse[T error](status int, callback func(err *T) string
 
 // Error responds to an HTTP requests with an errors.Error. It tries to match it to a known error type
 // so it can return its corresponding status and message. It defaults to HTTP 500 internal server error.
-func Error(writer http.ResponseWriter, err error) {
+func Error(request *http.Request, writer http.ResponseWriter, err error) {
 	statusCode := http.StatusInternalServerError
-	errResponse := errors.Error{
+	errResponse := httperrors.Error{
 		Message: http.StatusText(http.StatusInternalServerError),
 	}
 
@@ -57,9 +56,9 @@ func Error(writer http.ResponseWriter, err error) {
 			statusCode = registeredError.Status
 			errResponse.Message = registeredError.MessageCallback(err)
 		} else {
-			var badRequestError *errors.BadRequest
+			var badRequestError *httperrors.BadRequest
 			switch {
-			case goerrors.As(err, &badRequestError):
+			case errors.As(err, &badRequestError):
 				statusCode = http.StatusBadRequest
 				errResponse.Message = badRequestError.Error()
 			}
@@ -70,6 +69,6 @@ func Error(writer http.ResponseWriter, err error) {
 	writer.WriteHeader(statusCode)
 
 	if err := json.NewEncoder(writer).Encode(errResponse); err != nil {
-		logrus.WithError(err).Error("Error encoding error response.")
+		logger.Errorf(request.Context(), "Error encoding error response (%s).", err)
 	}
 }

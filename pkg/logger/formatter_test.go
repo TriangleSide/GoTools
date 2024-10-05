@@ -1,38 +1,43 @@
-package logger_test
+package logger
 
 import (
-	"bytes"
+	"context"
+	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
-
-	"github.com/TriangleSide/GoBase/pkg/logger"
+	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
-type testFormatter struct {
-	entry *logrus.Entry
-}
-
-func (f *testFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	f.entry = entry
-	return nil, nil
-}
-
-var _ = Describe("formatter", func() {
-	When("the UTC formatter is called for a log entry", func() {
-		It("should set the timezone to UTC", func() {
-			var buf bytes.Buffer
-			testLogger := logrus.New()
-			testLogger.SetLevel(logrus.InfoLevel)
-			testLogger.Out = &buf
-			testFormatter := &testFormatter{}
-			testLogger.SetFormatter(&logger.UTCFormatter{
-				Next: testFormatter,
-			})
-			testLogger.Info("hello world")
-			Expect(testFormatter.entry).To(Not(BeNil()))
-			Expect(testFormatter.entry.Time.Location().String()).To(Equal("UTC"))
-		})
+func TestFormatter(t *testing.T) {
+	t.Run("when context is nil it should format without fields", func(t *testing.T) {
+		msg := formatLog(nil, "test message")
+		assert.Contains(t, msg, "test message")
 	})
-})
+
+	t.Run("when context has fields it should include fields", func(t *testing.T) {
+		ctx := WithFields(context.Background(), map[string]any{
+			"key1": "value1",
+			"key2": 2,
+		})
+		msg := formatLog(ctx, "test message")
+		assert.Contains(t, msg, "key1=value1")
+		assert.Contains(t, msg, "key2=2")
+	})
+
+	t.Run("when fields are not map[string]any it should panic", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), contextKey, "invalid")
+		assert.PanicPart(t, func() {
+			formatLog(ctx, "test message")
+		}, "logger context fields is not the correct type")
+	})
+
+	t.Run("when SetFormatter is called it should set custom formatter", func(t *testing.T) {
+		t.Cleanup(func() {
+			SetFormatter(defaultLogFormatter)
+		})
+		SetFormatter(func(fields map[string]any, msg string) string {
+			return "custom: " + msg
+		})
+		msg := formatLog(nil, "test message")
+		assert.Contains(t, msg, "custom: test message")
+	})
+}

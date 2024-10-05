@@ -27,23 +27,23 @@ func Decode[T any](request *http.Request) (*T, error) {
 	}
 
 	if err := decodeJSONBodyParameters(params, request); err != nil {
-		return nil, fmt.Errorf("failed to parse json body parameters (%s)", err.Error())
+		return nil, fmt.Errorf("failed to parse json body parameters (%w)", err)
 	}
 
 	if err := decodeQueryParameters(params, tagToLookupKeyToFieldName, request); err != nil {
-		return nil, fmt.Errorf("failed to parse query parameters (%s)", err.Error())
+		return nil, fmt.Errorf("failed to parse query parameters (%w)", err)
 	}
 
 	if err := decodeHeaderParameters(params, tagToLookupKeyToFieldName, request); err != nil {
-		return nil, fmt.Errorf("failed to parse header parameters (%s)", err.Error())
+		return nil, fmt.Errorf("failed to parse header parameters (%w)", err)
 	}
 
 	if err := decodePathParameters(params, tagToLookupKeyToFieldName, request); err != nil {
-		return nil, fmt.Errorf("failed to parse path parameters (%s)", err.Error())
+		return nil, fmt.Errorf("failed to parse path parameters (%w)", err)
 	}
 
 	if err := validation.Struct(params); err != nil {
-		return nil, fmt.Errorf("validation failed for request parameters (%s)", err.Error())
+		return nil, fmt.Errorf("validation failed for request parameters (%w)", err)
 	}
 
 	return params, nil
@@ -56,11 +56,11 @@ func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 		decoder.DisallowUnknownFields()
 		defer func() {
 			if err := request.Body.Close(); err != nil {
-				logger.LogEntry(request.Context()).WithError(err).Error("Failed to close the request body.")
+				logger.Errorf(request.Context(), "Failed to close request body (%s).", err.Error())
 			}
 		}()
 		if err := decoder.Decode(&params); err != nil {
-			return fmt.Errorf("failed to decode json body (%s)", err.Error())
+			return fmt.Errorf("failed to decode json body (%w)", err)
 		}
 	}
 	return nil
@@ -81,7 +81,7 @@ func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName ds.ReadOn
 			return fmt.Errorf("expecting one value for query parameter %s but found %v", queryParameterName, queryParameterValues)
 		}
 		if err := reflectutils.AssignToField(params, matchedFieldName, queryParameterValues[0]); err != nil {
-			return fmt.Errorf("failed to set value for query parameter %s with values of %v (%s)", queryParameterName, queryParameterValues, err.Error())
+			return fmt.Errorf("failed to set value for query parameter %s with values of %v (%w)", queryParameterName, queryParameterValues, err)
 		}
 	}
 
@@ -103,7 +103,7 @@ func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName ds.ReadO
 			return fmt.Errorf("expecting one value for header parameter %s but found %v", headerName, headerValues)
 		}
 		if err := reflectutils.AssignToField(params, matchedFieldName, headerValues[0]); err != nil {
-			return fmt.Errorf("failed to set value for header parameter %s with values of %v (%s)", headerName, headerValues, err.Error())
+			return fmt.Errorf("failed to set value for header parameter %s with values of %v (%w)", headerName, headerValues, err)
 		}
 	}
 
@@ -122,7 +122,7 @@ func decodePathParameters[T any](params *T, tagToLookupKeyToFieldName ds.ReadOnl
 			continue
 		}
 		if err := reflectutils.AssignToField(params, field, pathValue); err != nil {
-			return fmt.Errorf("failed to set value for path parameter %s with values of %v (%s)", pathName, pathValue, err.Error())
+			return fmt.Errorf("failed to set value for path parameter %s with values of %v (%w)", pathName, pathValue, err)
 		}
 	}
 

@@ -5,11 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/TriangleSide/GoBase/pkg/http/errors"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
 	"github.com/TriangleSide/GoBase/pkg/http/parameters"
+	"github.com/TriangleSide/GoBase/pkg/logger"
 )
 
 // jsonStreamConfig is used to configure the JSON stream utility.
@@ -55,7 +54,7 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 
 	requestParams, err := parameters.Decode[RequestParameters](request)
 	if err != nil {
-		Error(writer, &errors.BadRequest{Err: err})
+		Error(request, writer, &errors.BadRequest{Err: err})
 		return
 	}
 
@@ -64,7 +63,7 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 
 	responseChan, status, err := callback(requestParams, cancelChan)
 	if err != nil {
-		Error(writer, err)
+		Error(request, writer, err)
 		return
 	}
 
@@ -74,7 +73,7 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 			for {
 				select {
 				case <-timer:
-					logrus.Errorf("Potential leak detected: JSON stream producer did not close its channel after %s.", cfg.deferredConsumerTimerDuration.String())
+					logger.Errorf(request.Context(), "Potential leak detected: JSON stream producer did not close its channel after %s.", cfg.deferredConsumerTimerDuration.String())
 				case _, isResponseChannelOpen := <-responseChan:
 					if !isResponseChannelOpen {
 						return
@@ -93,14 +92,14 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 	for {
 		select {
 		case <-ctx.Done():
-			logrus.WithError(ctx.Err()).Error("Request canceled.")
+			logger.Errorf(ctx, "Request cancelled (%s).", ctx.Err())
 			return
 		case response, isResponseChannelOpen := <-responseChan:
 			if !isResponseChannelOpen {
 				return
 			}
 			if err := jsonEncoder.Encode(response); err != nil {
-				logrus.WithError(err).Error("Failed to encode response.")
+				logger.Errorf(ctx, "Failed to encode response (%s).", err)
 				return
 			}
 			if flusher, ok := writer.(http.Flusher); ok {
