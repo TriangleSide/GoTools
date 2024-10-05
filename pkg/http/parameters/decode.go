@@ -9,7 +9,6 @@ import (
 
 	"github.com/TriangleSide/GoBase/pkg/ds"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
-	"github.com/TriangleSide/GoBase/pkg/logger"
 	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
 	"github.com/TriangleSide/GoBase/pkg/validation"
 )
@@ -46,6 +45,12 @@ func Decode[T any](request *http.Request) (*T, error) {
 		return nil, fmt.Errorf("validation failed for request parameters (%w)", err)
 	}
 
+	if request.Body != nil {
+		if err := request.Body.Close(); err != nil {
+			return nil, err
+		}
+	}
+
 	return params, nil
 }
 
@@ -54,11 +59,6 @@ func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 	if strings.EqualFold(request.Header.Get(headers.ContentType), headers.ContentTypeApplicationJson) {
 		decoder := json.NewDecoder(request.Body)
 		decoder.DisallowUnknownFields()
-		defer func() {
-			if err := request.Body.Close(); err != nil {
-				logger.Errorf(request.Context(), "Failed to close request body (%s).", err.Error())
-			}
-		}()
 		if err := decoder.Decode(&params); err != nil {
 			return fmt.Errorf("failed to decode json body (%w)", err)
 		}

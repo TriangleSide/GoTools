@@ -175,7 +175,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 		}, "the generic must be a struct")
 	})
 
-	t.Run("when the body fails to close it should still succeed", func(t *testing.T) {
+	t.Run("when the body fails to close it should return an error", func(t *testing.T) {
 		t.Parallel()
 		request, err := http.NewRequest(http.MethodPost, "/", nil)
 		assert.NoError(t, err)
@@ -188,10 +188,9 @@ func TestDecodeHTTPParameters(t *testing.T) {
 		decoded, err := parameters.Decode[struct {
 			Field string `json:"message"`
 		}](request)
-		assert.NoError(t, err)
-		assert.NotNil(t, decoded)
-		assert.NotEquals(t, decoded.Field, "")
+		assert.ErrorPart(t, err, "test error")
 		assert.True(t, readCloser.Closed)
+		assert.Nil(t, decoded)
 	})
 
 	t.Run("when decoding a struct with many different fields it should succeed", func(t *testing.T) {
