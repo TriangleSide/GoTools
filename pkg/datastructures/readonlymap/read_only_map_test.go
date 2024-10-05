@@ -1,13 +1,13 @@
-package ds_test
+package readonlymap_test
 
 import (
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/ds"
+	"github.com/TriangleSide/GoBase/pkg/datastructures/readonlymap"
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
-func verifyKeyAndValue[Key comparable, Value any](t *testing.T, roMap ds.ReadOnlyMap[Key, Value], key Key, value Value) {
+func verifyKeyAndValue[Key comparable, Value any](t *testing.T, roMap *readonlymap.ReadOnlyMap[Key, Value], key Key, value Value) {
 	t.Helper()
 	assert.True(t, roMap.Size() >= 1)
 	hasKey := roMap.Has(key)
@@ -31,18 +31,18 @@ func verifyKeyAndValue[Key comparable, Value any](t *testing.T, roMap ds.ReadOnl
 func TestReadOnlyMap(t *testing.T) {
 	t.Parallel()
 
-	newBuilder := func() ds.ReadOnlyMapBuilder[string, string] {
-		return ds.NewReadOnlyMapBuilder[string, string]()
+	newBuilder := func() *readonlymap.Builder[string, string] {
+		return readonlymap.NewBuilder[string, string]()
 	}
 
-	t.Run("when the builder doesnt have entries it should create an empty ReadOnlyMap", func(t *testing.T) {
+	t.Run("when the Builder doesnt have entries it should create an empty ReadOnlyMap", func(t *testing.T) {
 		t.Parallel()
 		builder := newBuilder()
 		roMap := builder.Build()
 		assert.True(t, roMap.Size() == 0)
 	})
 
-	t.Run("when build gets called on a builder twice it should panic", func(t *testing.T) {
+	t.Run("when build gets called on a Builder twice it should panic", func(t *testing.T) {
 		t.Parallel()
 		assert.Panic(t, func() {
 			builder := newBuilder()
@@ -74,12 +74,12 @@ func TestReadOnlyMap(t *testing.T) {
 		const key = "key"
 		const value = "value"
 		builder := newBuilder()
-		builder.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: key, Value: value})
+		builder.Set(readonlymap.BuilderEntry[string, string]{Key: key, Value: value})
 		roMap := builder.Build()
 		verifyKeyAndValue(t, roMap, key, value)
 	})
 
-	t.Run("when set map is used with the builder it should be available in the map", func(t *testing.T) {
+	t.Run("when set map is used with the Builder it should be available in the map", func(t *testing.T) {
 		t.Parallel()
 		const key = "key"
 		const value = "value"
@@ -104,15 +104,15 @@ func TestReadOnlyMap(t *testing.T) {
 		assert.Equals(t, roMap.Size(), 1)
 	})
 
-	t.Run("when values are overwritten in the builder it should only have the last value", func(t *testing.T) {
+	t.Run("when values are overwritten in the Builder it should only have the last value", func(t *testing.T) {
 		t.Parallel()
 		builder := newBuilder()
-		builder.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: "key1", Value: "value1"})
-		builder.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: "key1", Value: "value2"})
-		builder.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: "key2", Value: "value3"})
+		builder.Set(readonlymap.BuilderEntry[string, string]{Key: "key1", Value: "value1"})
+		builder.Set(readonlymap.BuilderEntry[string, string]{Key: "key1", Value: "value2"})
+		builder.Set(readonlymap.BuilderEntry[string, string]{Key: "key2", Value: "value3"})
 		builder.SetMap(map[string]string{"key2": "value4"})
 		builder.SetMap(map[string]string{"key3": "value5"})
-		builder.Set(ds.ReadOnlyMapBuilderEntry[string, string]{Key: "key3", Value: "value6"})
+		builder.Set(readonlymap.BuilderEntry[string, string]{Key: "key3", Value: "value6"})
 		roMap := builder.Build()
 		verifyKeyAndValue(t, roMap, "key1", "value2")
 		verifyKeyAndValue(t, roMap, "key2", "value4")
@@ -124,7 +124,7 @@ func TestReadOnlyMap(t *testing.T) {
 		type testStruct struct {
 			Value int
 		}
-		builder := ds.NewReadOnlyMapBuilder[testStruct, testStruct]()
+		builder := readonlymap.NewBuilder[testStruct, testStruct]()
 		builder.SetMap(map[testStruct]testStruct{
 			{Value: 1}: {Value: 2},
 		})
@@ -150,14 +150,14 @@ func TestReadOnlyMap(t *testing.T) {
 		assert.Equals(t, keys[0], key)
 	})
 
-	t.Run("when adding no values to the builder it should create an empty map", func(t *testing.T) {
+	t.Run("when adding no values to the Builder it should create an empty map", func(t *testing.T) {
 		t.Parallel()
 		builder := newBuilder()
 		roMap := builder.Build()
 		assert.Equals(t, roMap.Size(), 0)
 	})
 
-	t.Run("when the builder uses set with nothing and set map with an empty map it should create an empty map", func(t *testing.T) {
+	t.Run("when the Builder uses set with nothing and set map with an empty map it should create an empty map", func(t *testing.T) {
 		t.Parallel()
 		builder := newBuilder()
 		builder.Set()
@@ -166,7 +166,7 @@ func TestReadOnlyMap(t *testing.T) {
 		assert.Equals(t, roMap.Size(), 0)
 	})
 
-	t.Run("when modifying the map used in the builder it should not affect the built map", func(t *testing.T) {
+	t.Run("when modifying the map used in the Builder it should not affect the built map", func(t *testing.T) {
 		t.Parallel()
 		builder := newBuilder()
 		mapToSet := map[string]string{
@@ -240,10 +240,10 @@ func TestReadOnlyMap(t *testing.T) {
 	t.Run("when many threads use the map it should have no issues", func(t *testing.T) {
 		t.Parallel()
 
-		builder := ds.NewReadOnlyMapBuilder[int, int]()
+		builder := readonlymap.NewBuilder[int, int]()
 		const entryCount = 1000
 		for i := 0; i < entryCount; i++ {
-			builder.Set(ds.ReadOnlyMapBuilderEntry[int, int]{Key: i, Value: i * 10})
+			builder.Set(readonlymap.BuilderEntry[int, int]{Key: i, Value: i * 10})
 		}
 		roMap := builder.Build()
 
