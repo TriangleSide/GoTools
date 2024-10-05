@@ -487,6 +487,28 @@ func TestAssertFunctions(t *testing.T) {
 		})
 	})
 
+	t.Run("Contains positive case - String and string", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.Contains(tr, "test string", "test")
+		checkRecorder(t, tr, 1, 0, 0, []string{})
+	})
+
+	t.Run("Contains negative case - String and string", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.Contains(tr, "test string", "not a substring")
+		checkRecorder(t, tr, 2, 0, 1, []string{
+			"Expecting 'test string' to contain 'not a substring'.",
+		})
+	})
+
+	t.Run("Contains negative case - nil and nil", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.Contains(tr, nil, nil)
+		checkRecorder(t, tr, 2, 0, 1, []string{
+			"Unknown types for the contains check.",
+		})
+	})
+
 	t.Run("Equals positive case with Continue - Comparing equal integers", func(t *testing.T) {
 		tr := newTestRecorder()
 		assert.Equals(tr, 1, 1, assert.Continue())
@@ -666,6 +688,20 @@ func TestAssertFunctions(t *testing.T) {
 		assert.False(tr, true, assert.Continue())
 		checkRecorder(t, tr, 2, 1, 0, []string{
 			"Expecting the value to be false.",
+		})
+	})
+
+	t.Run("Contains positive case with Continue - String and string", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.Contains(tr, "test string", "test", assert.Continue())
+		checkRecorder(t, tr, 1, 0, 0, []string{})
+	})
+
+	t.Run("Contains negative case with Continue - String and string", func(t *testing.T) {
+		tr := newTestRecorder()
+		assert.Contains(tr, "test string", "not a substring", assert.Continue())
+		checkRecorder(t, tr, 2, 1, 0, []string{
+			"Expecting 'test string' to contain 'not a substring'.",
 		})
 	})
 }

@@ -194,3 +194,21 @@ func False(t Testing, value bool, options ...Option) {
 		tCtx.fail("Expecting the value to be false.")
 	}
 }
+
+// Contains checks if an interface contains the contents of another.
+// If the value is a string, it checks for a substring.
+func Contains(t Testing, value any, check any, options ...Option) {
+	tCtx := newTestContext(t, options...)
+	tCtx.Helper()
+
+	valueStr, valueIsString := value.(string)
+	checkStr, checkIsString := check.(string)
+	if valueIsString && checkIsString {
+		if !strings.Contains(valueStr, checkStr) {
+			tCtx.fail(fmt.Sprintf("Expecting '%v' to contain '%v'.", value, check))
+		}
+		return
+	}
+
+	tCtx.fail("Unknown types for the contains check.")
+}
