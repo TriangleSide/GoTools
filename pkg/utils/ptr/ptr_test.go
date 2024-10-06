@@ -45,3 +45,38 @@ func TestPtr(t *testing.T) {
 		}, "type cannot be a pointer")
 	})
 }
+
+func TestIs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("it should return false for a non-pointer type (int)", func(t *testing.T) {
+		t.Parallel()
+		assert.False(t, ptr.Is[int]())
+	})
+
+	t.Run("it should return true for a pointer type (*int)", func(t *testing.T) {
+		t.Parallel()
+		assert.True(t, ptr.Is[*int]())
+	})
+
+	t.Run("it should return false for a non-pointer type (struct)", func(t *testing.T) {
+		t.Parallel()
+		assert.False(t, ptr.Is[struct{}]())
+	})
+
+	t.Run("it should return true for a pointer type (*struct)", func(t *testing.T) {
+		t.Parallel()
+		type testStruct struct{}
+		assert.True(t, ptr.Is[*testStruct]())
+	})
+
+	t.Run("it should return false for a non-pointer type (float64)", func(t *testing.T) {
+		t.Parallel()
+		assert.False(t, ptr.Is[float64]())
+	})
+
+	t.Run("it should return true for a pointer type (*float64)", func(t *testing.T) {
+		t.Parallel()
+		assert.True(t, ptr.Is[*float64]())
+	})
+}
