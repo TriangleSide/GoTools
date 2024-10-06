@@ -2,7 +2,6 @@ package cache
 
 import (
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -12,7 +11,6 @@ type GetOrSetFn[Key comparable, Value any] func(Key) (Value, *time.Duration, err
 
 // getOrSetKeyLock is used by the GetOrSet function to make sure the function is not executed in parallel.
 type getOrSetKeyLock[Value any] struct {
-	Count    atomic.Int32
 	WaitChan chan struct{}
 	FnValue  Value
 	FnError  error
@@ -97,31 +95,21 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, fn GetOrSetFn[Key, Value]) (Value,
 	keyLock, keyLockFound := c.getOrSetKeyLocks[key]
 	if !keyLockFound {
 		keyLock = &getOrSetKeyLock[Value]{
-			Count:    atomic.Int32{},
 			WaitChan: make(chan struct{}),
 		}
-		keyLock.Count.Store(1)
 		c.getOrSetKeyLocks[key] = keyLock
-	} else {
-		keyLock.Count.Add(1)
 	}
 	c.getOrSetLock.Unlock()
-
-	defer func() {
-		// The decrement is outside the lock for performance in concurrent scenarios.
-		if keyLock.Count.Add(-1) == 0 {
-			c.getOrSetLock.Lock()
-			// Zero is checked again since the decrement is outside the lock.
-			if keyLock.Count.Load() == 0 {
-				delete(c.getOrSetKeyLocks, key)
-			}
-			c.getOrSetLock.Unlock()
-		}
-	}()
 
 	if keyLockFound {
 		<-keyLock.WaitChan
 		return keyLock.FnValue, keyLock.FnError
+	} else {
+		defer func() {
+			c.getOrSetLock.Lock()
+			delete(c.getOrSetKeyLocks, key)
+			c.getOrSetLock.Unlock()
+		}()
 	}
 
 	var valueFound bool
