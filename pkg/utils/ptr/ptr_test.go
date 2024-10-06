@@ -2,41 +2,46 @@ package ptr_test
 
 import (
 	"reflect"
+	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
+	"github.com/TriangleSide/GoBase/pkg/test/assert"
 	"github.com/TriangleSide/GoBase/pkg/utils/ptr"
 )
 
-var _ = Describe("to pointer utility", func() {
-	It("should convert a uint to a pointer", func() {
+func TestPtr(t *testing.T) {
+	t.Parallel()
+
+	t.Run("it should convert a uint to a pointer", func(t *testing.T) {
+		t.Parallel()
 		ptrVal := ptr.Of[uint](123)
-		Expect(ptrVal).To(Not(BeNil()))
-		Expect(reflect.TypeOf(ptrVal).Elem().Kind()).To(Equal(reflect.Uint))
-		Expect(*ptrVal).To(Equal(uint(123)))
+		assert.NotNil(t, ptrVal)
+		assert.Equals(t, reflect.TypeOf(ptrVal).Elem().Kind(), reflect.Uint)
+		assert.Equals(t, *ptrVal, uint(123))
 	})
 
-	It("should convert a float32 to a pointer", func() {
+	t.Run("it should convert a float32 to a pointer", func(t *testing.T) {
+		t.Parallel()
 		ptrVal := ptr.Of[float32](123.45)
-		Expect(ptrVal).To(Not(BeNil()))
-		Expect(reflect.TypeOf(ptrVal).Elem().Kind()).To(Equal(reflect.Float32))
-		Expect(*ptrVal).To(BeNumerically("~", float32(123.45), 0.001))
+		assert.NotNil(t, ptrVal)
+		assert.Equals(t, reflect.TypeOf(ptrVal).Elem().Kind(), reflect.Float32)
+		assert.Equals(t, *ptrVal, float32(123.45))
 	})
 
-	It("should convert a struct to a pointer", func() {
+	t.Run("it should convert a struct to a pointer", func(t *testing.T) {
+		t.Parallel()
 		type testStruct struct {
 			Value int
 		}
 		ptrVal := ptr.Of[testStruct](testStruct{Value: 123})
-		Expect(ptrVal).To(Not(BeNil()))
-		Expect(reflect.TypeOf(ptrVal).Elem().Kind()).To(Equal(reflect.Struct))
-		Expect(ptrVal.Value).To(Equal(123))
+		assert.NotNil(t, ptrVal)
+		assert.Equals(t, reflect.TypeOf(ptrVal).Elem().Kind(), reflect.Struct)
+		assert.Equals(t, *ptrVal, testStruct{Value: 123})
 	})
 
-	It("should panic with a pointer type", func() {
-		Expect(func() {
+	t.Run("it should panic with a pointer type", func(t *testing.T) {
+		t.Parallel()
+		assert.PanicPart(t, func() {
 			ptr.Of[*int](nil)
-		}).Should(PanicWith(ContainSubstring("type cannot be a pointer")))
+		}, "type cannot be a pointer")
 	})
-})
+}
