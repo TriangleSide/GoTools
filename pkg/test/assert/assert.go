@@ -8,16 +8,16 @@ import (
 )
 
 // Equals checks if the expected and actual values are equal.
-func Equals(t Testing, expected any, actual any, options ...Option) {
+func Equals(t Testing, actual any, expected any, options ...Option) {
 	tCtx := newTestContext(t, options...)
 	tCtx.Helper()
 	if !reflect.DeepEqual(expected, actual) {
-		tCtx.fail(fmt.Sprintf("Expected %+v to equal %+v.", expected, actual))
+		tCtx.fail(fmt.Sprintf("Expected %+v to equal %+v.", actual, expected))
 	}
 }
 
 // NotEquals checks if the expected and actual values are not equal.
-func NotEquals(t Testing, expected any, actual any, options ...Option) {
+func NotEquals(t Testing, actual any, expected any, options ...Option) {
 	tCtx := newTestContext(t, options...)
 	tCtx.Helper()
 	if reflect.DeepEqual(expected, actual) {
@@ -211,4 +211,16 @@ func Contains(t Testing, value any, check any, options ...Option) {
 	}
 
 	tCtx.fail("Unknown types for the contains check.")
+}
+
+func FloatEquals[T ~float64 | ~float32](t Testing, first T, second T, epsilon T, options ...Option) {
+	tCtx := newTestContext(t, options...)
+	tCtx.Helper()
+	abs := first - second
+	if abs < 0 {
+		abs = -abs
+	}
+	if abs >= epsilon {
+		tCtx.fail(fmt.Sprintf("Expecting %f to equal %f within a margin of %f.", first, second, epsilon))
+	}
 }
