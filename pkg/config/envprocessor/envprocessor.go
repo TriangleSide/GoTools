@@ -6,7 +6,7 @@ import (
 
 	"github.com/TriangleSide/GoBase/pkg/utils/assign"
 	"github.com/TriangleSide/GoBase/pkg/utils/fields"
-	stringutils "github.com/TriangleSide/GoBase/pkg/utils/string"
+	"github.com/TriangleSide/GoBase/pkg/utils/stringcase"
 	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
@@ -63,7 +63,7 @@ func ProcessAndValidate[T any](opts ...Option) (*T, error) {
 		var formattedEnvName string
 		switch formatValue {
 		case FormatTypeSnake:
-			formattedEnvName = stringutils.CamelToUpperSnake(fieldName)
+			formattedEnvName = stringcase.CamelToSnake(fieldName)
 			if cfg.prefix != "" {
 				formattedEnvName = fmt.Sprintf("%s_%s", cfg.prefix, formattedEnvName)
 			}
