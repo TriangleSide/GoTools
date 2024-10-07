@@ -9,7 +9,7 @@ import (
 
 	"github.com/TriangleSide/GoBase/pkg/datastructures/readonlymap"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
-	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
+	"github.com/TriangleSide/GoBase/pkg/utils/assign"
 	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
@@ -80,7 +80,7 @@ func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName *readonly
 		if len(queryParameterValues) != 1 {
 			return fmt.Errorf("expecting one value for query parameter %s but found %v", queryParameterName, queryParameterValues)
 		}
-		if err := reflectutils.AssignToField(params, matchedFieldName, queryParameterValues[0]); err != nil {
+		if err := assign.StructField(params, matchedFieldName, queryParameterValues[0]); err != nil {
 			return fmt.Errorf("failed to set value for query parameter %s with values of %v (%w)", queryParameterName, queryParameterValues, err)
 		}
 	}
@@ -102,7 +102,7 @@ func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName *readonl
 		if len(headerValues) != 1 {
 			return fmt.Errorf("expecting one value for header parameter %s but found %v", headerName, headerValues)
 		}
-		if err := reflectutils.AssignToField(params, matchedFieldName, headerValues[0]); err != nil {
+		if err := assign.StructField(params, matchedFieldName, headerValues[0]); err != nil {
 			return fmt.Errorf("failed to set value for header parameter %s with values of %v (%w)", headerName, headerValues, err)
 		}
 	}
@@ -121,7 +121,7 @@ func decodePathParameters[T any](params *T, tagToLookupKeyToFieldName *readonlym
 		if pathValue == "" {
 			continue
 		}
-		if err := reflectutils.AssignToField(params, field, pathValue); err != nil {
+		if err := assign.StructField(params, field, pathValue); err != nil {
 			return fmt.Errorf("failed to set value for path parameter %s with values of %v (%w)", pathName, pathValue, err)
 		}
 	}

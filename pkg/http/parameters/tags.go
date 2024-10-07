@@ -9,7 +9,7 @@ import (
 
 	"github.com/TriangleSide/GoBase/pkg/datastructures/cache"
 	"github.com/TriangleSide/GoBase/pkg/datastructures/readonlymap"
-	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
+	"github.com/TriangleSide/GoBase/pkg/utils/fields"
 )
 
 // Tag is a string of metadata associated at compile time with a field of a struct.
@@ -98,7 +98,7 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonlymap.ReadOnlyMap[Tag, LookupKeyToFieldName], error) {
 	reflectType := reflect.TypeOf(*new(T))
 	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonlymap.ReadOnlyMap[Tag, LookupKeyToFieldName], *time.Duration, error) {
-		fieldsMetadata := reflectutils.FieldsToMetadata[T]()
+		fieldsMetadata := fields.StructMetadata[T]()
 
 		tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)
 		for customTag := range tagToLookupKeyNormalizer {

@@ -1,4 +1,4 @@
-package reflect
+package fields
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ var (
 	// tagMatchRegex matches all tag entries on a struct field.
 	tagMatchRegex = regexp.MustCompile(`(\w+):"([^"]*)"`)
 
-	// typeToMetadataCache is used to cache the result of the FieldsToMetadata function.
+	// typeToMetadataCache is used to cache the result of the StructMetadata function.
 	typeToMetadataCache = cache.New[reflect.Type, *readonlymap.ReadOnlyMap[string, *FieldMetadata]]()
 )
 
@@ -25,8 +25,8 @@ type FieldMetadata struct {
 	Anonymous []string
 }
 
-// FieldsToMetadata returns a map of a structs field names to their respective metadata.
-func FieldsToMetadata[T any]() *readonlymap.ReadOnlyMap[string, *FieldMetadata] {
+// StructMetadata returns a map of a structs field names to their respective metadata.
+func StructMetadata[T any]() *readonlymap.ReadOnlyMap[string, *FieldMetadata] {
 	reflectType := reflect.TypeOf(*new(T))
 	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonlymap.ReadOnlyMap[string, *FieldMetadata], *time.Duration, error) {
 		fieldsToMetadata := make(map[string]*FieldMetadata)

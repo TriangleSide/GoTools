@@ -1,4 +1,4 @@
-package reflect_test
+package fields_test
 
 import (
 	"reflect"
@@ -6,31 +6,31 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
+	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/fields"
 )
 
 var _ = Describe("struct field metadata", func() {
 	It("should panic if the type is not a struct", func() {
 		Expect(func() {
-			_ = reflectutils.FieldsToMetadata[int]()
+			_ = reflectutils.StructMetadata[int]()
 		}).Should(PanicWith(ContainSubstring("type must be a struct")))
 	})
 
 	It("should panic if the type is a pointer to a struct", func() {
 		Expect(func() {
-			_ = reflectutils.FieldsToMetadata[*struct{}]()
+			_ = reflectutils.StructMetadata[*struct{}]()
 		}).Should(PanicWith(ContainSubstring("type must be a struct")))
 	})
 
 	It("should return an empty map for an empty struct", func() {
-		metadata := reflectutils.FieldsToMetadata[struct{}]()
+		metadata := reflectutils.StructMetadata[struct{}]()
 		Expect(metadata.Size()).To(Equal(0))
 	})
 
 	It("should succeed if done many times on the same struct type", func() {
 		type testStruct struct{}
 		for i := 0; i < 2; i++ {
-			metadata := reflectutils.FieldsToMetadata[testStruct]()
+			metadata := reflectutils.StructMetadata[testStruct]()
 			Expect(metadata.Size()).To(Equal(0))
 		}
 	})
@@ -41,7 +41,7 @@ var _ = Describe("struct field metadata", func() {
 		}
 
 		It("should return the field name and its type with no metadata", func() {
-			metadata := reflectutils.FieldsToMetadata[testStruct]()
+			metadata := reflectutils.StructMetadata[testStruct]()
 			Expect(metadata.Size()).To(Equal(1))
 			Expect(metadata.Has("Value")).To(BeTrue())
 			Expect(metadata.Get("Value").Type.Kind()).To(Equal(reflect.String))
@@ -56,7 +56,7 @@ var _ = Describe("struct field metadata", func() {
 		}
 
 		It("should return the field name and its type with the tag metadata", func() {
-			metadata := reflectutils.FieldsToMetadata[testStruct]()
+			metadata := reflectutils.StructMetadata[testStruct]()
 			Expect(metadata.Size()).To(Equal(1))
 			Expect(metadata.Has("Value")).To(BeTrue())
 			Expect(metadata.Get("Value").Type.Kind()).To(Equal(reflect.Int))
@@ -72,7 +72,7 @@ var _ = Describe("struct field metadata", func() {
 		}
 
 		It("should return the field name and its type with the tags metadata", func() {
-			metadata := reflectutils.FieldsToMetadata[testStruct]()
+			metadata := reflectutils.StructMetadata[testStruct]()
 			Expect(metadata.Size()).To(Equal(1))
 			Expect(metadata.Has("Value")).To(BeTrue())
 			Expect(metadata.Get("Value").Type.Kind()).To(Equal(reflect.Float32))
@@ -90,7 +90,7 @@ var _ = Describe("struct field metadata", func() {
 		}
 
 		It("should return the field names and their type with their tags metadata", func() {
-			metadata := reflectutils.FieldsToMetadata[testStruct]()
+			metadata := reflectutils.StructMetadata[testStruct]()
 			Expect(metadata.Size()).To(Equal(2))
 			Expect(metadata.Has("Value1")).To(BeTrue())
 			Expect(metadata.Get("Value1").Type.Kind()).To(Equal(reflect.String))
@@ -128,7 +128,7 @@ var _ = Describe("struct field metadata", func() {
 		}
 
 		It("should return the anonymous structs fields", func() {
-			metadata := reflectutils.FieldsToMetadata[outerStruct]()
+			metadata := reflectutils.StructMetadata[outerStruct]()
 			Expect(metadata.Size()).To(Equal(4))
 			Expect(metadata.Has("DeepField")).To(BeTrue())
 			Expect(metadata.Get("DeepField").Type.Kind()).To(Equal(reflect.String))
@@ -169,7 +169,7 @@ var _ = Describe("struct field metadata", func() {
 
 		It("should panic", func() {
 			Expect(func() {
-				_ = reflectutils.FieldsToMetadata[outerStruct]()
+				_ = reflectutils.StructMetadata[outerStruct]()
 			}).Should(PanicWith(ContainSubstring("field Field is ambiguous")))
 		})
 	})

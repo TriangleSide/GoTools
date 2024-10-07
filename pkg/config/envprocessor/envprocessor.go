@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	reflectutils "github.com/TriangleSide/GoBase/pkg/utils/reflect"
+	"github.com/TriangleSide/GoBase/pkg/utils/assign"
+	"github.com/TriangleSide/GoBase/pkg/utils/fields"
 	stringutils "github.com/TriangleSide/GoBase/pkg/utils/string"
 	"github.com/TriangleSide/GoBase/pkg/validation"
 )
@@ -50,7 +51,7 @@ func ProcessAndValidate[T any](opts ...Option) (*T, error) {
 		opt(cfg)
 	}
 
-	fieldsMetadata := reflectutils.FieldsToMetadata[T]()
+	fieldsMetadata := fields.StructMetadata[T]()
 	conf := new(T)
 
 	for fieldName, fieldMetadata := range fieldsMetadata.Iterator() {
@@ -72,13 +73,13 @@ func ProcessAndValidate[T any](opts ...Option) (*T, error) {
 
 		envValue, hasEnvValue := os.LookupEnv(formattedEnvName)
 		if hasEnvValue {
-			if err := reflectutils.AssignToField(conf, fieldName, envValue); err != nil {
+			if err := assign.StructField(conf, fieldName, envValue); err != nil {
 				return nil, fmt.Errorf("failed to assign env var %s to field %s (%s)", envValue, fieldName, err.Error())
 			}
 		} else {
 			defaultValue, hasDefaultTag := fieldMetadata.Tags[DefaultTag]
 			if hasDefaultTag {
-				if err := reflectutils.AssignToField(conf, fieldName, defaultValue); err != nil {
+				if err := assign.StructField(conf, fieldName, defaultValue); err != nil {
 					return nil, fmt.Errorf("failed to assign default value %s to field %s (%s)", defaultValue, fieldName, err.Error())
 				}
 			}

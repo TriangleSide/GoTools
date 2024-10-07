@@ -1,4 +1,4 @@
-package reflect_test
+package fields_test
 
 import (
 	"testing"
