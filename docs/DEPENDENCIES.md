@@ -4,5 +4,6 @@ Ensure all required dependencies are installed before beginning development on t
 
 ## Required
 
+- [git](https://github.com/git-guides/install-git)
 - [GoLang](https://go.dev/doc/install)
 - [Docker](https://www.docker.com/get-started/)

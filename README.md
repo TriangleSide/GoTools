@@ -1,6 +1,6 @@
-# GoBase
+g# GoBase
 
-GoBase is a starting point for other GoLang projects. It provides utilities designed to standardize development practices and streamline the creation of new applications.
+GoBase is a library for other GoLang projects. It provides utilities designed to standardize development practices and streamline the creation of new applications.
 
 ## Documentation
 

@@ -1,7 +1,6 @@
 package fields_test
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -150,7 +149,7 @@ func TestStructMetadata(t *testing.T) {
 
 		assert.PanicPart(t, func() {
 			_ = fields.StructMetadata[outerStruct]()
-		}, fmt.Sprintf("field Field is ambiguous"))
+		}, "field Field is ambiguous")
 	})
 
 	t.Run("when StructMedata is called concurrently is should have no errors", func(t *testing.T) {

@@ -36,7 +36,7 @@ func Struct[T any](val T) error {
 		return errors.New("struct validation on nil value")
 	}
 	if v.Kind() != reflect.Struct && !(v.Kind() == reflect.Ptr && v.Elem().Kind() == reflect.Struct) {
-		panic(fmt.Sprintf("Type must be a struct or a pointer to a struct."))
+		panic("Type must be a struct or a pointer to a struct.")
 	}
 	if err := validate.Struct(val); err != nil {
 		return formatErrorMessage(err)
