@@ -3,37 +3,16 @@ package validation
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
 )
 
 var (
-	validate                      *validator.Validate
-	customValidationErrorMessages map[string]func(err validator.FieldError) string
-)
-
-// init will create the validator and configure it.
-func init() {
-	validate = validator.New(validator.WithRequiredStructEnabled(), validator.WithPrivateFieldValidation())
+	validate                      = validator.New(validator.WithRequiredStructEnabled(), validator.WithPrivateFieldValidation())
 	customValidationErrorMessages = make(map[string]func(err validator.FieldError) string)
-}
-
-// Struct returns an error if one or many of the struct members violate validation rules.
-func Struct(val any) error {
-	if err := validate.Struct(val); err != nil {
-		return formatErrorMessage(err)
-	}
-	return nil
-}
-
-// Var validates a single variable using tag style validation that would be set on a struct field.
-func Var(val any, tag string) error {
-	if err := validate.Var(val, tag); err != nil {
-		return formatErrorMessage(err)
-	}
-	return nil
-}
+)
 
 // RegisterValidation registers a custom validator and error message generator for a tag.
 // If it is called more than once for a tag, a panic occurs.
@@ -48,6 +27,29 @@ func RegisterValidation(tag string, validationFunc validator.Func, validationErr
 	if err := validate.RegisterValidation(tag, validationFunc, true); err != nil {
 		panic(fmt.Sprintf("Failed to register the validation function for the tag '%s'.", tag))
 	}
+}
+
+// Struct returns an error if one or many of the struct members violate validation rules.
+func Struct[T any](val T) error {
+	v := reflect.ValueOf(val)
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		return errors.New("struct validation on nil value")
+	}
+	if v.Kind() != reflect.Struct && !(v.Kind() == reflect.Ptr && v.Elem().Kind() == reflect.Struct) {
+		panic(fmt.Sprintf("Type must be a struct or a pointer to a struct."))
+	}
+	if err := validate.Struct(val); err != nil {
+		return formatErrorMessage(err)
+	}
+	return nil
+}
+
+// Var validates a single variable using tag style validation that would be set on a struct field.
+func Var[T any](val T, tag string) error {
+	if err := validate.Var(val, tag); err != nil {
+		return formatErrorMessage(err)
+	}
+	return nil
 }
 
 // formatErrorMessage takes a validation error and formats it.

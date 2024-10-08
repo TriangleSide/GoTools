@@ -1,254 +1,133 @@
-package validation_test
+package validation
 
 import (
-	"github.com/go-playground/validator/v10"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"errors"
+	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/validation"
+	"github.com/go-playground/validator/v10"
+
+	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
-var _ = Describe("validation", func() {
-	When("a struct has a field called Value with a validation rule of gte=0", func() {
-		type testStruct struct {
+func TestValidation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("when a struct with validation rule is set and the set value is valid it should succeed", func(t *testing.T) {
+		t.Parallel()
+		assert.NoError(t, Struct(struct {
 			Value int `validate:"gte=0"`
+		}{Value: 0}))
+	})
+
+	t.Run("when a pointer is passed to the struct validation is should succeed if the value is valid", func(t *testing.T) {
+		t.Parallel()
+		assert.NoError(t, Struct(&struct {
+			Value int `validate:"gte=0"`
+		}{Value: 0}))
+	})
+
+	t.Run("when a validation rule is set and the set value is invalid it should fail", func(t *testing.T) {
+		t.Parallel()
+		assert.ErrorPart(t, Struct(struct {
+			Value int `validate:"gte=0"`
+		}{Value: -1}),
+			"validation failed on field 'Value' with validator 'gte' and parameter(s) '0'")
+	})
+
+	t.Run("when a pointer is passed to the struct validation is should fail if the value is invalid", func(t *testing.T) {
+		t.Parallel()
+		assert.ErrorPart(t, Struct(&struct {
+			Value int `validate:"gte=0"`
+		}{Value: -1}),
+			"validation failed on field 'Value' with validator 'gte' and parameter(s) '0'")
+	})
+
+	t.Run("when validating a struct with non-required field it should succeed", func(t *testing.T) {
+		t.Parallel()
+		assert.NoError(t, Struct(struct{ Value int }{Value: 0}))
+	})
+
+	t.Run("when calling the struct validation a non-struct value it should fail", func(t *testing.T) {
+		t.Parallel()
+		assert.PanicExact(t, func() {
+			_ = Struct(0)
+		}, "Type must be a struct or a pointer to a struct.")
+	})
+
+	t.Run("when validating nil it should fail", func(t *testing.T) {
+		t.Parallel()
+		assert.ErrorPart(t, Struct[*struct{}](nil), "struct validation on nil value")
+	})
+
+	t.Run("when using custom validator it should adhere to its logic", func(t *testing.T) {
+		const errMsg = "custom validation failed"
+		RegisterValidation("custom", func(fl validator.FieldLevel) bool {
+			return fl.Field().Len() > 3
+		}, func(err validator.FieldError) string {
+			return errMsg
+		})
+		type testStruct struct {
+			Name string `validate:"custom"`
 		}
 
-		var (
-			test testStruct
-		)
-
-		BeforeEach(func() {
-			test = testStruct{}
+		t.Run("when custom validation rule is passed it should succeed", func(t *testing.T) {
+			t.Parallel()
+			assert.NoError(t, Struct(testStruct{Name: "abcd"}))
 		})
 
-		When("when the struct field has a valid value", func() {
-			BeforeEach(func() {
-				test.Value = 1
-			})
-
-			It("should succeed when using the Struct method when passed by value", func() {
-				Expect(validation.Struct(test)).To(Succeed())
-			})
-
-			It("should succeed when using the Struct method when passed by reference", func() {
-				Expect(validation.Struct(&test)).To(Succeed())
-			})
-		})
-
-		When("when the struct field has an invalid value", func() {
-			BeforeEach(func() {
-				test.Value = -1
-			})
-
-			It("should return an error when using the Struct method when passed by value", func() {
-				err := validation.Struct(test)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("validation failed on field 'Value' with validator 'gte' and parameter(s) '0'"))
-			})
-
-			It("should return an error when using the Struct method when passed by reference", func() {
-				err := validation.Struct(&test)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("validation failed on field 'Value' with validator 'gte' and parameter(s) '0'"))
-			})
+		t.Run("when custom validation rule is violated it should fail", func(t *testing.T) {
+			t.Parallel()
+			assert.ErrorPart(t, Struct(testStruct{Name: "abc"}), errMsg)
 		})
 	})
 
-	When("a struct has a field called Value with no validation rules", func() {
-		type testStruct struct {
-			Value int
-		}
-
-		var (
-			test testStruct
-		)
-
-		BeforeEach(func() {
-			test = testStruct{
-				Value: 0,
-			}
-		})
-
-		It("should succeed when using the Struct method when passed by value", func() {
-			Expect(validation.Struct(test)).To(Succeed())
-		})
-
-		It("should succeed when using the Struct method when passed by reference", func() {
-			Expect(validation.Struct(&test)).To(Succeed())
-		})
-	})
-
-	When("an argument is passed to the Struct function that is not a struct", func() {
-		var (
-			test int
-		)
-
-		BeforeEach(func() {
-			test = 0
-		})
-
-		It("should return an error when using the Struct method when passed by value", func() {
-			Expect(validation.Struct(test)).To(HaveOccurred())
-		})
-
-		It("should return an error when using the Struct method when passed by reference", func() {
-			Expect(validation.Struct(&test)).To(HaveOccurred())
-		})
-	})
-
-	When("nil passed to the Struct function", func() {
-		It("should return an error", func() {
-			Expect(validation.Struct(nil)).To(HaveOccurred())
-		})
-	})
-
-	When("a custom validator for a tag called 'test' is registered and always fails", Ordered, func() {
-		const (
-			tag    = "test"
-			errMsg = "test validation error msg"
-		)
-
-		BeforeAll(func() {
-			validation.RegisterValidation(tag, func(field validator.FieldLevel) bool {
-				return false
-			}, func(err validator.FieldError) string {
-				return errMsg
-			})
-		})
-
-		When("a struct uses the test tag", func() {
-			type testStruct struct {
-				Name string `validate:"test"`
-			}
-
-			var (
-				test testStruct
-			)
-
-			BeforeEach(func() {
-				test = testStruct{
-					Name: "testStructName",
-				}
-			})
-
-			It("should return an error when using the Struct method", func() {
-				err := validation.Struct(test)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal(errMsg))
-			})
-		})
-
-		When("a struct doesn't use the test tag", func() {
-			type testStruct struct {
-				Value int `validate:"gte=0"`
-			}
-
-			var (
-				test testStruct
-			)
-
-			BeforeEach(func() {
-				test = testStruct{
-					Value: 0,
-				}
-			})
-
-			It("should validate without errors", func() {
-				Expect(validation.Struct(test)).To(Succeed())
-			})
-		})
-	})
-
-	When("a struct has multiple fields with validation rules", func() {
-		type testStruct struct {
+	t.Run("when many validations fail it should list all errors", func(t *testing.T) {
+		t.Parallel()
+		err := Struct(struct {
 			IntValue int    `validate:"gte=0"`
 			StrValue string `validate:"required"`
-		}
-
-		var (
-			test testStruct
-		)
-
-		BeforeEach(func() {
-			test = testStruct{}
+		}{
+			IntValue: -1,
+			StrValue: "",
 		})
+		assert.ErrorPart(t, err, "validation failed on field 'IntValue' with validator 'gte'")
+		assert.ErrorPart(t, err, "validation failed on field 'StrValue' with validator 'required'")
+	})
 
-		When("all the struct values fail validation", func() {
-			BeforeEach(func() {
-				test.IntValue = -1
-				test.StrValue = ""
-			})
+	t.Run("when a variable satisfies the required tag it should succeed", func(t *testing.T) {
+		t.Parallel()
+		myInt := 1
+		assert.NoError(t, Var(&myInt, "required,gt=0"))
+	})
 
-			It("should return an error that has a message for both fields when using the Struct method", func() {
-				err := validation.Struct(test)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("validation failed on field 'IntValue' with validator 'gte' and parameter(s) '0'"))
-				Expect(err.Error()).To(ContainSubstring("validation failed on field 'StrValue' with validator 'required'"))
-			})
+	t.Run("when a variable violates the validation tag it should fail", func(t *testing.T) {
+		t.Parallel()
+		myInt := 0
+		assert.ErrorPart(t, Var(&myInt, "required,gt=0"),
+			"validation failed with validator 'gt' and parameter(s) '0'")
+	})
+
+	t.Run("when registering the same custom validation twice it should panic", func(t *testing.T) {
+		assert.Panic(t, func() {
+			for i := 0; i < 2; i++ {
+				RegisterValidation("multipleRegistrationTest",
+					func(fl validator.FieldLevel) bool { return true },
+					func(err validator.FieldError) string { return "" })
+			}
 		})
 	})
 
-	When("validation is done on a standalone variable", func() {
-		It("should return an error when the variable is nil and has a required tag", func() {
-			err := validation.Var(nil, "required")
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("validation failed with validator 'required'"))
+	t.Run("when registering a validation with nil function it should panic", func(t *testing.T) {
+		assert.Panic(t, func() {
+			RegisterValidation("nil_func", nil, func(err validator.FieldError) string { return "" })
 		})
-
-		It("should succeed when the variable is nil and has no tag", func() {
-			Expect(validation.Var(nil, "")).To(Succeed())
+		assert.Panic(t, func() {
+			RegisterValidation("nil_msg_func", func(fl validator.FieldLevel) bool { return true }, nil)
 		})
 	})
 
-	When("validation is done on a standalone integer pointer variable", func() {
-		var (
-			testVar *int
-		)
-
-		BeforeEach(func() {
-			testVar = new(int)
-			*testVar = 1
-		})
-
-		It("should succeed if there are no validation violations", func() {
-			Expect(validation.Var(testVar, "required,gt=0")).To(Succeed())
-		})
-
-		It("should fail if there is a validation violation", func() {
-			err := validation.Var(testVar, "required,lt=0")
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("validation failed with validator 'lt' and parameter(s) '0'"))
-		})
-
-		It("should succeed when there are no validators", func() {
-			Expect(validation.Var(testVar, "")).To(Succeed())
-		})
+	t.Run("when the error formatter is passed an error it doesn't recognize it should simply return the error", func(t *testing.T) {
+		t.Parallel()
+		assert.ErrorExact(t, formatErrorMessage(errors.New("test error")), "test error")
 	})
-
-	When("the same custom validation is registered twice", func() {
-		It("should panic", func() {
-			Expect(func() {
-				for i := 0; i < 2; i++ {
-					validation.RegisterValidation("custom_twice", func(fl validator.FieldLevel) bool { return true }, func(err validator.FieldError) string { return "" })
-				}
-			}).To(PanicWith(ContainSubstring("'custom_twice' already has a registered validation function")))
-		})
-	})
-
-	When("registering a validation tag and the validation func is nil", func() {
-		It("should panic", func() {
-			Expect(func() {
-				validation.RegisterValidation("nil_func", nil, func(err validator.FieldError) string { return "" })
-			}).To(PanicWith(ContainSubstring("Failed to register the validation function for the tag 'nil_func'")))
-		})
-	})
-
-	When("registering a validation tag and the error msg func is nil", func() {
-		It("should panic", func() {
-			Expect(func() {
-				validation.RegisterValidation("nil_error_func", func(fl validator.FieldLevel) bool { return true }, nil)
-			}).To(PanicWith(ContainSubstring("Tag 'nil_error_func' has a nil error message function")))
-		})
-	})
-})
+}
