@@ -1,6 +1,7 @@
 package fields
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -41,8 +42,12 @@ func StructMetadata[T any]() *readonlymap.ReadOnlyMap[string, *FieldMetadata] {
 // If the struct contains an embedded anonymous struct, it appends its name to the anonymous name chain.
 // If a field name is not unique, a panic occurs. This includes field names of the anonymous structs.
 func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMetadata, anonymousChain []string) {
+	if reflectType.Kind() == reflect.Ptr {
+		reflectType = reflectType.Elem()
+	}
+
 	if reflectType.Kind() != reflect.Struct {
-		panic("type must be a struct")
+		panic("Type must be a struct or a pointer to a struct.")
 	}
 
 	for fieldIndex := 0; fieldIndex < reflectType.NumField(); fieldIndex++ {
@@ -77,4 +82,23 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 
 		fieldsToMetadata[field.Name] = metadata
 	}
+}
+
+// StructValueFromName returns the fields value if it exists.
+func StructValueFromName[T any](structInstance T, fieldName string) (reflect.Value, error) {
+	v := reflect.ValueOf(structInstance)
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return reflect.Value{}, errors.New("struct instance cannot be nil")
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return reflect.Value{}, errors.New("type must be a struct or a pointer to a struct")
+	}
+	field := v.FieldByName(fieldName)
+	if !field.IsValid() {
+		return reflect.Value{}, fmt.Errorf("field %s does not exist in the struct", fieldName)
+	}
+	return field, nil
 }
