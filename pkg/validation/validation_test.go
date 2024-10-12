@@ -1,10 +1,7 @@
 package validation
 
 import (
-	"errors"
 	"testing"
-
-	"github.com/go-playground/validator/v10"
 
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
@@ -12,122 +9,158 @@ import (
 func TestValidation(t *testing.T) {
 	t.Parallel()
 
-	t.Run("when a struct with validation rule is set and the set value is valid it should succeed", func(t *testing.T) {
+	t.Run("when a validation is registered twice it should panic", func(t *testing.T) {
 		t.Parallel()
-		assert.NoError(t, Struct(struct {
-			Value int `validate:"gte=0"`
-		}{Value: 0}))
+		assert.PanicPart(t, func() {
+			MustRegisterValidator(RequiredValidatorName, required)
+		}, "named required already exists")
 	})
 
-	t.Run("when a pointer is passed to the struct validation is should succeed if the value is valid", func(t *testing.T) {
+	t.Run("when Var is called with a validator that does not exist it should return an error", func(t *testing.T) {
 		t.Parallel()
-		assert.NoError(t, Struct(&struct {
-			Value int `validate:"gte=0"`
-		}{Value: 0}))
+		assert.ErrorPart(t, Var("value", "does_not_exists"), "validation with name 'does_not_exists' is not registered")
 	})
 
-	t.Run("when a validation rule is set and the set value is invalid it should fail", func(t *testing.T) {
+	t.Run("when the struct validation has nil as a parameter it should return an error", func(t *testing.T) {
 		t.Parallel()
-		assert.ErrorPart(t, Struct(struct {
-			Value int `validate:"gte=0"`
-		}{Value: -1}),
-			"validation failed on field 'Value' with validator 'gte' and parameter(s) '0'")
+		type testStruct struct{}
+		var instance *testStruct = nil
+		assert.ErrorPart(t, Struct(instance), "nil parameter on struct validation")
 	})
 
-	t.Run("when a pointer is passed to the struct validation is should fail if the value is invalid", func(t *testing.T) {
+	t.Run("when the struct parameter is not a struct it should panic", func(t *testing.T) {
 		t.Parallel()
-		assert.ErrorPart(t, Struct(&struct {
-			Value int `validate:"gte=0"`
-		}{Value: -1}),
-			"validation failed on field 'Value' with validator 'gte' and parameter(s) '0'")
+		assert.PanicPart(t, func() {
+			_ = Struct[int](1)
+		}, "validation parameter must be a struct but got int")
 	})
 
-	t.Run("when validating a struct with non-required field it should succeed", func(t *testing.T) {
+	t.Run("when a struct has embedded fields...", func(t *testing.T) {
 		t.Parallel()
-		assert.NoError(t, Struct(struct{ Value int }{Value: 0}))
-	})
 
-	t.Run("when calling the struct validation a non-struct value it should fail", func(t *testing.T) {
-		t.Parallel()
-		assert.PanicExact(t, func() {
-			_ = Struct(0)
-		}, "Type must be a struct or a pointer to a struct.")
-	})
-
-	t.Run("when validating nil it should fail", func(t *testing.T) {
-		t.Parallel()
-		assert.ErrorPart(t, Struct[*struct{}](nil), "struct validation on nil value")
-	})
-
-	t.Run("when using custom validator it should adhere to its logic", func(t *testing.T) {
-		const errMsg = "custom validation failed"
-		RegisterValidation("custom", func(fl validator.FieldLevel) bool {
-			return fl.Field().Len() > 3
-		}, func(err validator.FieldError) string {
-			return errMsg
-		})
-		type testStruct struct {
-			Name string `validate:"custom"`
+		type deepEmbedded struct {
+			DeepEmbeddedField string `validate:"required"`
 		}
 
-		t.Run("when custom validation rule is passed it should succeed", func(t *testing.T) {
+		type embedded struct {
+			deepEmbedded
+			EmbeddedField string `validate:"required"`
+		}
+
+		type structValue struct {
+			StructField string `validate:"required"`
+		}
+
+		type testStruct struct {
+			embedded
+			StructValue structValue
+			Value       string `validate:"required"`
+		}
+
+		t.Run("it should validate the deep embedded struct", func(t *testing.T) {
 			t.Parallel()
-			assert.NoError(t, Struct(testStruct{Name: "abcd"}))
-		})
-
-		t.Run("when custom validation rule is violated it should fail", func(t *testing.T) {
-			t.Parallel()
-			assert.ErrorPart(t, Struct(testStruct{Name: "abc"}), errMsg)
-		})
-	})
-
-	t.Run("when many validations fail it should list all errors", func(t *testing.T) {
-		t.Parallel()
-		err := Struct(struct {
-			IntValue int    `validate:"gte=0"`
-			StrValue string `validate:"required"`
-		}{
-			IntValue: -1,
-			StrValue: "",
-		})
-		assert.ErrorPart(t, err, "validation failed on field 'IntValue' with validator 'gte'")
-		assert.ErrorPart(t, err, "validation failed on field 'StrValue' with validator 'required'")
-	})
-
-	t.Run("when a variable satisfies the required tag it should succeed", func(t *testing.T) {
-		t.Parallel()
-		myInt := 1
-		assert.NoError(t, Var(&myInt, "required,gt=0"))
-	})
-
-	t.Run("when a variable violates the validation tag it should fail", func(t *testing.T) {
-		t.Parallel()
-		myInt := 0
-		assert.ErrorPart(t, Var(&myInt, "required,gt=0"),
-			"validation failed with validator 'gt' and parameter(s) '0'")
-	})
-
-	t.Run("when registering the same custom validation twice it should panic", func(t *testing.T) {
-		assert.Panic(t, func() {
-			for i := 0; i < 2; i++ {
-				RegisterValidation("multipleRegistrationTest",
-					func(fl validator.FieldLevel) bool { return true },
-					func(err validator.FieldError) string { return "" })
+			instance := &testStruct{
+				embedded: embedded{
+					deepEmbedded: deepEmbedded{
+						DeepEmbeddedField: "",
+					},
+					EmbeddedField: "EmbeddedField",
+				},
+				StructValue: structValue{
+					StructField: "StructField",
+				},
+				Value: "Value",
 			}
+			assert.ErrorPart(t, Struct(instance), "validation failed on field 'DeepEmbeddedField' with validator 'required' because the value is the zero-value")
+		})
+
+		t.Run("it should validate the embedded struct", func(t *testing.T) {
+			t.Parallel()
+			instance := &testStruct{
+				embedded: embedded{
+					deepEmbedded: deepEmbedded{
+						DeepEmbeddedField: "DeepEmbeddedField",
+					},
+					EmbeddedField: "",
+				},
+				StructValue: structValue{
+					StructField: "StructField",
+				},
+				Value: "Value",
+			}
+			assert.ErrorPart(t, Struct(instance), "validation failed on field 'EmbeddedField' with validator 'required' because the value is the zero-value")
+		})
+
+		t.Run("it should validate the value that is a struct", func(t *testing.T) {
+			t.Parallel()
+			instance := &testStruct{
+				embedded: embedded{
+					deepEmbedded: deepEmbedded{
+						DeepEmbeddedField: "DeepEmbeddedField",
+					},
+					EmbeddedField: "EmbeddedField",
+				},
+				StructValue: structValue{
+					StructField: "",
+				},
+				Value: "Value",
+			}
+			assert.ErrorPart(t, Struct(instance), "validation failed on field 'StructField' with validator 'required' because the value is the zero-value")
+		})
+
+		t.Run("it should validate the value", func(t *testing.T) {
+			t.Parallel()
+			instance := &testStruct{
+				embedded: embedded{
+					deepEmbedded: deepEmbedded{
+						DeepEmbeddedField: "DeepEmbeddedField",
+					},
+					EmbeddedField: "EmbeddedField",
+				},
+				StructValue: structValue{
+					StructField: "StructField",
+				},
+				Value: "",
+			}
+			assert.ErrorPart(t, Struct(instance), "validation failed on field 'Value' with validator 'required' because the value is the zero-value")
 		})
 	})
 
-	t.Run("when registering a validation with nil function it should panic", func(t *testing.T) {
-		assert.Panic(t, func() {
-			RegisterValidation("nil_func", nil, func(err validator.FieldError) string { return "" })
-		})
-		assert.Panic(t, func() {
-			RegisterValidation("nil_msg_func", func(fl validator.FieldLevel) bool { return true }, nil)
-		})
-	})
-
-	t.Run("when the error formatter is passed an error it doesn't recognize it should simply return the error", func(t *testing.T) {
+	t.Run("when struct validation has a field that is a struct it should fail if the validation instruction is not correct", func(t *testing.T) {
 		t.Parallel()
-		assert.ErrorExact(t, formatErrorMessage(errors.New("test error")), "test error")
+		type StructField struct {
+			Field string `validate:"required_if=NotExists"`
+		}
+		type testStruct struct {
+			StructField StructField
+			Value       string `validate:"required"`
+		}
+		instance := &testStruct{
+			StructField: StructField{
+				Field: "Value",
+			},
+			Value: "Value",
+		}
+		assert.ErrorPart(t, Struct(instance), "required_if requires a field name and a value to compare")
+	})
+
+	t.Run("when the validator has incorrect parts it should fail", func(t *testing.T) {
+		t.Parallel()
+		type testStruct struct {
+			Value string `validate:"oneof=one=two"`
+		}
+		assert.ErrorPart(t, Struct(&testStruct{
+			Value: "one",
+		}), "malformed validator and instruction")
+	})
+
+	t.Run("when the validate tag is empty it should fail", func(t *testing.T) {
+		t.Parallel()
+		type testStruct struct {
+			Value string `validate:" 	"`
+		}
+		assert.ErrorPart(t, Struct(&testStruct{
+			Value: "one",
+		}), "validate tag cannot be empty")
 	})
 }

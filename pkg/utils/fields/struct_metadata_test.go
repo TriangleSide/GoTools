@@ -15,7 +15,7 @@ func TestStructMetadata(t *testing.T) {
 	t.Run("when the type is not a struct it should panic", func(t *testing.T) {
 		assert.PanicPart(t, func() {
 			_ = fields.StructMetadata[int]()
-		}, "Type must be a struct or a pointer to a struct.")
+		}, "Type must be a struct or a pointer to a struct")
 	})
 
 	t.Run("when the type is a pointer to a struct it return the structs meta", func(t *testing.T) {
@@ -178,50 +178,5 @@ func TestStructMetadata(t *testing.T) {
 		}
 		close(waitChan)
 		wg.Wait()
-	})
-}
-
-func TestStructValueFromName(t *testing.T) {
-	t.Parallel()
-
-	type MyStruct struct {
-		Field1 string
-	}
-
-	t.Run("when struct instance is nil it should return an error indicating struct cannot be nil", func(t *testing.T) {
-		t.Parallel()
-		var myStructPointer *MyStruct = nil
-		_, err := fields.StructValueFromName(myStructPointer, "Field1")
-		assert.ErrorExact(t, err, "struct instance cannot be nil")
-	})
-
-	t.Run("when type is not a struct it should return an error indicating type must be struct or pointer to struct", func(t *testing.T) {
-		t.Parallel()
-		nonStruct := 123
-		_, err := fields.StructValueFromName(nonStruct, "Field1")
-		assert.ErrorExact(t, err, "type must be a struct or a pointer to a struct")
-	})
-
-	t.Run("when field does not exist it should return an error indicating the field does not exist", func(t *testing.T) {
-		t.Parallel()
-		myStruct := MyStruct{Field1: "value1"}
-		_, err := fields.StructValueFromName(myStruct, "NonExistentField")
-		assert.ErrorPart(t, err, "field NonExistentField does not exist in the struct")
-	})
-
-	t.Run("when a field exists in a struct it should return the field value", func(t *testing.T) {
-		t.Parallel()
-		myStruct := MyStruct{Field1: "value1"}
-		value, err := fields.StructValueFromName(myStruct, "Field1")
-		assert.NoError(t, err)
-		assert.Equals(t, "value1", value.Interface())
-	})
-
-	t.Run("when field exists in pointer to struct it should return the field value", func(t *testing.T) {
-		t.Parallel()
-		myStruct := &MyStruct{Field1: "value1"}
-		value, err := fields.StructValueFromName(myStruct, "Field1")
-		assert.NoError(t, err)
-		assert.Equals(t, "value1", value.Interface())
 	})
 }

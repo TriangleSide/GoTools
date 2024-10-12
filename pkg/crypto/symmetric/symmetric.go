@@ -66,7 +66,7 @@ func New(key string, opts ...Option) (Encryptor, error) {
 
 	block, err := cfg.blockCypherProvider(hash[:])
 	if err != nil {
-		return nil, fmt.Errorf("failed to create the block cipher (%s)", err.Error())
+		return nil, fmt.Errorf("failed to create the block cipher (%w)", err)
 	}
 
 	return &aesEncryptor{
@@ -82,7 +82,7 @@ func (encryptor *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
 
 	iv := ciphertext[:aes.BlockSize]
 	if err := encryptor.randomDataFunc(iv); err != nil {
-		return nil, fmt.Errorf("failed to generate initialization vector (%s)", err.Error())
+		return nil, fmt.Errorf("failed to generate initialization vector (%w)", err)
 	}
 
 	cfb := cipher.NewCFBEncrypter(encryptor.aesBlock, iv)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"reflect"
+	"sync"
 
 	httperrors "github.com/TriangleSide/GoBase/pkg/http/errors"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
@@ -18,8 +19,8 @@ type registeredErrorResponse struct {
 }
 
 var (
-	// registeredErrorTypes holds error types and how to format their responses.
-	registeredErrorResponses = make(map[reflect.Type]registeredErrorResponse)
+	// registeredErrorTypes is a map of reflect.Type to registeredErrorResponse
+	registeredErrorResponses = sync.Map{}
 )
 
 // MustRegisterErrorResponse allows error types to be registered for the Error responder.
@@ -36,10 +37,10 @@ func MustRegisterErrorResponse[T error](status int, callback func(err *T) string
 		Status:          status,
 		MessageCallback: convertedCallback,
 	}
-	if _, found := registeredErrorResponses[typeOfError]; found {
+	_, alreadyRegistered := registeredErrorResponses.LoadOrStore(typeOfError, errorResponse)
+	if alreadyRegistered {
 		panic("The error type has already been registered.")
 	}
-	registeredErrorResponses[typeOfError] = errorResponse
 }
 
 // Error responds to an HTTP requests with an errors.Error. It tries to match it to a known error type
@@ -52,7 +53,8 @@ func Error(request *http.Request, writer http.ResponseWriter, err error) {
 
 	if err != nil {
 		errType := reflect.TypeOf(err)
-		if registeredError, registeredErrorFound := registeredErrorResponses[errType]; registeredErrorFound {
+		if registeredErrorNotCast, registeredErrorFound := registeredErrorResponses.Load(errType); registeredErrorFound {
+			registeredError := registeredErrorNotCast.(registeredErrorResponse)
 			statusCode = registeredError.Status
 			errResponse.Message = registeredError.MessageCallback(err)
 		} else {

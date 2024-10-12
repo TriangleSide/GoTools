@@ -10,9 +10,6 @@ import (
 	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
-// EnvName is used to indicate that the value of the variable is the name of an environment variable.
-type EnvName string
-
 const (
 	// FormatTag is the field name pre-processor. Is a field is called StructField and has a snake-case formatter,
 	// it is transformed into STRUCT_FIELD.
@@ -74,20 +71,20 @@ func ProcessAndValidate[T any](opts ...Option) (*T, error) {
 		envValue, hasEnvValue := os.LookupEnv(formattedEnvName)
 		if hasEnvValue {
 			if err := assign.StructField(conf, fieldName, envValue); err != nil {
-				return nil, fmt.Errorf("failed to assign env var %s to field %s (%s)", envValue, fieldName, err.Error())
+				return nil, fmt.Errorf("failed to assign env var %s to field %s (%w)", envValue, fieldName, err)
 			}
 		} else {
 			defaultValue, hasDefaultTag := fieldMetadata.Tags[DefaultTag]
 			if hasDefaultTag {
 				if err := assign.StructField(conf, fieldName, defaultValue); err != nil {
-					return nil, fmt.Errorf("failed to assign default value %s to field %s (%s)", defaultValue, fieldName, err.Error())
+					return nil, fmt.Errorf("failed to assign default value %s to field %s (%w)", defaultValue, fieldName, err)
 				}
 			}
 		}
 	}
 
 	if err := validation.Struct(conf); err != nil {
-		return nil, fmt.Errorf("failed while validating the configuration (%s)", err.Error())
+		return nil, fmt.Errorf("failed while validating the configuration (%w)", err)
 	}
 
 	return conf, nil

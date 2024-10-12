@@ -1,13 +1,11 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strings"
-
-	"github.com/go-playground/validator/v10"
 
 	"github.com/TriangleSide/GoBase/pkg/http/middleware"
 	"github.com/TriangleSide/GoBase/pkg/validation"
@@ -20,57 +18,55 @@ const (
 // init adds a validator for the Path.
 func init() {
 	isValidCharacters := regexp.MustCompile(`^[a-zA-Z0-9/{}]+$`).MatchString
-
-	errMsgForValidation := func(value any) error {
-		path, ok := value.(string)
-		if !ok {
-			return errors.New("path must be a string")
+	validation.MustRegisterValidator(pathValidationTag, func(params *validation.CallbackParameters) error {
+		value := params.Value
+		if validation.ValueIsNil(value) {
+			return validation.NewViolation(pathValidationTag, params, "the path is a nil value")
 		}
+		validation.DereferenceValue(&value)
+		if value.Kind() != reflect.String {
+			return fmt.Errorf("path is of type %s but it must be a string or a ptr to a string", value.Kind().String())
+		}
+		path := value.String()
 		if len(path) == 0 {
-			return errors.New("path cannot be empty")
+			return validation.NewViolation(pathValidationTag, params, "the path cannot be empty")
 		}
 		if path == "/" {
 			return nil
 		}
 		if !isValidCharacters(path) {
-			return errors.New("path contains invalid characters")
+			return validation.NewViolation(pathValidationTag, params, "the path contains invalid characters")
 		}
 		if !strings.HasPrefix(path, "/") {
-			return errors.New("path must start with '/'")
+			return validation.NewViolation(pathValidationTag, params, "the path must start with '/'")
 		}
 		if strings.HasSuffix(path, "/") {
-			return errors.New("path cannot end with '/'")
+			return validation.NewViolation(pathValidationTag, params, "the path cannot end with '/'")
 		}
 		parts := strings.Split(path, "/")
 		parameters := map[string]bool{}
 		for i := 1; i < len(parts); i++ {
 			part := parts[i]
 			if part == "" {
-				return errors.New("path parts cannot be empty")
+				return validation.NewViolation(pathValidationTag, params, "the path parts cannot be empty")
 			}
 			if _, foundPart := parameters[part]; foundPart {
-				return errors.New("path part must be unique")
+				return validation.NewViolation(pathValidationTag, params, "the path parts must be unique")
 			}
 			parameters[part] = true
 			if strings.Contains(part, "{") || strings.Contains(part, "}") {
 				if !strings.HasPrefix(part, "{") || !strings.HasSuffix(part, "}") {
-					return errors.New("path parameters must start with '{' and end with '}'")
+					return validation.NewViolation(pathValidationTag, params, "the path parameters must start with '{' and end with '}'")
 				}
 				if strings.Count(part, "{") != 1 || strings.Count(part, "}") != 1 {
-					return errors.New("path parameters have only one '{' and '}'")
+					return validation.NewViolation(pathValidationTag, params, "the path parameters must have only one '{' and '}'")
 				}
 				if part == "{}" {
-					return errors.New("path parameters cannot be empty")
+					return validation.NewViolation(pathValidationTag, params, "the path parameters cannot be empty")
 				}
 			}
 		}
 		return nil
-	}
-
-	validation.RegisterValidation(pathValidationTag, func(field validator.FieldLevel) bool {
-		return errMsgForValidation(field.Field().String()) == nil
-	}, func(fieldErr validator.FieldError) string {
-		return errMsgForValidation(fieldErr.Value()).Error()
 	})
 }
 

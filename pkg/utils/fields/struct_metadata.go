@@ -1,7 +1,6 @@
 package fields
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -28,7 +27,11 @@ type FieldMetadata struct {
 
 // StructMetadata returns a map of a structs field names to their respective metadata.
 func StructMetadata[T any]() *readonlymap.ReadOnlyMap[string, *FieldMetadata] {
-	reflectType := reflect.TypeOf(*new(T))
+	return StructMetadataFromType(reflect.TypeFor[T]())
+}
+
+// StructMetadataFromType returns a map of a structs field names to their respective metadata.
+func StructMetadataFromType(reflectType reflect.Type) *readonlymap.ReadOnlyMap[string, *FieldMetadata] {
 	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonlymap.ReadOnlyMap[string, *FieldMetadata], *time.Duration, error) {
 		fieldsToMetadata := make(map[string]*FieldMetadata)
 		processType(reflectType, fieldsToMetadata, make([]string, 0))
@@ -45,9 +48,8 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 	if reflectType.Kind() == reflect.Ptr {
 		reflectType = reflectType.Elem()
 	}
-
 	if reflectType.Kind() != reflect.Struct {
-		panic("Type must be a struct or a pointer to a struct.")
+		panic(fmt.Sprintf("Type must be a struct or a pointer to a struct but got %s.", reflectType.Kind().String()))
 	}
 
 	for fieldIndex := 0; fieldIndex < reflectType.NumField(); fieldIndex++ {
@@ -82,23 +84,4 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 
 		fieldsToMetadata[field.Name] = metadata
 	}
-}
-
-// StructValueFromName returns the fields value if it exists.
-func StructValueFromName[T any](structInstance T, fieldName string) (reflect.Value, error) {
-	v := reflect.ValueOf(structInstance)
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return reflect.Value{}, errors.New("struct instance cannot be nil")
-		}
-		v = v.Elem()
-	}
-	if v.Kind() != reflect.Struct {
-		return reflect.Value{}, errors.New("type must be a struct or a pointer to a struct")
-	}
-	field := v.FieldByName(fieldName)
-	if !field.IsValid() {
-		return reflect.Value{}, fmt.Errorf("field %s does not exist in the struct", fieldName)
-	}
-	return field, nil
 }

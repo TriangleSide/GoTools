@@ -145,14 +145,4 @@ func TestTags(t *testing.T) {
 			_, _ = parameters.ExtractAndValidateFieldTagLookupKeys[string]()
 		})
 	})
-
-	t.Run("it should panic when the generic is a struct pointer", func(t *testing.T) {
-		t.Parallel()
-		type testStruct struct {
-			Field string `urlQuery:"" json:"-"`
-		}
-		assert.Panic(t, func() {
-			_, _ = parameters.ExtractAndValidateFieldTagLookupKeys[*testStruct]()
-		})
-	})
 }

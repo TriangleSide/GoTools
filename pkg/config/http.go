@@ -1,17 +1,5 @@
 package config
 
-import (
-	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
-)
-
-const (
-	HTTPServerBindPortEnvName      envprocessor.EnvName = "HTTP_SERVER_BIND_PORT"
-	HTTPServerTLSModeEnvName       envprocessor.EnvName = "HTTP_SERVER_TLS_MODE"
-	HTTPServerCertEnvName          envprocessor.EnvName = "HTTP_SERVER_CERT"
-	HTTPServerKeyEnvName           envprocessor.EnvName = "HTTP_SERVER_KEY"
-	HTTPServerClientCACertsEnvName envprocessor.EnvName = "HTTP_SERVER_CLIENT_CA_CERTS"
-)
-
 // HTTPServerTLSMode represents the TLS mode of the HTTP server.
 type HTTPServerTLSMode string
 
@@ -54,10 +42,10 @@ type HTTPServer struct {
 	HTTPServerTLSMode HTTPServerTLSMode `config_format:"snake" config_default:"tls" validate:"oneof=off tls mutual_tls"`
 
 	// HTTPServerCert is the path to the TLS certificate file.
-	HTTPServerCert string `config_format:"snake" config_default:"" validate:"required_if=HTTPServerTLSMode tls HTTPServerTLSMode mutual_tls,omitempty,filepath"`
+	HTTPServerCert string `config_format:"snake" config_default:"" validate:"required_if=HTTPServerTLSMode tls,required_if=HTTPServerTLSMode mutual_tls,omitempty,filepath"`
 
 	// HTTPServerKey is the path to the TLS private key file.
-	HTTPServerKey string `config_format:"snake" config_default:"" validate:"required_if=HTTPServerTLSMode tls HTTPServerTLSMode mutual_tls,omitempty,filepath"`
+	HTTPServerKey string `config_format:"snake" config_default:"" validate:"required_if=HTTPServerTLSMode tls,required_if=HTTPServerTLSMode mutual_tls,omitempty,filepath"`
 
 	// HTTPServerClientCACerts is a list of paths to client CA certificate files (used in mutual TLS).
 	HTTPServerClientCACerts []string `config_format:"snake" config_default:"[]" validate:"required_if=HTTPServerTLSMode mutual_tls,dive,required,filepath"`

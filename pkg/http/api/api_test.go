@@ -222,8 +222,11 @@ func TestHTTPApi(t *testing.T) {
 	t.Run("cases for path validation", func(t *testing.T) {
 		t.Parallel()
 
-		validationFunc := func(path string, expectedErrorMsg string) {
-			errCheck := func(err error) {
+		validationFunc := func(t *testing.T, path string, expectedErrorMsg string) {
+			t.Helper()
+
+			errCheck := func(t *testing.T, err error) {
+				t.Helper()
 				if expectedErrorMsg != "" {
 					assert.ErrorPart(t, err, expectedErrorMsg)
 				} else {
@@ -234,34 +237,34 @@ func TestHTTPApi(t *testing.T) {
 			type testStructRef struct {
 				Path string `validate:"api_path"`
 			}
-			errCheck(validation.Struct(&testStructRef{Path: path}))
+			errCheck(t, validation.Struct(&testStructRef{Path: path}))
 
 			type testStructPtr struct {
 				Path *string `validate:"api_path"`
 			}
-			errCheck(validation.Struct(&testStructPtr{Path: &path}))
+			errCheck(t, validation.Struct(&testStructPtr{Path: &path}))
 		}
 
-		validationFunc("/", "")
-		validationFunc("/a/b/c/1/2/3", "")
-		validationFunc("/a/{b}/c", "")
-		validationFunc("", "path cannot be empty")
-		validationFunc("/+", "path contains invalid characters")
-		validationFunc(" /a", "path contains invalid characters")
-		validationFunc("/a ", "path contains invalid characters")
-		validationFunc("/a/", "path cannot end with '/'")
-		validationFunc("a/b", "path must start with '/'")
-		validationFunc("a", "path must start with '/'")
-		validationFunc("/a//b", "path parts cannot be empty")
-		validationFunc("//a", "path parts cannot be empty")
-		validationFunc("/a/{b", "path parameters must start with '{' and end with '}'")
-		validationFunc("/a/b}", "path parameters must start with '{' and end with '}'")
-		validationFunc("/a/{{b}", "path parameters have only one '{' and '}'")
-		validationFunc("/a/{b}}", "path parameters have only one '{' and '}'")
-		validationFunc("/a/{}", "path parameters cannot be empty")
-		validationFunc("/a/{b}/{b}", "path part must be unique")
-		validationFunc("/a/a", "path part must be unique")
-		validationFunc("/a/b/a", "path part must be unique")
+		validationFunc(t, "/", "")
+		validationFunc(t, "/a/b/c/1/2/3", "")
+		validationFunc(t, "/a/{b}/c", "")
+		validationFunc(t, "", "path cannot be empty")
+		validationFunc(t, "/+", "path contains invalid characters")
+		validationFunc(t, " /a", "path contains invalid characters")
+		validationFunc(t, "/a ", "path contains invalid characters")
+		validationFunc(t, "/a/", "path cannot end with '/'")
+		validationFunc(t, "a/b", "path must start with '/'")
+		validationFunc(t, "a", "path must start with '/'")
+		validationFunc(t, "/a//b", "path parts cannot be empty")
+		validationFunc(t, "//a", "path parts cannot be empty")
+		validationFunc(t, "/a/{b", "path parameters must start with '{' and end with '}'")
+		validationFunc(t, "/a/b}", "path parameters must start with '{' and end with '}'")
+		validationFunc(t, "/a/{{b}", "path parameters must have only one '{' and '}'")
+		validationFunc(t, "/a/{b}}", "path parameters must have only one '{' and '}'")
+		validationFunc(t, "/a/{}", "path parameters cannot be empty")
+		validationFunc(t, "/a/{b}/{b}", "path parts must be unique")
+		validationFunc(t, "/a/a", "path parts must be unique")
+		validationFunc(t, "/a/b/a", "path parts must be unique")
 	})
 
 	t.Run("path validation is done on a reference field that it not a string it should return an error", func(t *testing.T) {
@@ -273,7 +276,7 @@ func TestHTTPApi(t *testing.T) {
 			Path: 1,
 		}
 		err := validation.Struct(&test)
-		assert.ErrorPart(t, err, "path must be a string")
+		assert.ErrorPart(t, err, "path is of type int but it must be a string or a ptr to a string")
 	})
 
 	t.Run("when path validation is done on a pointer field that it not a string it should return an error", func(t *testing.T) {
@@ -286,6 +289,18 @@ func TestHTTPApi(t *testing.T) {
 			Path: &i,
 		}
 		err := validation.Struct(&test)
-		assert.ErrorPart(t, err, "path must be a string")
+		assert.ErrorPart(t, err, "path is of type int but it must be a string or a ptr to a string")
+	})
+
+	t.Run("when path validation is done nil pointer string it should fail", func(t *testing.T) {
+		t.Parallel()
+		type testStruct struct {
+			Path *string `validate:"api_path"`
+		}
+		test := testStruct{
+			Path: nil,
+		}
+		err := validation.Struct(&test)
+		assert.ErrorPart(t, err, "the path is a nil value")
 	})
 }

@@ -71,7 +71,7 @@ func TestJSONStreamResponder(t *testing.T) {
 
 		responseObj := &errors.Error{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseObj))
-		assert.Equals(t, strings.Contains(responseObj.Message, "validation failed on field 'ID'"), true)
+		assert.Contains(t, responseObj.Message, "validation failed on field 'ID'")
 		assert.NoError(t, response.Body.Close())
 	})
 

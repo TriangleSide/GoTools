@@ -26,6 +26,10 @@ import (
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
+const (
+	HTTPServerTLSModeEnvName = "HTTP_SERVER_TLS_MODE"
+)
+
 type testHandler struct {
 	Path       string
 	Method     string
@@ -41,7 +45,7 @@ func (t *testHandler) AcceptHTTPAPIBuilder(builder *api.HTTPAPIBuilder) {
 }
 
 func TestServer(t *testing.T) {
-	t.Setenv(string(config.HTTPServerTLSModeEnvName), string(config.HTTPServerTLSModeOff))
+	t.Setenv(HTTPServerTLSModeEnvName, string(config.HTTPServerTLSModeOff))
 
 	handler := &testHandler{
 		Path:       "/",

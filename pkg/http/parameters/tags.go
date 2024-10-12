@@ -96,7 +96,7 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 //			}
 //		}
 func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonlymap.ReadOnlyMap[Tag, LookupKeyToFieldName], error) {
-	reflectType := reflect.TypeOf(*new(T))
+	reflectType := reflect.TypeFor[T]()
 	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonlymap.ReadOnlyMap[Tag, LookupKeyToFieldName], *time.Duration, error) {
 		fieldsMetadata := fields.StructMetadata[T]()
 

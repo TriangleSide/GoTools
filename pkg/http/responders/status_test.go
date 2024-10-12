@@ -58,7 +58,7 @@ func TestStatus(t *testing.T) {
 
 		responseBody := &errors.Error{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseBody))
-		assert.True(t, strings.Contains(responseBody.Message, "validation failed on field 'ID'"))
+		assert.Contains(t, responseBody.Message, "validation failed on field 'ID'")
 		assert.NoError(t, response.Body.Close())
 	})
 

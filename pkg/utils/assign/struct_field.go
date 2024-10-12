@@ -58,7 +58,7 @@ func StructField[T any](obj *T, fieldName string, stringEncodedValue string) err
 		// If the field type implements encoding.TextUnmarshaler, the interface is used parse the value.
 		unmarshaler := fieldPtr.Interface().(encoding.TextUnmarshaler)
 		if err := unmarshaler.UnmarshalText([]byte(stringEncodedValue)); err != nil {
-			return fmt.Errorf("text unmarshall error (%s)", err.Error())
+			return fmt.Errorf("text unmarshall error (%w)", err)
 		}
 	} else {
 		// If the field type is basic, the value is set directly.
@@ -66,32 +66,32 @@ func StructField[T any](obj *T, fieldName string, stringEncodedValue string) err
 		switch fieldType.Kind() {
 		case reflect.Map, reflect.Slice, reflect.Struct:
 			if err := json.Unmarshal([]byte(stringEncodedValue), fieldPtr.Interface()); err != nil {
-				return fmt.Errorf("json unmarshal error (%s)", err.Error())
+				return fmt.Errorf("json unmarshal error (%w)", err)
 			}
 		case reflect.String:
 			fieldPtr.Elem().SetString(stringEncodedValue)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			parsed, err := strconv.ParseInt(stringEncodedValue, 10, fieldType.Bits())
 			if err != nil {
-				return fmt.Errorf("int parsing error (%s)", err.Error())
+				return fmt.Errorf("int parsing error (%w)", err)
 			}
 			fieldPtr.Elem().SetInt(parsed)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			parsed, err := strconv.ParseUint(stringEncodedValue, 10, fieldType.Bits())
 			if err != nil {
-				return fmt.Errorf("unsigned int parsing error (%s)", err.Error())
+				return fmt.Errorf("unsigned int parsing error (%w)", err)
 			}
 			fieldPtr.Elem().SetUint(parsed)
 		case reflect.Float32, reflect.Float64:
 			parsed, err := strconv.ParseFloat(stringEncodedValue, fieldType.Bits())
 			if err != nil {
-				return fmt.Errorf("float parsing error (%s)", err.Error())
+				return fmt.Errorf("float parsing error (%w)", err)
 			}
 			fieldPtr.Elem().SetFloat(parsed)
 		case reflect.Bool:
 			parsed, err := strconv.ParseBool(stringEncodedValue)
 			if err != nil {
-				return fmt.Errorf("bool parsing error (%s)", err.Error())
+				return fmt.Errorf("bool parsing error (%w)", err)
 			}
 			fieldPtr.Elem().SetBool(parsed)
 		default:
