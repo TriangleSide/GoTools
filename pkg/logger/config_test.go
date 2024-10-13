@@ -8,7 +8,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/config"
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
@@ -19,8 +18,8 @@ func TestMustConfigure(t *testing.T) {
 	})
 
 	t.Run("when the config provider succeeds it sets the logger level", func(t *testing.T) {
-		MustConfigure(WithConfigProvider(func() (*config.Logger, error) {
-			return &config.Logger{
+		MustConfigure(WithConfigProvider(func() (*Config, error) {
+			return &Config{
 				LogLevel: "debug",
 			}, nil
 		}))
@@ -29,8 +28,8 @@ func TestMustConfigure(t *testing.T) {
 
 	t.Run("when the level is incorrect it should panic", func(t *testing.T) {
 		assert.PanicExact(t, func() {
-			MustConfigure(WithConfigProvider(func() (*config.Logger, error) {
-				return &config.Logger{
+			MustConfigure(WithConfigProvider(func() (*Config, error) {
+				return &Config{
 					LogLevel: "incorrect",
 				}, nil
 			}))
@@ -39,7 +38,7 @@ func TestMustConfigure(t *testing.T) {
 
 	t.Run("when the config provider fails it should panic", func(t *testing.T) {
 		assert.PanicExact(t, func() {
-			MustConfigure(WithConfigProvider(func() (*config.Logger, error) {
+			MustConfigure(WithConfigProvider(func() (*Config, error) {
 				return nil, errors.New("config error")
 			}))
 		}, "Failed to get logger config (config error).")

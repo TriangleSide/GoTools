@@ -1,45 +1,46 @@
-package config
+package server
 
-// HTTPServerTLSMode represents the TLS mode of the HTTP server.
-type HTTPServerTLSMode string
+// TLSMode represents the TLS mode of the HTTP server.
+type TLSMode string
 
 const (
-	// HTTPServerTLSModeOff represents plain HTTP without TLS.
-	HTTPServerTLSModeOff HTTPServerTLSMode = "off"
+	// TLSModeOff represents plain HTTP without TLS.
+	TLSModeOff TLSMode = "off"
 
-	// HTTPServerTLSModeTLS represents HTTP over TLS.
-	HTTPServerTLSModeTLS HTTPServerTLSMode = "tls"
+	// TLSModeTLS represents HTTP over TLS.
+	TLSModeTLS TLSMode = "tls"
 
-	// HTTPServerTLSModeMutualTLS represents HTTP over mutual TLS.
-	HTTPServerTLSModeMutualTLS HTTPServerTLSMode = "mutual_tls"
+	// TLSModeMutualTLS represents HTTP over mutual TLS.
+	TLSModeMutualTLS TLSMode = "mutual_tls"
 )
 
-// HTTPServer holds configuration parameters for an HTTP server.
-type HTTPServer struct {
+// Config holds configuration parameters for an HTTP server.
+// HttpServer is the prefix for all fields because it avoids conflicts with other environment variables.
+type Config struct {
 	// HTTPServerBindIP is the IP address the server listens on.
 	HTTPServerBindIP string `config_format:"snake" config_default:"::1" validate:"required,ip_addr"`
 
 	// HTTPServerBindPort is the port number the server listens on.
 	HTTPServerBindPort uint16 `config_format:"snake" config_default:"0" validate:"gte=0"`
 
-	// HTTPServerReadTimeoutSeconds is the maximum time (in seconds) to read the request.
+	// HTTPServerReadTimeoutMilliseconds is the maximum time (in seconds) to read the request.
 	// Zero or negative means no timeout.
-	HTTPServerReadTimeoutSeconds int `config_format:"snake" config_default:"120" validate:"gte=0"`
+	HTTPServerReadTimeoutMilliseconds int `config_format:"snake" config_default:"120" validate:"gte=0"`
 
-	// HTTPServerWriteTimeoutSeconds is the maximum time (in seconds) to write the response.
+	// HTTPServerWriteTimeoutMilliseconds is the maximum time (in seconds) to write the response.
 	// Zero or negative means no timeout.
-	HTTPServerWriteTimeoutSeconds int `config_format:"snake" config_default:"120" validate:"gte=0"`
+	HTTPServerWriteTimeoutMilliseconds int `config_format:"snake" config_default:"120" validate:"gte=0"`
 
-	// HTTPServerIdleTimeoutSeconds sets the max idle time (in seconds) between requests when keep-alives are enabled.
+	// HTTPServerIdleTimeoutMilliseconds sets the max idle time (in seconds) between requests when keep-alives are enabled.
 	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
-	HTTPServerIdleTimeoutSeconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
+	HTTPServerIdleTimeoutMilliseconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
 
-	// HTTPServerHeaderReadTimeoutSeconds is the maximum time (in seconds) to read request headers.
+	// HTTPServerHeaderReadTimeoutMilliseconds is the maximum time (in seconds) to read request headers.
 	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
-	HTTPServerHeaderReadTimeoutSeconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
+	HTTPServerHeaderReadTimeoutMilliseconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
 
 	// HTTPServerTLSMode specifies the TLS mode of the server: off, tls, or mutual_tls.
-	HTTPServerTLSMode HTTPServerTLSMode `config_format:"snake" config_default:"tls" validate:"oneof=off tls mutual_tls"`
+	HTTPServerTLSMode TLSMode `config_format:"snake" config_default:"tls" validate:"oneof=off tls mutual_tls"`
 
 	// HTTPServerCert is the path to the TLS certificate file.
 	HTTPServerCert string `config_format:"snake" config_default:"" validate:"required_if=HTTPServerTLSMode tls,required_if=HTTPServerTLSMode mutual_tls,omitempty,filepath"`

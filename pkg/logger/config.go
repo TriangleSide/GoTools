@@ -6,12 +6,16 @@ import (
 	"os"
 
 	"github.com/TriangleSide/GoBase/pkg/config"
-	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
 )
+
+// Config contains the values needed to configure the logger.
+type Config struct {
+	LogLevel string `config_format:"snake" config_default:"INFO" validate:"required,oneof=ERROR WARN INFO DEBUG TRACE"`
+}
 
 // loggerConfig is configured by the ConfigOption functions.
 type loggerConfig struct {
-	configProvider func() (*config.Logger, error)
+	configProvider func() (*Config, error)
 	outputProvider func() (io.Writer, error)
 }
 
@@ -19,7 +23,7 @@ type loggerConfig struct {
 type ConfigOption func(*loggerConfig)
 
 // WithConfigProvider sets the provider for the config.Logger.
-func WithConfigProvider(provider func() (*config.Logger, error)) ConfigOption {
+func WithConfigProvider(provider func() (*Config, error)) ConfigOption {
 	return func(c *loggerConfig) {
 		c.configProvider = provider
 	}
@@ -35,8 +39,8 @@ func WithOutputProvider(provider func() (io.Writer, error)) ConfigOption {
 // MustConfigure parses the logger conf and configures the application logger.
 func MustConfigure(opts ...ConfigOption) {
 	cfg := &loggerConfig{
-		configProvider: func() (*config.Logger, error) {
-			return envprocessor.ProcessAndValidate[config.Logger]()
+		configProvider: func() (*Config, error) {
+			return config.ProcessAndValidate[Config]()
 		},
 		outputProvider: func() (io.Writer, error) {
 			return os.Stdout, nil

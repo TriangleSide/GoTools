@@ -1,9 +1,9 @@
-package envprocessor_test
+package config_test
 
 import (
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
+	"github.com/TriangleSide/GoBase/pkg/config"
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
@@ -13,7 +13,7 @@ func TestEnvProcessor(t *testing.T) {
 			type testStruct struct {
 				Value int `config_format:"not_valid"`
 			}
-			_, _ = envprocessor.ProcessAndValidate[testStruct]()
+			_, _ = config.ProcessAndValidate[testStruct]()
 		}, "invalid config format")
 	})
 
@@ -21,7 +21,7 @@ func TestEnvProcessor(t *testing.T) {
 		type testStruct struct {
 			Value *int `config_format:"snake" config_default:"NOT_AN_INT"`
 		}
-		conf, err := envprocessor.ProcessAndValidate[testStruct]()
+		conf, err := config.ProcessAndValidate[testStruct]()
 		assert.ErrorPart(t, err, "failed to assign default value NOT_AN_INT to field Value")
 		assert.Nil(t, conf)
 	})
@@ -38,7 +38,7 @@ func TestEnvProcessor(t *testing.T) {
 
 		t.Run("when the environment variable VALUE is set to NOT_AN_INT", func(t *testing.T) {
 			t.Setenv(EnvName, "NOT_AN_INT")
-			conf, err := envprocessor.ProcessAndValidate[testStruct]()
+			conf, err := config.ProcessAndValidate[testStruct]()
 			assert.ErrorPart(t, err, "failed to assign env var NOT_AN_INT to field Value")
 			assert.Nil(t, conf)
 		})
@@ -47,14 +47,14 @@ func TestEnvProcessor(t *testing.T) {
 			t.Setenv(EnvName, "2")
 
 			t.Run("it should be set in the Value field of the struct", func(t *testing.T) {
-				conf, err := envprocessor.ProcessAndValidate[testStruct]()
+				conf, err := config.ProcessAndValidate[testStruct]()
 				assert.NoError(t, err)
 				assert.NotNil(t, conf)
 				assert.Equals(t, conf.Value, 2)
 			})
 
 			t.Run("it should use the default if a prefix is used", func(t *testing.T) {
-				conf, err := envprocessor.ProcessAndValidate[testStruct](envprocessor.WithPrefix("PREFIX"))
+				conf, err := config.ProcessAndValidate[testStruct](config.WithPrefix("PREFIX"))
 				assert.NoError(t, err)
 				assert.NotNil(t, conf)
 				assert.Equals(t, conf.Value, DefaultValue)
@@ -63,7 +63,7 @@ func TestEnvProcessor(t *testing.T) {
 			t.Run("when an environment variable called TEST_VALUE is set with a value of 3 it should able to be set with a prefix", func(t *testing.T) {
 				const EnvNameWithPrefix = "TEST_VALUE"
 				t.Setenv(EnvNameWithPrefix, "3")
-				conf, err := envprocessor.ProcessAndValidate[testStruct](envprocessor.WithPrefix("TEST"))
+				conf, err := config.ProcessAndValidate[testStruct](config.WithPrefix("TEST"))
 				assert.NoError(t, err)
 				assert.NotNil(t, conf)
 				assert.Equals(t, conf.Value, 3)
@@ -72,13 +72,13 @@ func TestEnvProcessor(t *testing.T) {
 
 		t.Run("when the validation rule fails it should fail to process", func(t *testing.T) {
 			t.Setenv(EnvName, "-1")
-			conf, err := envprocessor.ProcessAndValidate[testStruct]()
+			conf, err := config.ProcessAndValidate[testStruct]()
 			assert.ErrorPart(t, err, "validation failed")
 			assert.Nil(t, conf)
 		})
 
 		t.Run("when no environment variable is set it should use the default value", func(t *testing.T) {
-			conf, err := envprocessor.ProcessAndValidate[testStruct]()
+			conf, err := config.ProcessAndValidate[testStruct]()
 			assert.NoError(t, err)
 			assert.NotNil(t, conf)
 			assert.Equals(t, conf.Value, DefaultValue)
@@ -89,7 +89,7 @@ func TestEnvProcessor(t *testing.T) {
 		type testStruct struct {
 			Value *int
 		}
-		conf, err := envprocessor.ProcessAndValidate[testStruct]()
+		conf, err := config.ProcessAndValidate[testStruct]()
 		assert.NoError(t, err)
 		assert.NotNil(t, conf)
 		assert.Nil(t, conf.Value)
@@ -99,7 +99,7 @@ func TestEnvProcessor(t *testing.T) {
 		type testStruct struct {
 			Value *int `validate:"required"`
 		}
-		conf, err := envprocessor.ProcessAndValidate[testStruct]()
+		conf, err := config.ProcessAndValidate[testStruct]()
 		assert.ErrorPart(t, err, "validation failed")
 		assert.Nil(t, conf)
 	})
@@ -124,7 +124,7 @@ func TestEnvProcessor(t *testing.T) {
 		t.Setenv(EmbeddedEnvName, EmbeddedValue)
 		t.Setenv(FieldEnvName, FieldValue)
 
-		conf, err := envprocessor.ProcessAndValidate[testStruct]()
+		conf, err := config.ProcessAndValidate[testStruct]()
 		assert.NoError(t, err)
 		assert.NotNil(t, conf)
 		assert.Equals(t, conf.EmbeddedField, EmbeddedValue)

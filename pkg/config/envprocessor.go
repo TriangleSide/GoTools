@@ -1,4 +1,4 @@
-package envprocessor
+package config
 
 import (
 	"fmt"

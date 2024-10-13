@@ -15,14 +15,13 @@ import (
 	"time"
 
 	"github.com/TriangleSide/GoBase/pkg/config"
-	"github.com/TriangleSide/GoBase/pkg/config/envprocessor"
 	"github.com/TriangleSide/GoBase/pkg/http/api"
 	"github.com/TriangleSide/GoBase/pkg/http/middleware"
 )
 
 // serverOptions is configured by the caller with the Option functions.
 type serverOptions struct {
-	configProvider   func() (*config.HTTPServer, error)
+	configProvider   func() (*Config, error)
 	listenerProvider func(bindIP string, bindPort uint16) (*net.TCPListener, error)
 	boundCallback    func(tcpAddr *net.TCPAddr)
 	commonMiddleware []middleware.Middleware
@@ -32,8 +31,8 @@ type serverOptions struct {
 // Option is used to configure the HTTP server.
 type Option func(srvOpts *serverOptions)
 
-// WithConfigProvider sets the provider for the config.HTTPServer.
-func WithConfigProvider(provider func() (*config.HTTPServer, error)) Option {
+// WithConfigProvider sets the provider for the config.Config.
+func WithConfigProvider(provider func() (*Config, error)) Option {
 	return func(srvOpts *serverOptions) {
 		srvOpts.configProvider = provider
 	}
@@ -83,8 +82,8 @@ type Server struct {
 // New configures an HTTP server with the provided options.
 func New(opts ...Option) (*Server, error) {
 	srvOpts := &serverOptions{
-		configProvider: func() (*config.HTTPServer, error) {
-			return envprocessor.ProcessAndValidate[config.HTTPServer]()
+		configProvider: func() (*Config, error) {
+			return config.ProcessAndValidate[Config]()
 		},
 		listenerProvider: func(bindIp string, bindPort uint16) (*net.TCPListener, error) {
 			ip, err := netip.ParseAddr(bindIp)
@@ -122,9 +121,9 @@ func New(opts ...Option) (*Server, error) {
 
 	var tlsConfig *tls.Config
 	switch envConfig.HTTPServerTLSMode {
-	case config.HTTPServerTLSModeOff:
+	case TLSModeOff:
 		tlsConfig = nil
-	case config.HTTPServerTLSModeTLS:
+	case TLSModeTLS:
 		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
@@ -133,7 +132,7 @@ func New(opts ...Option) (*Server, error) {
 			MinVersion:   tls.VersionTLS13,
 			Certificates: []tls.Certificate{serverCert},
 		}
-	case config.HTTPServerTLSModeMutualTLS:
+	case TLSModeMutualTLS:
 		if len(envConfig.HTTPServerClientCACerts) == 0 {
 			return nil, errors.New("no client CAs provided")
 		}
@@ -158,10 +157,10 @@ func New(opts ...Option) (*Server, error) {
 	srv := &Server{
 		srv: http.Server{
 			Handler:           serveMux,
-			ReadTimeout:       time.Second * time.Duration(envConfig.HTTPServerReadTimeoutSeconds),
-			WriteTimeout:      time.Second * time.Duration(envConfig.HTTPServerWriteTimeoutSeconds),
-			IdleTimeout:       time.Second * time.Duration(envConfig.HTTPServerIdleTimeoutSeconds),
-			ReadHeaderTimeout: time.Second * time.Duration(envConfig.HTTPServerHeaderReadTimeoutSeconds),
+			ReadTimeout:       time.Millisecond * time.Duration(envConfig.HTTPServerReadTimeoutMilliseconds),
+			WriteTimeout:      time.Millisecond * time.Duration(envConfig.HTTPServerWriteTimeoutMilliseconds),
+			IdleTimeout:       time.Millisecond * time.Duration(envConfig.HTTPServerIdleTimeoutMilliseconds),
+			ReadHeaderTimeout: time.Millisecond * time.Duration(envConfig.HTTPServerHeaderReadTimeoutMilliseconds),
 			MaxHeaderBytes:    envConfig.HTTPServerMaxHeaderBytes,
 			TLSConfig:         tlsConfig,
 		},
