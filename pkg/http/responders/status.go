@@ -11,13 +11,13 @@ import (
 func Status[RequestParameters any](writer http.ResponseWriter, request *http.Request, callback func(*RequestParameters) (int, error)) {
 	requestParams, err := parameters.Decode[RequestParameters](request)
 	if err != nil {
-		Error(request, writer, &errors.BadRequest{Err: err})
+		Error(writer, request, &errors.BadRequest{Err: err})
 		return
 	}
 
 	status, err := callback(requestParams)
 	if err != nil {
-		Error(request, writer, err)
+		Error(writer, request, err)
 		return
 	}
 

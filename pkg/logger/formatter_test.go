@@ -38,7 +38,7 @@ func TestFormatter(t *testing.T) {
 		SetFormatter(func(fields map[string]any, msg string) string {
 			return "custom: " + msg
 		})
-		msg := formatLog(context.TODO(), "test message")
+		msg := formatLog(context.Background(), "test message")
 		assert.Contains(t, msg, "custom: test message")
 	})
 }

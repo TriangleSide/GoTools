@@ -19,23 +19,26 @@ type registeredErrorResponse struct {
 }
 
 var (
-	// registeredErrorTypes is a map of reflect.Type to registeredErrorResponse
+	// registeredErrorTypes is a map of reflect.Type to *registeredErrorResponse
 	registeredErrorResponses = sync.Map{}
 )
 
 // MustRegisterErrorResponse allows error types to be registered for the Error responder.
 // The registered error type should always be instantiated as a pointer for this to work correctly.
-func MustRegisterErrorResponse[T error](status int, callback func(err *T) string) {
-	typeOfError := reflect.TypeOf((*T)(nil))
-	if typeOfError.Elem().Kind() == reflect.Pointer {
-		panic("The generic for registered error types cannot be a pointer.")
+func MustRegisterErrorResponse[T any](status int, callback func(err *T) string) {
+	typeOfError := reflect.TypeFor[T]()
+	if typeOfError.Kind() != reflect.Struct {
+		panic("The generic for registered error responses must be a struct.")
 	}
-	convertedCallback := func(err any) string {
-		return callback(err.(*T))
+	typeOfError = reflect.PointerTo(typeOfError)
+	if !typeOfError.Implements(reflect.TypeFor[error]()) {
+		panic("The generic for registered error types must have an error interface.")
 	}
-	errorResponse := registeredErrorResponse{
-		Status:          status,
-		MessageCallback: convertedCallback,
+	errorResponse := &registeredErrorResponse{
+		Status: status,
+		MessageCallback: func(err any) string {
+			return callback(err.(*T))
+		},
 	}
 	_, alreadyRegistered := registeredErrorResponses.LoadOrStore(typeOfError, errorResponse)
 	if alreadyRegistered {
@@ -45,7 +48,7 @@ func MustRegisterErrorResponse[T error](status int, callback func(err *T) string
 
 // Error responds to an HTTP requests with an errors.Error. It tries to match it to a known error type
 // so it can return its corresponding status and message. It defaults to HTTP 500 internal server error.
-func Error(request *http.Request, writer http.ResponseWriter, err error) {
+func Error(writer http.ResponseWriter, request *http.Request, err error) {
 	statusCode := http.StatusInternalServerError
 	errResponse := httperrors.Error{
 		Message: http.StatusText(http.StatusInternalServerError),
@@ -54,7 +57,7 @@ func Error(request *http.Request, writer http.ResponseWriter, err error) {
 	if err != nil {
 		errType := reflect.TypeOf(err)
 		if registeredErrorNotCast, registeredErrorFound := registeredErrorResponses.Load(errType); registeredErrorFound {
-			registeredError := registeredErrorNotCast.(registeredErrorResponse)
+			registeredError := registeredErrorNotCast.(*registeredErrorResponse)
 			statusCode = registeredError.Status
 			errResponse.Message = registeredError.MessageCallback(err)
 		} else {

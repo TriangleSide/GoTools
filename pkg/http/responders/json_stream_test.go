@@ -30,7 +30,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams, cancelChan <-chan struct{}) (<-chan *responseBody, int, error) {
+			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
 				ch := make(chan *responseBody)
 				go func() {
 					defer close(ch)
@@ -59,7 +59,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams, cancelChan <-chan struct{}) (<-chan *responseBody, int, error) {
+			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
 				return nil, 0, &errors.BadRequest{Err: goerrors.New("invalid parameters")}
 			})
 		}))
@@ -79,7 +79,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams, cancelChan <-chan struct{}) (<-chan *responseBody, int, error) {
+			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
 				return nil, 0, &errors.BadRequest{Err: goerrors.New("invalid parameters")}
 			})
 		}))
@@ -103,7 +103,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSONStream[requestParams, unmarshalableResponse](w, r, func(params *requestParams, cancelChan <-chan struct{}) (<-chan *unmarshalableResponse, int, error) {
+			responders.JSONStream[requestParams, unmarshalableResponse](w, r, func(params *requestParams) (<-chan *unmarshalableResponse, int, error) {
 				ch := make(chan *unmarshalableResponse, 1)
 				go func() {
 					defer close(ch)
@@ -131,14 +131,14 @@ func TestJSONStreamResponder(t *testing.T) {
 			ctx, cancelFunc := context.WithCancel(r.Context())
 			r = r.WithContext(ctx)
 			cancelFunc()
-			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams, cancelChan <-chan struct{}) (<-chan *responseBody, int, error) {
+			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
 				ch := make(chan *responseBody)
 				go func() {
 					defer close(ch)
 					ch <- &responseBody{Message: "first"}
 				}()
 				return ch, http.StatusOK, nil
-			}, responders.WithDeferredConsumerTimerDuration(0))
+			})
 		}))
 		defer server.Close()
 

@@ -16,17 +16,6 @@ type jsonStreamConfig struct {
 	deferredConsumerTimerDuration time.Duration
 }
 
-// JSONStreamOption is used to set values on the stream configuration.
-type JSONStreamOption func(config *jsonStreamConfig)
-
-// WithDeferredConsumerTimerDuration configures how long to wait before printing
-// an error log on the deferred consumer.
-func WithDeferredConsumerTimerDuration(duration time.Duration) JSONStreamOption {
-	return func(config *jsonStreamConfig) {
-		config.deferredConsumerTimerDuration = duration
-	}
-}
-
 // JSONStream responds to an HTTP request by streaming responses as JSON objects.
 //
 // When this method exits, it launches a go routine to continue consuming the responses
@@ -44,44 +33,18 @@ func WithDeferredConsumerTimerDuration(duration time.Duration) JSONStreamOption 
 //	    // Producer work here.
 //	  }
 //	}
-func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWriter, request *http.Request, callback func(requestParameters *RequestParameters, cancelChan <-chan struct{}) (responseStream <-chan *ResponseBody, status int, err error), options ...JSONStreamOption) {
-	cfg := &jsonStreamConfig{
-		deferredConsumerTimerDuration: time.Minute,
-	}
-	for _, option := range options {
-		option(cfg)
-	}
-
+func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWriter, request *http.Request, callback func(requestParameters *RequestParameters) (responseStream <-chan *ResponseBody, status int, err error)) {
 	requestParams, err := parameters.Decode[RequestParameters](request)
 	if err != nil {
-		Error(request, writer, &errors.BadRequest{Err: err})
+		Error(writer, request, &errors.BadRequest{Err: err})
 		return
 	}
 
-	cancelChan := make(chan struct{})
-	defer close(cancelChan)
-
-	responseChan, status, err := callback(requestParams, cancelChan)
+	responseChan, status, err := callback(requestParams)
 	if err != nil {
-		Error(request, writer, err)
+		Error(writer, request, err)
 		return
 	}
-
-	defer func() {
-		go func() {
-			timer := time.After(cfg.deferredConsumerTimerDuration)
-			for {
-				select {
-				case <-timer:
-					logger.Errorf(request.Context(), "Potential leak detected: JSON stream producer did not close its channel after %s.", cfg.deferredConsumerTimerDuration.String())
-				case _, isResponseChannelOpen := <-responseChan:
-					if !isResponseChannelOpen {
-						return
-					}
-				}
-			}
-		}()
-	}()
 
 	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJson)
 	writer.Header().Set(headers.TransferEncoding, headers.TransferEncodingChunked)
@@ -92,14 +55,13 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Errorf(ctx, "Request cancelled (%s).", ctx.Err())
 			return
 		case response, isResponseChannelOpen := <-responseChan:
 			if !isResponseChannelOpen {
 				return
 			}
 			if err := jsonEncoder.Encode(response); err != nil {
-				logger.Errorf(ctx, "Failed to encode response (%s).", err)
+				logger.Errorf(ctx, "Failed to encode response (%s).", err.Error())
 				return
 			}
 			if flusher, ok := writer.(http.Flusher); ok {

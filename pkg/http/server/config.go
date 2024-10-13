@@ -25,11 +25,11 @@ type Config struct {
 
 	// HTTPServerReadTimeoutMilliseconds is the maximum time (in seconds) to read the request.
 	// Zero or negative means no timeout.
-	HTTPServerReadTimeoutMilliseconds int `config_format:"snake" config_default:"120" validate:"gte=0"`
+	HTTPServerReadTimeoutMilliseconds int `config_format:"snake" config_default:"120000" validate:"gte=0"`
 
 	// HTTPServerWriteTimeoutMilliseconds is the maximum time (in seconds) to write the response.
 	// Zero or negative means no timeout.
-	HTTPServerWriteTimeoutMilliseconds int `config_format:"snake" config_default:"120" validate:"gte=0"`
+	HTTPServerWriteTimeoutMilliseconds int `config_format:"snake" config_default:"120000" validate:"gte=0"`
 
 	// HTTPServerIdleTimeoutMilliseconds sets the max idle time (in seconds) between requests when keep-alives are enabled.
 	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
@@ -53,4 +53,7 @@ type Config struct {
 
 	// HTTPServerMaxHeaderBytes sets the maximum size in bytes of request headers. It doesn't limit the request body size.
 	HTTPServerMaxHeaderBytes int `config_format:"snake" config_default:"1048576" validate:"gte=4096,lte=1073741824"`
+
+	// HTTPServerKeepAlive controls whether HTTP keep-alives are enabled. By default, keep-alives are always enabled.
+	HTTPServerKeepAlive bool `config_format:"snake" config_default:"true"`
 }

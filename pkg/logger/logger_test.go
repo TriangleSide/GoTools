@@ -19,7 +19,7 @@ func TestSetOutput(t *testing.T) {
 	t.Cleanup(func() {
 		logger.SetOutput(os.Stdout)
 	})
-	logger.Error(context.TODO(), "test message")
+	logger.Error(context.Background(), "test message")
 	assert.Contains(t, output.String(), "test message")
 }
 

@@ -14,8 +14,14 @@ import (
 
 type testError struct{}
 
-func (e testError) Error() string {
+func (e *testError) Error() string {
 	return "test error"
+}
+
+func init() {
+	responders.MustRegisterErrorResponse[testError](http.StatusFound, func(err *testError) string {
+		return "custom message"
+	})
 }
 
 type failingWriter struct {
@@ -38,10 +44,6 @@ func mustDeserializeError(t *testing.T, recorder *httptest.ResponseRecorder) *er
 func TestErrorResponder(t *testing.T) {
 	t.Parallel()
 
-	responders.MustRegisterErrorResponse[testError](http.StatusFound, func(err *testError) string {
-		return "custom message"
-	})
-
 	t.Run("when the option to return an error is registered twice it should panic", func(t *testing.T) {
 		t.Parallel()
 		assert.Panic(t, func() {
@@ -57,14 +59,23 @@ func TestErrorResponder(t *testing.T) {
 			responders.MustRegisterErrorResponse[*testError](http.StatusFound, func(err **testError) string {
 				return "pointer is registered"
 			})
-		}, "cannot be a pointer")
+		}, "registered error responses must be a struct")
+	})
+
+	t.Run("when a struct that is not an error is registered it should panic", func(t *testing.T) {
+		t.Parallel()
+		assert.PanicPart(t, func() {
+			responders.MustRegisterErrorResponse[struct{}](http.StatusFound, func(err *struct{}) string {
+				return "error"
+			})
+		}, "must have an error interface")
 	})
 
 	t.Run("when the error is unknown it should return internal server error", func(t *testing.T) {
 		t.Parallel()
 		recorder := httptest.NewRecorder()
 		standardError := goerrors.New("standard error")
-		responders.Error(&http.Request{}, recorder, standardError)
+		responders.Error(recorder, &http.Request{}, standardError)
 		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
@@ -76,7 +87,7 @@ func TestErrorResponder(t *testing.T) {
 		badRequestErr := &errors.BadRequest{
 			Err: goerrors.New("bad request"),
 		}
-		responders.Error(&http.Request{}, recorder, badRequestErr)
+		responders.Error(recorder, &http.Request{}, badRequestErr)
 		assert.Equals(t, recorder.Code, http.StatusBadRequest)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, badRequestErr.Error())
@@ -85,7 +96,7 @@ func TestErrorResponder(t *testing.T) {
 	t.Run("when the error is nil it should return internal server error", func(t *testing.T) {
 		t.Parallel()
 		recorder := httptest.NewRecorder()
-		responders.Error(&http.Request{}, recorder, nil)
+		responders.Error(recorder, &http.Request{}, nil)
 		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
@@ -94,7 +105,7 @@ func TestErrorResponder(t *testing.T) {
 	t.Run("when the error is a custom registered type it should return its custom message and status", func(t *testing.T) {
 		t.Parallel()
 		recorder := httptest.NewRecorder()
-		responders.Error(&http.Request{}, recorder, &testError{})
+		responders.Error(recorder, &http.Request{}, &testError{})
 		assert.Equals(t, recorder.Code, http.StatusFound)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, "custom message")
@@ -107,7 +118,7 @@ func TestErrorResponder(t *testing.T) {
 			WriteFailed:    false,
 			ResponseWriter: recorder,
 		}
-		responders.Error(&http.Request{}, fw, goerrors.New("some error"))
+		responders.Error(fw, &http.Request{}, goerrors.New("some error"))
 		assert.True(t, fw.WriteFailed)
 	})
 }

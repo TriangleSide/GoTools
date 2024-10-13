@@ -173,6 +173,7 @@ func New(opts ...Option) (*Server, error) {
 		boundCallback: srvOpts.boundCallback,
 	}
 
+	srv.srv.SetKeepAlivesEnabled(envConfig.HTTPServerKeepAlive)
 	srv.ran.Store(false)
 	srv.shutdown.Store(false)
 

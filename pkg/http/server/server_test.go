@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -15,18 +16,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/TriangleSide/GoBase/pkg/config"
 	"github.com/TriangleSide/GoBase/pkg/http/api"
+	"github.com/TriangleSide/GoBase/pkg/http/headers"
 	"github.com/TriangleSide/GoBase/pkg/http/middleware"
+	"github.com/TriangleSide/GoBase/pkg/http/responders"
 	"github.com/TriangleSide/GoBase/pkg/http/server"
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
-)
-
-const (
-	HTTPServerTLSModeEnvName = "HTTP_SERVER_TLS_MODE"
 )
 
 type testHandler struct {
@@ -43,8 +43,22 @@ func (t *testHandler) AcceptHTTPAPIBuilder(builder *api.HTTPAPIBuilder) {
 	})
 }
 
+type testErrorResponse struct{}
+
+func (t *testErrorResponse) Error() string {
+	return "test error response"
+}
+
+func init() {
+	responders.MustRegisterErrorResponse(http.StatusInternalServerError, func(err *testErrorResponse) string {
+		return err.Error()
+	})
+}
+
 func TestServer(t *testing.T) {
-	t.Setenv(HTTPServerTLSModeEnvName, string(server.TLSModeOff))
+	t.Setenv("HTTP_SERVER_KEEP_ALIVE", "false")
+	t.Setenv("HTTP_SERVER_TLS_MODE", string(server.TLSModeOff))
+	http.DefaultTransport.(*http.Transport).DisableKeepAlives = true
 
 	handler := &testHandler{
 		Path:       "/",
@@ -59,7 +73,7 @@ func TestServer(t *testing.T) {
 
 	startServer := func(t *testing.T, options ...server.Option) string {
 		t.Helper()
-		waitUntilReady := make(chan bool)
+		waitUntilReady := make(chan struct{})
 		var address string
 		allOpts := append(options, server.WithBoundCallback(func(addr *net.TCPAddr) {
 			address = addr.String()
@@ -68,11 +82,14 @@ func TestServer(t *testing.T) {
 		srv, err := server.New(allOpts...)
 		assert.NoError(t, err)
 		assert.NotNil(t, srv)
+		waitForShutdown := make(chan struct{})
 		t.Cleanup(func() {
 			assert.NoError(t, srv.Shutdown(context.Background()))
+			<-waitForShutdown
 		})
 		go func() {
 			assert.NoError(t, srv.Run())
+			close(waitForShutdown)
 		}()
 		<-waitUntilReady
 		return address
@@ -524,7 +541,6 @@ func TestServer(t *testing.T) {
 			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddr, nil)
 			assert.NoError(t, err)
 			response, err := httpClient.Do(request)
-			httpClient.CloseIdleConnections()
 			assert.ErrorPart(t, err, "unknown authority")
 			assert.Nil(t, response)
 		})
@@ -583,7 +599,6 @@ func TestServer(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, request)
 			response, err := httpClient.Do(request)
-			httpClient.CloseIdleConnections()
 			assert.ErrorPart(t, err, "tls: certificate required")
 			assert.Nil(t, response)
 		})
@@ -626,9 +641,174 @@ func TestServer(t *testing.T) {
 			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddress, nil)
 			assert.NoError(t, err)
 			response, err := httpClient.Do(request)
-			httpClient.CloseIdleConnections()
 			assert.ErrorPart(t, err, "tls: certificate required")
 			assert.Nil(t, response)
 		})
+	})
+
+	t.Run("when the server handles concurrent requests there should be no error", func(t *testing.T) {
+		t.Parallel()
+
+		serverAddress := startServer(t, server.WithEndpointHandlers(
+			&testHandler{
+				Path:   "/status",
+				Method: http.MethodGet,
+				Handler: func(writer http.ResponseWriter, request *http.Request) {
+					type params struct {
+						Value string `json:"-" urlQuery:"value" validate:"required"`
+					}
+					responders.Status[params](writer, request, func(*params) (int, error) {
+						return http.StatusOK, nil
+					})
+				},
+			},
+			&testHandler{
+				Path:   "/error",
+				Method: http.MethodGet,
+				Handler: func(writer http.ResponseWriter, request *http.Request) {
+					responders.Error(writer, request, &testErrorResponse{})
+				},
+			},
+			&testHandler{
+				Path:   "/json/{id}",
+				Method: http.MethodPost,
+				Handler: func(writer http.ResponseWriter, request *http.Request) {
+					type requestParams struct {
+						Id   string `json:"-" urlPath:"id" validate:"required"`
+						Data string `json:"data" validate:"required"`
+					}
+					type response struct {
+						Id string
+					}
+					responders.JSON(writer, request, func(params *requestParams) (*response, int, error) {
+						return &response{
+							Id: params.Id,
+						}, http.StatusOK, nil
+					})
+				},
+			},
+			&testHandler{
+				Path:   "/jsonstream",
+				Method: http.MethodGet,
+				Handler: func(writer http.ResponseWriter, request *http.Request) {
+					type requestParams struct{}
+					type response struct {
+						Id string
+					}
+					responders.JSONStream(writer, request, func(params *requestParams) (<-chan *response, int, error) {
+						responseChan := make(chan *response)
+						go func() {
+							defer close(responseChan)
+							responseChan <- &response{Id: "1"}
+							responseChan <- &response{Id: "2"}
+							responseChan <- &response{Id: "3"}
+						}()
+						return responseChan, http.StatusOK, nil
+					})
+				},
+			},
+		))
+
+		wg := sync.WaitGroup{}
+		waitToStart := make(chan struct{})
+		totalGoRoutinesPerOperation := 2
+		totalRequestsPerGoRoutine := 1000
+
+		performRequest := func(t *testing.T, method, url string, body io.Reader, expected int) {
+			t.Helper()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			request, err := http.NewRequestWithContext(ctx, method, url, body)
+			if err != nil {
+				assert.NoError(t, err, assert.Continue())
+				return
+			}
+			if method == http.MethodPost {
+				request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJson)
+			}
+			response, err := http.DefaultClient.Do(request)
+			if err != nil {
+				assert.NoError(t, err, assert.Continue())
+				return
+			}
+			assert.NoError(t, response.Body.Close(), assert.Continue())
+			assert.Equals(t, expected, response.StatusCode, assert.Continue())
+		}
+
+		// Error endpoint.
+		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-waitToStart
+				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+					performRequest(t, http.MethodGet, "http://"+serverAddress+"/error", nil, http.StatusInternalServerError)
+				}
+			}()
+		}
+
+		// Status endpoint good.
+		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-waitToStart
+				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+					performRequest(t, http.MethodGet, "http://"+serverAddress+"/status?value=test", nil, http.StatusOK)
+				}
+			}()
+		}
+
+		// Status endpoint bad decode.
+		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-waitToStart
+				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+					performRequest(t, http.MethodGet, "http://"+serverAddress+"/status", nil, http.StatusBadRequest)
+				}
+			}()
+		}
+
+		// JSON endpoint bad decode.
+		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-waitToStart
+				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+					bodyData := bytes.NewBuffer([]byte(`"data":"value"`))
+					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusBadRequest)
+				}
+			}()
+		}
+
+		// JSON endpoint good.
+		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-waitToStart
+				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", nil, http.StatusBadRequest)
+				}
+			}()
+		}
+
+		// JSONStream endpoint good.
+		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-waitToStart
+				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+					performRequest(t, http.MethodGet, "http://"+serverAddress+"/jsonstream", nil, http.StatusOK)
+				}
+			}()
+		}
+
+		close(waitToStart)
+		wg.Wait()
 	})
 }
