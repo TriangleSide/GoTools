@@ -51,7 +51,7 @@ func Process[T any](opts ...Option) (*T, error) {
 	fieldsMetadata := fields.StructMetadata[T]()
 	conf := new(T)
 
-	for fieldName, fieldMetadata := range fieldsMetadata.Iterator() {
+	for fieldName, fieldMetadata := range fieldsMetadata.All() {
 		formatValue, hasFormatTag := fieldMetadata.Tags[FormatTag]
 		if !hasFormatTag {
 			continue

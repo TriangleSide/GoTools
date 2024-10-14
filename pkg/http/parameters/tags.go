@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/TriangleSide/GoBase/pkg/datastructures/cache"
-	"github.com/TriangleSide/GoBase/pkg/datastructures/readonlymap"
+	"github.com/TriangleSide/GoBase/pkg/datastructures/readonly"
 	"github.com/TriangleSide/GoBase/pkg/utils/fields"
 )
 
@@ -65,7 +65,7 @@ var (
 	lookupKeyFollowsNamingConvention func(lookupKey string) bool
 
 	// lookupKeyExtractionCache stores the results of the ExtractAndValidateFieldTagLookupKeys function.
-	lookupKeyExtractionCache = cache.New[reflect.Type, *readonlymap.ReadOnlyMap[Tag, LookupKeyToFieldName]]()
+	lookupKeyExtractionCache = cache.New[reflect.Type, *readonly.Map[Tag, LookupKeyToFieldName]]()
 )
 
 // init creates the variables needed by the processor.
@@ -95,9 +95,9 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 //				"my-id": "PathParameter"
 //			}
 //		}
-func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonlymap.ReadOnlyMap[Tag, LookupKeyToFieldName], error) {
+func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonly.Map[Tag, LookupKeyToFieldName], error) {
 	reflectType := reflect.TypeFor[T]()
-	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonlymap.ReadOnlyMap[Tag, LookupKeyToFieldName], *time.Duration, error) {
+	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], *time.Duration, error) {
 		fieldsMetadata := fields.StructMetadata[T]()
 
 		tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)
@@ -105,7 +105,7 @@ func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonlymap.ReadOnlyMap[Tag
 			tagToLookupKeyToFieldName[customTag] = make(LookupKeyToFieldName)
 		}
 
-		for fieldName, fieldMetadata := range fieldsMetadata.Iterator() {
+		for fieldName, fieldMetadata := range fieldsMetadata.All() {
 			customTagFound := false
 			for customTag, lookupKeyNormalizer := range tagToLookupKeyNormalizer {
 				originalLookupKeyForTag, customTagFoundOnField := fieldMetadata.Tags[string(customTag)]
@@ -134,6 +134,6 @@ func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonlymap.ReadOnlyMap[Tag
 			}
 		}
 
-		return readonlymap.NewBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), nil, nil
+		return readonly.NewMapBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), nil, nil
 	})
 }

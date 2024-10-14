@@ -82,7 +82,7 @@ func TestStructValueFromName(t *testing.T) {
 		}
 		allMetadata := fields.StructMetadata[testStruct]()
 		assert.Equals(t, allMetadata.Size(), 4)
-		for fieldName, _ := range allMetadata.Iterator() {
+		for fieldName, _ := range allMetadata.All() {
 			_, err := fields.StructValueFromName(instance, fieldName)
 			assert.NoError(t, err)
 		}

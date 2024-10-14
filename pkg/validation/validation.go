@@ -170,7 +170,7 @@ func Struct[T any](val T) error {
 	violations := NewViolations()
 	structMetadataMap := fields.StructMetadataFromType(reflectVal.Type())
 
-	for fieldName, fieldMetadata := range structMetadataMap.Iterator() {
+	for fieldName, fieldMetadata := range structMetadataMap.All() {
 		fieldValueFromStruct, _ := fields.StructValueFromName(val, fieldName)
 
 		// Check the fields validation instructions.

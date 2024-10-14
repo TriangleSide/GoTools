@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/TriangleSide/GoBase/pkg/datastructures/cache"
-	"github.com/TriangleSide/GoBase/pkg/datastructures/readonlymap"
+	"github.com/TriangleSide/GoBase/pkg/datastructures/readonly"
 )
 
 var (
@@ -15,7 +15,7 @@ var (
 	tagMatchRegex = regexp.MustCompile(`(\w+):"([^"]*)"`)
 
 	// typeToMetadataCache is used to cache the result of the StructMetadata function.
-	typeToMetadataCache = cache.New[reflect.Type, *readonlymap.ReadOnlyMap[string, *FieldMetadata]]()
+	typeToMetadataCache = cache.New[reflect.Type, *readonly.Map[string, *FieldMetadata]]()
 )
 
 // FieldMetadata is the metadata extracted from struct fields.
@@ -26,16 +26,16 @@ type FieldMetadata struct {
 }
 
 // StructMetadata returns a map of a structs field names to their respective metadata.
-func StructMetadata[T any]() *readonlymap.ReadOnlyMap[string, *FieldMetadata] {
+func StructMetadata[T any]() *readonly.Map[string, *FieldMetadata] {
 	return StructMetadataFromType(reflect.TypeFor[T]())
 }
 
 // StructMetadataFromType returns a map of a structs field names to their respective metadata.
-func StructMetadataFromType(reflectType reflect.Type) *readonlymap.ReadOnlyMap[string, *FieldMetadata] {
-	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonlymap.ReadOnlyMap[string, *FieldMetadata], *time.Duration, error) {
+func StructMetadataFromType(reflectType reflect.Type) *readonly.Map[string, *FieldMetadata] {
+	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonly.Map[string, *FieldMetadata], *time.Duration, error) {
 		fieldsToMetadata := make(map[string]*FieldMetadata)
 		processType(reflectType, fieldsToMetadata, make([]string, 0))
-		readOnlyMap := readonlymap.NewBuilder[string, *FieldMetadata]().SetMap(fieldsToMetadata).Build()
+		readOnlyMap := readonly.NewMapBuilder[string, *FieldMetadata]().SetMap(fieldsToMetadata).Build()
 		return readOnlyMap, nil, nil
 	})
 	return fieldsToMetadata
