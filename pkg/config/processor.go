@@ -38,8 +38,8 @@ func WithPrefix(prefix string) Option {
 	}
 }
 
-// ProcessAndValidate fills out the fields of a struct from the environment variables.
-func ProcessAndValidate[T any](opts ...Option) (*T, error) {
+// Process sets the value of the struct fields from the associated environment variables.
+func Process[T any](opts ...Option) (*T, error) {
 	cfg := &config{
 		prefix: "",
 	}
@@ -81,6 +81,16 @@ func ProcessAndValidate[T any](opts ...Option) (*T, error) {
 				}
 			}
 		}
+	}
+
+	return conf, nil
+}
+
+// ProcessAndValidate sets the value of the struct fields from the associated environment variables.
+func ProcessAndValidate[T any](opts ...Option) (*T, error) {
+	conf, err := Process[T](opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := validation.Struct(conf); err != nil {
