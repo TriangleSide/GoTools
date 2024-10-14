@@ -194,9 +194,9 @@ func Struct[T any](val T) error {
 }
 
 // Var validates a single variable with the given instructions, returning an error if it fails.
-func Var[T any](val T, validationInstructions string) error {
+func Var[T any](val T, validatorInstructions string) error {
 	valueToVerify := reflect.ValueOf(val)
-	violations, err := checkValidatorsAgainstValue(false, reflect.Value{}, "", valueToVerify, validationInstructions)
+	violations, err := checkValidatorsAgainstValue(false, reflect.Value{}, "", valueToVerify, validatorInstructions)
 	if err != nil {
 		return err
 	}

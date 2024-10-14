@@ -3,7 +3,6 @@ package responders
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/TriangleSide/GoBase/pkg/http/errors"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
@@ -11,28 +10,8 @@ import (
 	"github.com/TriangleSide/GoBase/pkg/logger"
 )
 
-// jsonStreamConfig is used to configure the JSON stream utility.
-type jsonStreamConfig struct {
-	deferredConsumerTimerDuration time.Duration
-}
-
 // JSONStream responds to an HTTP request by streaming responses as JSON objects.
-//
-// When this method exits, it launches a go routine to continue consuming the responses
-// to ensure the producer closes the channel appropriately. This is done in the
-// case that the producer is blocked writing on the channel.
-//
-// The producer routine must check for the cancel channel and stop producing.
-// Example producer go routine:
-//
-//	for {
-//	  select {
-//	  case <-cancel:
-//	    return
-//	  default:
-//	    // Producer work here.
-//	  }
-//	}
+// The producer is responsible for closing the response channel.
 func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWriter, request *http.Request, callback func(requestParameters *RequestParameters) (responseStream <-chan *ResponseBody, status int, err error)) {
 	requestParams, err := parameters.Decode[RequestParameters](request)
 	if err != nil {
@@ -56,12 +35,12 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 		select {
 		case <-ctx.Done():
 			return
-		case response, isResponseChannelOpen := <-responseChan:
-			if !isResponseChannelOpen {
+		case response, isOpen := <-responseChan:
+			if !isOpen {
 				return
 			}
-			if err := jsonEncoder.Encode(response); err != nil {
-				logger.Errorf(ctx, "Failed to encode response (%s).", err.Error())
+			if encoderError := jsonEncoder.Encode(response); encoderError != nil {
+				logger.Errorf(ctx, "Failed to encode response (%s).", encoderError.Error())
 				return
 			}
 			if flusher, ok := writer.(http.Flusher); ok {

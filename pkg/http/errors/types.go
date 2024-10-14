@@ -6,6 +6,6 @@ type BadRequest struct {
 }
 
 // Error is BadRequest implementing the error interface.
-func (e *BadRequest) Error() string {
-	return e.Err.Error()
+func (r *BadRequest) Error() string {
+	return r.Err.Error()
 }

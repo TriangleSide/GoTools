@@ -2,7 +2,6 @@ package responders
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"reflect"
 	"sync"
@@ -11,6 +10,13 @@ import (
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
 	"github.com/TriangleSide/GoBase/pkg/logger"
 )
+
+// init registers error messages for the responder.
+func init() {
+	MustRegisterErrorResponse[httperrors.BadRequest](http.StatusBadRequest, func(err *httperrors.BadRequest) string {
+		return err.Error()
+	})
+}
 
 // registeredErrorTypeResponse is used by the Error responder to format the response.
 type registeredErrorResponse struct {
@@ -60,20 +66,12 @@ func Error(writer http.ResponseWriter, request *http.Request, err error) {
 			registeredError := registeredErrorNotCast.(*registeredErrorResponse)
 			statusCode = registeredError.Status
 			errResponse.Message = registeredError.MessageCallback(err)
-		} else {
-			var badRequestError *httperrors.BadRequest
-			switch {
-			case errors.As(err, &badRequestError):
-				statusCode = http.StatusBadRequest
-				errResponse.Message = badRequestError.Error()
-			}
 		}
 	}
 
 	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJson)
 	writer.WriteHeader(statusCode)
-
-	if err := json.NewEncoder(writer).Encode(errResponse); err != nil {
-		logger.Errorf(request.Context(), "Error encoding error response (%s).", err)
+	if encodingError := json.NewEncoder(writer).Encode(errResponse); encodingError != nil {
+		logger.Errorf(request.Context(), "Error encoding error response (%s).", encodingError.Error())
 	}
 }
