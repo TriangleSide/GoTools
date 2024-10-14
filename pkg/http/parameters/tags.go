@@ -108,7 +108,7 @@ func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonly.Map[Tag, LookupKey
 		for fieldName, fieldMetadata := range fieldsMetadata.All() {
 			customTagFound := false
 			for customTag, lookupKeyNormalizer := range tagToLookupKeyNormalizer {
-				originalLookupKeyForTag, customTagFoundOnField := fieldMetadata.Tags[string(customTag)]
+				originalLookupKeyForTag, customTagFoundOnField := fieldMetadata.Tags().Fetch(string(customTag))
 				if !customTagFoundOnField {
 					continue
 				}
@@ -128,7 +128,7 @@ func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonly.Map[Tag, LookupKey
 				}
 				tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag] = fieldName
 
-				if jsonTagValue, jsonTagFound := fieldMetadata.Tags[string(JSONTag)]; !jsonTagFound || jsonTagValue != "-" {
+				if jsonTagValue, jsonTagFound := fieldMetadata.Tags().Fetch(string(JSONTag)); !jsonTagFound || jsonTagValue != "-" {
 					return nil, nil, fmt.Errorf("struct field '%s' with tag '%s' must have accompanying tag %s:\"-\"", fieldName, customTag, JSONTag)
 				}
 			}

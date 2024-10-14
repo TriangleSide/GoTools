@@ -174,7 +174,7 @@ func Struct[T any](val T) error {
 		fieldValueFromStruct, _ := fields.StructValueFromName(val, fieldName)
 
 		// Check the fields validation instructions.
-		if validationTag, hasValidationTag := fieldMetadata.Tags[Tag]; hasValidationTag {
+		if validationTag, hasValidationTag := fieldMetadata.Tags().Fetch(Tag); hasValidationTag {
 			if fieldViolations, err := checkValidatorsAgainstValue(true, reflectVal, fieldName, fieldValueFromStruct, validationTag); err == nil {
 				violations.AddViolations(fieldViolations)
 			} else {

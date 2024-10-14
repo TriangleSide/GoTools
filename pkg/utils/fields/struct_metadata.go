@@ -18,13 +18,6 @@ var (
 	typeToMetadataCache = cache.New[reflect.Type, *readonly.Map[string, *FieldMetadata]]()
 )
 
-// FieldMetadata is the metadata extracted from struct fields.
-type FieldMetadata struct {
-	Type      reflect.Type
-	Tags      map[string]string
-	Anonymous []string
-}
-
 // StructMetadata returns a map of a structs field names to their respective metadata.
 func StructMetadata[T any]() *readonly.Map[string, *FieldMetadata] {
 	return StructMetadataFromType(reflect.TypeFor[T]())
@@ -68,20 +61,24 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 			panic(fmt.Sprintf("field %s is ambiguous", field.Name))
 		}
 
-		metadata := &FieldMetadata{}
-		metadata.Type = field.Type
-		metadata.Tags = make(map[string]string)
-		metadata.Anonymous = anonymousChainCopy
-
+		tagBuilder := readonly.NewMapBuilder[string, string]()
 		if len(string(field.Tag)) != 0 {
 			matches := tagMatchRegex.FindAllStringSubmatch(string(field.Tag), -1)
 			for _, match := range matches {
-				tagKey := match[1]
-				tagValue := match[2]
-				metadata.Tags[tagKey] = tagValue
+				tagBuilder.Set(readonly.MapEntry[string, string]{
+					Key:   match[1],
+					Value: match[2],
+				})
 			}
 		}
 
-		fieldsToMetadata[field.Name] = metadata
+		anonymousChainBuilder := readonly.NewSliceBuilder[string]()
+		anonymousChainBuilder.Append(anonymousChain...)
+
+		fieldsToMetadata[field.Name] = &FieldMetadata{
+			reflectType: field.Type,
+			anonymous:   anonymousChainBuilder.Build(),
+			tags:        tagBuilder.Build(),
+		}
 	}
 }

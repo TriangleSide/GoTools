@@ -52,7 +52,7 @@ func Process[T any](opts ...Option) (*T, error) {
 	conf := new(T)
 
 	for fieldName, fieldMetadata := range fieldsMetadata.All() {
-		formatValue, hasFormatTag := fieldMetadata.Tags[FormatTag]
+		formatValue, hasFormatTag := fieldMetadata.Tags().Fetch(FormatTag)
 		if !hasFormatTag {
 			continue
 		}
@@ -74,7 +74,7 @@ func Process[T any](opts ...Option) (*T, error) {
 				return nil, fmt.Errorf("failed to assign env var %s to field %s (%w)", envValue, fieldName, err)
 			}
 		} else {
-			defaultValue, hasDefaultTag := fieldMetadata.Tags[DefaultTag]
+			defaultValue, hasDefaultTag := fieldMetadata.Tags().Fetch(DefaultTag)
 			if hasDefaultTag {
 				if err := assign.StructField(conf, fieldName, defaultValue); err != nil {
 					return nil, fmt.Errorf("failed to assign default value %s to field %s (%w)", defaultValue, fieldName, err)

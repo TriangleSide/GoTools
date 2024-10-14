@@ -31,9 +31,9 @@ func StructField[T any](obj *T, fieldName string, stringEncodedValue string) err
 	// Get the value of the specified field in the struct.
 	// This accounts for fields in embedded anonymous structs.
 	var structFieldValue reflect.Value
-	if len(fieldMetadata.Anonymous) != 0 {
+	if fieldMetadata.Anonymous().Size() != 0 {
 		anonValue := structValue.Elem()
-		for _, anonymousName := range fieldMetadata.Anonymous {
+		for _, anonymousName := range fieldMetadata.Anonymous().All() {
 			anonValue = anonValue.FieldByName(anonymousName)
 		}
 		structFieldValue = anonValue.FieldByName(fieldName)
