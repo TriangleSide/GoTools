@@ -12,7 +12,7 @@ func TestValidation(t *testing.T) {
 	t.Run("when a validation is registered twice it should panic", func(t *testing.T) {
 		t.Parallel()
 		assert.PanicPart(t, func() {
-			MustRegisterValidator(RequiredValidatorName, required)
+			MustRegisterValidator(RequiredValidatorName, func(parameters *CallbackParameters) error { return nil })
 		}, "named required already exists")
 	})
 

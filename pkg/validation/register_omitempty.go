@@ -7,7 +7,7 @@ const (
 // init registers the validator.
 func init() {
 	MustRegisterValidator(OmitemptyValidatorName, func(params *CallbackParameters) error {
-		if err := required(params); err != nil {
+		if err := required(OmitemptyValidatorName, params); err != nil {
 			return &stopValidators{}
 		}
 		return nil

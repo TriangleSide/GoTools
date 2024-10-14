@@ -46,7 +46,7 @@ func init() {
 		}
 
 		if requiredFieldValueStr == requiredIfStrValue {
-			return required(params)
+			return required(RequiredIfValidatorName, params)
 		}
 
 		return nil
