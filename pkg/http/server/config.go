@@ -27,7 +27,6 @@ const (
 )
 
 // Config holds configuration parameters for an HTTP server.
-// HttpServer is the prefix for all fields because it avoids conflicts with other environment variables.
 type Config struct {
 	// BindIP is the IP address the server listens on.
 	BindIP string `config_format:"snake" config_default:"::1" validate:"required,ip_addr"`
