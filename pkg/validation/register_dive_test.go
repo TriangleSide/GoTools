@@ -104,7 +104,7 @@ func TestDiveValidatorWithValidations(t *testing.T) {
 				Name:             "dive is the only argument",
 				Value:            []string{"a", "b"},
 				Validation:       "dive",
-				ExpectedErrorMsg: "",
+				ExpectedErrorMsg: "empty validate instructions",
 			},
 			{
 				Name:             "slice of non-zero int values",

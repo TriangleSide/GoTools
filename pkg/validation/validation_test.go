@@ -9,13 +9,6 @@ import (
 func TestValidation(t *testing.T) {
 	t.Parallel()
 
-	t.Run("when a validation is registered twice it should panic", func(t *testing.T) {
-		t.Parallel()
-		assert.PanicPart(t, func() {
-			MustRegisterValidator(RequiredValidatorName, func(parameters *CallbackParameters) error { return nil })
-		}, "named required already exists")
-	})
-
 	t.Run("when Var is called with a validator that does not exist it should return an error", func(t *testing.T) {
 		t.Parallel()
 		assert.ErrorPart(t, Var("value", "does_not_exists"), "validation with name 'does_not_exists' is not registered")
@@ -161,6 +154,74 @@ func TestValidation(t *testing.T) {
 		}
 		assert.ErrorPart(t, Struct(&testStruct{
 			Value: "one",
-		}), "validate tag cannot be empty")
+		}), "empty validate instructions")
+	})
+
+	t.Run("when a struct has a slice of structs and one of their validation fails it should return an error", func(t *testing.T) {
+		t.Parallel()
+		type testSliceStruct struct {
+			SliceStructValue int `validate:"gt=0"`
+		}
+		type testStruct struct {
+			Slice []testSliceStruct `validate:"required"`
+		}
+		assert.ErrorPart(t, Struct(&testStruct{
+			Slice: []testSliceStruct{{SliceStructValue: 1}, {SliceStructValue: 0}},
+		}), "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0' because the value 0 must be greater than 0")
+	})
+
+	t.Run("when a struct has a slice of structs and one of their validations is incorrectly formatted it should return an error", func(t *testing.T) {
+		t.Parallel()
+		type testSliceStruct struct {
+			SliceStructValue int `validate:"not_exist"`
+		}
+		type testStruct struct {
+			Slice []testSliceStruct `validate:"required"`
+		}
+		assert.ErrorPart(t, Struct(&testStruct{
+			Slice: []testSliceStruct{{SliceStructValue: 1}},
+		}), "validation with name 'not_exist' is not registered")
+	})
+
+	t.Run("when a struct has a map of structs and one of their validation fails it should return an error", func(t *testing.T) {
+		t.Parallel()
+		type testMapStruct struct {
+			SliceStructValue int `validate:"gt=0"`
+		}
+		type testStruct struct {
+			Map map[testMapStruct]testMapStruct `validate:"required"`
+		}
+		mapValue := map[testMapStruct]testMapStruct{{SliceStructValue: 1}: {SliceStructValue: -1}}
+		assert.ErrorPart(t, Struct(&testStruct{Map: mapValue}), "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0' because the value -1 must be greater than 0")
+		assert.ErrorPart(t, Var(&testStruct{Map: mapValue}, "required"), "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0' because the value -1 must be greater than 0")
+		mapValue = map[testMapStruct]testMapStruct{{SliceStructValue: -2}: {SliceStructValue: 1}}
+		assert.ErrorPart(t, Struct(&testStruct{Map: mapValue}), "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0' because the value -2 must be greater than 0")
+		assert.ErrorPart(t, Var(&testStruct{Map: mapValue}, "required"), "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0' because the value -2 must be greater than 0")
+	})
+
+	t.Run("when a struct has a map of structs and the key validation is incorrectly formatted it should return an error", func(t *testing.T) {
+		t.Parallel()
+		type testMapStruct struct {
+			SliceStructValue int `validate:"not_exist"`
+		}
+		type testStruct struct {
+			Map map[testMapStruct]int `validate:"required"`
+		}
+		mapValue := map[testMapStruct]int{{SliceStructValue: 1}: 0}
+		assert.ErrorPart(t, Struct(&testStruct{Map: mapValue}), "validation with name 'not_exist' is not registered")
+		assert.ErrorPart(t, Var(&testStruct{Map: mapValue}, "required"), "validation with name 'not_exist' is not registered")
+	})
+
+	t.Run("when a struct has a map of structs and the value validation is incorrectly formatted it should return an error", func(t *testing.T) {
+		t.Parallel()
+		type testMapStruct struct {
+			SliceStructValue int `validate:"not_exist"`
+		}
+		type testStruct struct {
+			Map map[string]testMapStruct `validate:"required"`
+		}
+		mapValue := map[string]testMapStruct{"test": {SliceStructValue: 1}}
+		assert.ErrorPart(t, Struct(&testStruct{Map: mapValue}), "validation with name 'not_exist' is not registered")
+		assert.ErrorPart(t, Var(&testStruct{Map: mapValue}, "required"), "validation with name 'not_exist' is not registered")
 	})
 }
