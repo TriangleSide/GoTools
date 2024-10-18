@@ -8,13 +8,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/netip"
 	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/TriangleSide/GoBase/pkg/config"
 	"github.com/TriangleSide/GoBase/pkg/http/api"
 	"github.com/TriangleSide/GoBase/pkg/http/middleware"
 )
@@ -81,24 +79,7 @@ type Server struct {
 
 // New configures an HTTP server with the provided options.
 func New(opts ...Option) (*Server, error) {
-	srvOpts := &serverOptions{
-		configProvider: func() (*Config, error) {
-			return config.ProcessAndValidate[Config]()
-		},
-		listenerProvider: func(bindIp string, bindPort uint16) (*net.TCPListener, error) {
-			ip, err := netip.ParseAddr(bindIp)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse bind IP: %w", err)
-			}
-			addrPort := netip.AddrPortFrom(ip, bindPort)
-			tcpAddr := net.TCPAddrFromAddrPort(addrPort)
-			return net.ListenTCP(tcpAddr.Network(), tcpAddr)
-		},
-	}
-
-	for _, opt := range opts {
-		opt(srvOpts)
-	}
+	srvOpts := configure(opts...)
 
 	envConfig, err := srvOpts.configProvider()
 	if err != nil {
@@ -120,11 +101,11 @@ func New(opts ...Option) (*Server, error) {
 	}
 
 	var tlsConfig *tls.Config
-	switch envConfig.HTTPServerTLSMode {
+	switch envConfig.TLSMode {
 	case TLSModeOff:
 		tlsConfig = nil
 	case TLSModeTLS:
-		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
+		serverCert, err := tls.LoadX509KeyPair(envConfig.Cert, envConfig.Key)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
 		}
@@ -133,14 +114,14 @@ func New(opts ...Option) (*Server, error) {
 			Certificates: []tls.Certificate{serverCert},
 		}
 	case TLSModeMutualTLS:
-		if len(envConfig.HTTPServerClientCACerts) == 0 {
+		if len(envConfig.ClientCACerts) == 0 {
 			return nil, errors.New("no client CAs provided")
 		}
-		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
+		serverCert, err := tls.LoadX509KeyPair(envConfig.Cert, envConfig.Key)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
 		}
-		clientCAs, err := loadMutualTLSClientCAs(envConfig.HTTPServerClientCACerts)
+		clientCAs, err := loadMutualTLSClientCAs(envConfig.ClientCACerts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load client CA certificates (%w)", err)
 		}
@@ -151,29 +132,29 @@ func New(opts ...Option) (*Server, error) {
 			ClientCAs:    clientCAs,
 		}
 	default:
-		return nil, fmt.Errorf("invalid TLS mode: %s", envConfig.HTTPServerTLSMode)
+		return nil, fmt.Errorf("invalid TLS mode: %s", envConfig.TLSMode)
 	}
 
 	srv := &Server{
 		srv: http.Server{
 			Handler:           serveMux,
-			ReadTimeout:       time.Millisecond * time.Duration(envConfig.HTTPServerReadTimeoutMilliseconds),
-			WriteTimeout:      time.Millisecond * time.Duration(envConfig.HTTPServerWriteTimeoutMilliseconds),
-			IdleTimeout:       time.Millisecond * time.Duration(envConfig.HTTPServerIdleTimeoutMilliseconds),
-			ReadHeaderTimeout: time.Millisecond * time.Duration(envConfig.HTTPServerHeaderReadTimeoutMilliseconds),
-			MaxHeaderBytes:    envConfig.HTTPServerMaxHeaderBytes,
+			ReadTimeout:       time.Millisecond * time.Duration(envConfig.ReadTimeoutMilliseconds),
+			WriteTimeout:      time.Millisecond * time.Duration(envConfig.WriteTimeoutMilliseconds),
+			IdleTimeout:       time.Millisecond * time.Duration(envConfig.IdleTimeoutMilliseconds),
+			ReadHeaderTimeout: time.Millisecond * time.Duration(envConfig.HeaderReadTimeoutMilliseconds),
+			MaxHeaderBytes:    envConfig.MaxHeaderBytes,
 			TLSConfig:         tlsConfig,
 		},
 		ran:      atomic.Bool{},
 		shutdown: atomic.Bool{},
 		wg:       sync.WaitGroup{},
 		listenerProvider: func() (*net.TCPListener, error) {
-			return srvOpts.listenerProvider(envConfig.HTTPServerBindIP, envConfig.HTTPServerBindPort)
+			return srvOpts.listenerProvider(envConfig.BindIP, envConfig.BindPort)
 		},
 		boundCallback: srvOpts.boundCallback,
 	}
 
-	srv.srv.SetKeepAlivesEnabled(envConfig.HTTPServerKeepAlive)
+	srv.srv.SetKeepAlivesEnabled(envConfig.KeepAlive)
 	srv.ran.Store(false)
 	srv.shutdown.Store(false)
 

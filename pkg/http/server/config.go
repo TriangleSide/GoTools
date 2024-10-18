@@ -1,5 +1,13 @@
 package server
 
+import (
+	"fmt"
+	"net"
+	"net/netip"
+
+	"github.com/TriangleSide/GoBase/pkg/config"
+)
+
 // TLSMode represents the TLS mode of the HTTP server.
 type TLSMode string
 
@@ -14,46 +22,74 @@ const (
 	TLSModeMutualTLS TLSMode = "mutual_tls"
 )
 
+const (
+	ConfigPrefix = "HTTP_SERVER"
+)
+
 // Config holds configuration parameters for an HTTP server.
 // HttpServer is the prefix for all fields because it avoids conflicts with other environment variables.
 type Config struct {
-	// HTTPServerBindIP is the IP address the server listens on.
-	HTTPServerBindIP string `config_format:"snake" config_default:"::1" validate:"required,ip_addr"`
+	// BindIP is the IP address the server listens on.
+	BindIP string `config_format:"snake" config_default:"::1" validate:"required,ip_addr"`
 
-	// HTTPServerBindPort is the port number the server listens on.
-	HTTPServerBindPort uint16 `config_format:"snake" config_default:"0" validate:"gte=0"`
+	// BindPort is the port number the server listens on.
+	BindPort uint16 `config_format:"snake" config_default:"0" validate:"gte=0"`
 
-	// HTTPServerReadTimeoutMilliseconds is the maximum time (in seconds) to read the request.
+	// ReadTimeoutMilliseconds is the maximum time (in seconds) to read the request.
 	// Zero or negative means no timeout.
-	HTTPServerReadTimeoutMilliseconds int `config_format:"snake" config_default:"120000" validate:"gte=0"`
+	ReadTimeoutMilliseconds int `config_format:"snake" config_default:"120000" validate:"gte=0"`
 
-	// HTTPServerWriteTimeoutMilliseconds is the maximum time (in seconds) to write the response.
+	// WriteTimeoutMilliseconds is the maximum time (in seconds) to write the response.
 	// Zero or negative means no timeout.
-	HTTPServerWriteTimeoutMilliseconds int `config_format:"snake" config_default:"120000" validate:"gte=0"`
+	WriteTimeoutMilliseconds int `config_format:"snake" config_default:"120000" validate:"gte=0"`
 
-	// HTTPServerIdleTimeoutMilliseconds sets the max idle time (in seconds) between requests when keep-alives are enabled.
+	// IdleTimeoutMilliseconds sets the max idle time (in seconds) between requests when keep-alives are enabled.
 	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
-	HTTPServerIdleTimeoutMilliseconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
+	IdleTimeoutMilliseconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
 
-	// HTTPServerHeaderReadTimeoutMilliseconds is the maximum time (in seconds) to read request headers.
+	// HeaderReadTimeoutMilliseconds is the maximum time (in seconds) to read request headers.
 	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
-	HTTPServerHeaderReadTimeoutMilliseconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
+	HeaderReadTimeoutMilliseconds int `config_format:"snake" config_default:"0" validate:"gte=0"`
 
-	// HTTPServerTLSMode specifies the TLS mode of the server: off, tls, or mutual_tls.
-	HTTPServerTLSMode TLSMode `config_format:"snake" config_default:"tls" validate:"oneof=off tls mutual_tls"`
+	// TLSMode specifies the TLS mode of the server: off, tls, or mutual_tls.
+	TLSMode TLSMode `config_format:"snake" config_default:"tls" validate:"oneof=off tls mutual_tls"`
 
-	// HTTPServerCert is the path to the TLS certificate file.
-	HTTPServerCert string `config_format:"snake" config_default:"" validate:"required_if=HTTPServerTLSMode tls,required_if=HTTPServerTLSMode mutual_tls,omitempty,filepath"`
+	// Cert is the path to the TLS certificate file.
+	Cert string `config_format:"snake" config_default:"" validate:"required_if=TLSMode tls,required_if=TLSMode mutual_tls,omitempty,filepath"`
 
-	// HTTPServerKey is the path to the TLS private key file.
-	HTTPServerKey string `config_format:"snake" config_default:"" validate:"required_if=HTTPServerTLSMode tls,required_if=HTTPServerTLSMode mutual_tls,omitempty,filepath"`
+	// Key is the path to the TLS private key file.
+	Key string `config_format:"snake" config_default:"" validate:"required_if=TLSMode tls,required_if=TLSMode mutual_tls,omitempty,filepath"`
 
-	// HTTPServerClientCACerts is a list of paths to client CA certificate files (used in mutual TLS).
-	HTTPServerClientCACerts []string `config_format:"snake" config_default:"[]" validate:"required_if=HTTPServerTLSMode mutual_tls,dive,required,filepath"`
+	// ClientCACerts is a list of paths to client CA certificate files (used in mutual TLS).
+	ClientCACerts []string `config_format:"snake" config_default:"[]" validate:"required_if=TLSMode mutual_tls,dive,required,filepath"`
 
-	// HTTPServerMaxHeaderBytes sets the maximum size in bytes of request headers. It doesn't limit the request body size.
-	HTTPServerMaxHeaderBytes int `config_format:"snake" config_default:"1048576" validate:"gte=4096,lte=1073741824"`
+	// MaxHeaderBytes sets the maximum size in bytes of request headers. It doesn't limit the request body size.
+	MaxHeaderBytes int `config_format:"snake" config_default:"1048576" validate:"gte=4096,lte=1073741824"`
 
-	// HTTPServerKeepAlive controls whether HTTP keep-alives are enabled. By default, keep-alives are always enabled.
-	HTTPServerKeepAlive bool `config_format:"snake" config_default:"true"`
+	// KeepAlive controls whether HTTP keep-alives are enabled. By default, keep-alives are always enabled.
+	KeepAlive bool `config_format:"snake" config_default:"true"`
+}
+
+// configure applies the options to the default serverOptions values.
+func configure(opts ...Option) *serverOptions {
+	srvOpts := &serverOptions{
+		configProvider: func() (*Config, error) {
+			return config.ProcessAndValidate[Config](config.WithPrefix(ConfigPrefix))
+		},
+		listenerProvider: func(bindIp string, bindPort uint16) (*net.TCPListener, error) {
+			ip, err := netip.ParseAddr(bindIp)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse bind IP: %w", err)
+			}
+			addrPort := netip.AddrPortFrom(ip, bindPort)
+			tcpAddr := net.TCPAddrFromAddrPort(addrPort)
+			return net.ListenTCP(tcpAddr.Network(), tcpAddr)
+		},
+	}
+
+	for _, opt := range opts {
+		opt(srvOpts)
+	}
+
+	return srvOpts
 }
