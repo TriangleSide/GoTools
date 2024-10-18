@@ -8,9 +8,6 @@ import (
 // This can be used as a utility to make pointers to static values.
 // For example: Of[uint](123) returns a uint pointer containing the value 123.
 func Of[T any](val T) *T {
-	if Is[T]() {
-		panic("type cannot be a pointer")
-	}
 	valPtr := new(T)
 	*valPtr = val
 	return valPtr

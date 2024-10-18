@@ -16,10 +16,9 @@ func init() {
 		result := NewCallbackResult()
 
 		value := params.Value
-		if ValueIsNil(value) {
-			return result.WithError(NewViolation(IPAddrValidatorName, params, DefaultNilErrorMessage))
+		if !DereferenceValue(&value) {
+			return result.WithError(NewViolation(IPAddrValidatorName, params, defaultDeferenceErrorMessage))
 		}
-		DereferenceValue(&value)
 
 		if value.Kind() != reflect.String {
 			return result.WithError(fmt.Errorf("value must be a string for the %s validator", IPAddrValidatorName))

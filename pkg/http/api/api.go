@@ -22,29 +22,26 @@ func init() {
 		result := validation.NewCallbackResult()
 
 		value := params.Value
-		if validation.ValueIsNil(value) {
+		if !validation.DereferenceValue(&value) {
 			return result.WithError(validation.NewViolation(pathValidationTag, params, "the path is a nil value"))
 		}
-		validation.DereferenceValue(&value)
 		if value.Kind() != reflect.String {
 			return result.WithError(fmt.Errorf("path is of type %s but it must be a string or a ptr to a string", value.Kind().String()))
 		}
+
 		path := value.String()
 		if len(path) == 0 {
 			return result.WithError(validation.NewViolation(pathValidationTag, params, "the path cannot be empty"))
-		}
-		if path == "/" {
+		} else if path == "/" {
 			return nil
-		}
-		if !isValidCharacters(path) {
+		} else if !isValidCharacters(path) {
 			return result.WithError(validation.NewViolation(pathValidationTag, params, "the path contains invalid characters"))
-		}
-		if !strings.HasPrefix(path, "/") {
+		} else if !strings.HasPrefix(path, "/") {
 			return result.WithError(validation.NewViolation(pathValidationTag, params, "the path must start with '/'"))
-		}
-		if strings.HasSuffix(path, "/") {
+		} else if strings.HasSuffix(path, "/") {
 			return result.WithError(validation.NewViolation(pathValidationTag, params, "the path cannot end with '/'"))
 		}
+
 		parts := strings.Split(path, "/")
 		parameters := map[string]bool{}
 		for i := 1; i < len(parts); i++ {
@@ -68,6 +65,7 @@ func init() {
 				}
 			}
 		}
+
 		return nil
 	})
 }

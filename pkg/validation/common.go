@@ -9,12 +9,11 @@ import (
 type Validator string
 
 var (
-	// DefaultNilErrorMessage is returned if the validator encounters a nil value.
-	DefaultNilErrorMessage = "the value is nil"
+	defaultDeferenceErrorMessage = "the value could not be dereferenced"
 )
 
-// ValueIsNil returns true if the value is nil.
-func ValueIsNil(value reflect.Value) bool {
+// valueIsNil returns true if the value is nil.
+func valueIsNil(value reflect.Value) bool {
 	if !value.IsValid() {
 		return true
 	}
@@ -26,12 +25,13 @@ func ValueIsNil(value reflect.Value) bool {
 	}
 }
 
-// DereferenceValue returns the value referenced by the pointer.
-func DereferenceValue(value *reflect.Value) {
-	if !value.IsValid() {
-		return
-	}
-	if value.Kind() == reflect.Ptr || value.Kind() == reflect.Interface {
+// DereferenceValue returns base type after pointers.
+func DereferenceValue(value *reflect.Value) bool {
+	for value.Kind() == reflect.Ptr || value.Kind() == reflect.Interface {
+		if valueIsNil(*value) {
+			return false
+		}
 		*value = value.Elem()
 	}
+	return !valueIsNil(*value)
 }

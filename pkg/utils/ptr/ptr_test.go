@@ -37,13 +37,6 @@ func TestPtr(t *testing.T) {
 		assert.Equals(t, reflect.TypeOf(ptrVal).Elem().Kind(), reflect.Struct)
 		assert.Equals(t, *ptrVal, testStruct{Value: 123})
 	})
-
-	t.Run("it should panic with a pointer type", func(t *testing.T) {
-		t.Parallel()
-		assert.PanicPart(t, func() {
-			ptr.Of[*int](nil)
-		}, "type cannot be a pointer")
-	})
 }
 
 func TestIs(t *testing.T) {

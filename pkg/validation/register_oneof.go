@@ -22,10 +22,9 @@ func init() {
 		allowedValues := strings.Fields(params.Parameters)
 
 		value := params.Value
-		if ValueIsNil(value) {
-			return result.WithError(NewViolation(OneOfValidatorName, params, DefaultNilErrorMessage))
+		if !DereferenceValue(&value) {
+			return result.WithError(NewViolation(OneOfValidatorName, params, defaultDeferenceErrorMessage))
 		}
-		DereferenceValue(&value)
 
 		var valueStr string
 		switch value.Kind() {

@@ -16,10 +16,9 @@ func required(validator Validator, params *CallbackParameters) *CallbackResult {
 	result := NewCallbackResult()
 
 	value := params.Value
-	if ValueIsNil(value) {
-		return result.WithError(NewViolation(validator, params, DefaultNilErrorMessage))
+	if !DereferenceValue(&value) {
+		return result.WithError(NewViolation(validator, params, defaultDeferenceErrorMessage))
 	}
-	DereferenceValue(&value)
 
 	if value.IsZero() {
 		return result.WithError(NewViolation(validator, params, "the value is the zero-value"))

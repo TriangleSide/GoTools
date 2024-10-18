@@ -54,7 +54,7 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when the value is nil it should not pass",
 			value:         nil,
 			validation:    "oneof=apple banana cherry",
-			expectedError: "value is nil",
+			expectedError: "the value could not be dereferenced",
 		},
 		{
 			name:       "when the value is an interface matching an allowed value it should pass",
@@ -146,7 +146,7 @@ func TestOneOfValidator(t *testing.T) {
 				ptr.Of("cherry"),
 			},
 			validation:    "dive,oneof=apple banana cherry",
-			expectedError: "the value is nil",
+			expectedError: "the value could not be dereferenced",
 		},
 		{
 			name: "when using 'dive' with pointers and an element does not match it should fail",

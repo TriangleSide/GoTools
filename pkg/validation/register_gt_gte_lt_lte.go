@@ -32,10 +32,9 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 		}
 
 		value := params.Value
-		if ValueIsNil(value) {
-			return result.WithError(NewViolation(name, params, DefaultNilErrorMessage))
+		if !DereferenceValue(&value) {
+			return result.WithError(NewViolation(name, params, defaultDeferenceErrorMessage))
 		}
-		DereferenceValue(&value)
 
 		var val float64
 		switch kind := value.Kind(); kind {

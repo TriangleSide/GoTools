@@ -18,7 +18,7 @@ func TestValidation(t *testing.T) {
 		t.Parallel()
 		type testStruct struct{}
 		var instance *testStruct = nil
-		assert.ErrorPart(t, Struct(instance), "nil parameter on struct validation")
+		assert.ErrorPart(t, Struct(instance), "the value could not be dereferenced")
 	})
 
 	t.Run("when the struct parameter is not a struct it should panic", func(t *testing.T) {
@@ -244,5 +244,16 @@ func TestValidation(t *testing.T) {
 			Value string `validate:"test_not_filled"`
 		}
 		assert.ErrorPart(t, Struct(&testStruct{Value: "test"}), "callback response is not correctly filled")
+	})
+
+	t.Run("when a cycle is created in a struct it should return an error", func(t *testing.T) {
+		t.Parallel()
+		type testStruct struct {
+			Value *testStruct `validate:"required"`
+		}
+		value := &testStruct{}
+		value.Value = value
+		assert.ErrorPart(t, Struct(value), "cycle found in the validation")
+		assert.ErrorPart(t, Var(value, "required"), "cycle found in the validation")
 	})
 }

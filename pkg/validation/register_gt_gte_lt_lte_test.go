@@ -84,7 +84,7 @@ func TestComparisonValidations(t *testing.T) {
 			Name:             "nil pointer to int",
 			Value:            (*int)(nil),
 			Validation:       "gt=5",
-			ExpectedErrorMsg: "value is nil",
+			ExpectedErrorMsg: "the value could not be dereferenced",
 		},
 		{
 			Name:             "invalid threshold parameter",
@@ -138,7 +138,7 @@ func TestComparisonValidations(t *testing.T) {
 			Name:             "nil pointer to int",
 			Value:            (*int)(nil),
 			Validation:       "gte=5",
-			ExpectedErrorMsg: "value is nil",
+			ExpectedErrorMsg: "the value could not be dereferenced",
 		},
 		{
 			Name:             "invalid threshold parameter",
@@ -192,7 +192,7 @@ func TestComparisonValidations(t *testing.T) {
 			Name:             "nil pointer to int",
 			Value:            (*int)(nil),
 			Validation:       "lt=5",
-			ExpectedErrorMsg: "value is nil",
+			ExpectedErrorMsg: "the value could not be dereferenced",
 		},
 		{
 			Name:             "invalid threshold parameter",
@@ -246,7 +246,7 @@ func TestComparisonValidations(t *testing.T) {
 			Name:             "nil pointer to int",
 			Value:            (*int)(nil),
 			Validation:       "lte=5",
-			ExpectedErrorMsg: "value is nil",
+			ExpectedErrorMsg: "the value could not be dereferenced",
 		},
 		{
 			Name:             "invalid threshold parameter",

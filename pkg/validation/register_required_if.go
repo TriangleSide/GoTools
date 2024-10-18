@@ -34,10 +34,9 @@ func init() {
 			return result.WithError(NewViolation(RequiredIfValidatorName, params, err.Error()))
 		}
 		// If the value to check is nil, it can never match, therefore the value is not required.
-		if ValueIsNil(requiredFieldValue) {
+		if !DereferenceValue(&requiredFieldValue) {
 			return nil
 		}
-		DereferenceValue(&requiredFieldValue)
 
 		var requiredFieldValueStr string
 		switch requiredFieldValue.Kind() {

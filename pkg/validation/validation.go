@@ -115,15 +115,19 @@ func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, 
 
 // validateRecursively checks if the value is a container, like a slice, and checks if the
 // contents can be validated as well.
-func validateRecursively(val reflect.Value, violations *Violations) error {
-	if ValueIsNil(val) {
+func validateRecursively(depth int, val reflect.Value, violations *Violations) error {
+	const maxDepth = 32
+	if depth >= maxDepth {
+		return fmt.Errorf("cycle found in the validation")
+	}
+
+	if !DereferenceValue(&val) {
 		return nil
 	}
-	DereferenceValue(&val)
 
 	switch val.Kind() {
 	case reflect.Struct:
-		if err := Struct(val.Interface()); err != nil {
+		if err := validateStruct(val.Interface(), depth+1); err != nil {
 			var structViolations *Violations
 			if errors.As(err, &structViolations) {
 				violations.AddViolations(structViolations)
@@ -133,17 +137,17 @@ func validateRecursively(val reflect.Value, violations *Violations) error {
 		}
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < val.Len(); i++ {
-			if err := validateRecursively(val.Index(i), violations); err != nil {
+			if err := validateRecursively(depth+1, val.Index(i), violations); err != nil {
 				return err
 			}
 		}
 	case reflect.Map:
 		mapRange := val.MapRange()
 		for mapRange.Next() {
-			if err := validateRecursively(mapRange.Key(), violations); err != nil {
+			if err := validateRecursively(depth+1, mapRange.Key(), violations); err != nil {
 				return err
 			}
-			if err := validateRecursively(mapRange.Value(), violations); err != nil {
+			if err := validateRecursively(depth+1, mapRange.Value(), violations); err != nil {
 				return err
 			}
 		}
@@ -156,28 +160,32 @@ func validateRecursively(val reflect.Value, violations *Violations) error {
 
 // Struct validates all struct fields using their validation tags, returning an error if any fail.
 func Struct[T any](val T) error {
-	reflectVal := reflect.ValueOf(val)
-	if ValueIsNil(reflectVal) {
-		return errors.New("nil parameter on struct validation")
+	return validateStruct(val, 0)
+}
+
+// validateStruct is a helper for the Struct and validateRecursively functions.
+func validateStruct[T any](val T, depth int) error {
+	reflectValue := reflect.ValueOf(val)
+	if !DereferenceValue(&reflectValue) {
+		return errors.New(defaultDeferenceErrorMessage)
 	}
-	DereferenceValue(&reflectVal)
-	if reflectVal.Kind() != reflect.Struct {
-		panic(fmt.Sprintf("Struct validation parameter must be a struct but got %s.", reflectVal.Kind()))
+	if reflectValue.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("Struct validation parameter must be a struct but got %s.", reflectValue.Kind()))
 	}
 
 	violations := NewViolations()
-	structMetadataMap := fields.StructMetadataFromType(reflectVal.Type())
+	structMetadataMap := fields.StructMetadataFromType(reflectValue.Type())
 
 	for fieldName, fieldMetadata := range structMetadataMap.All() {
 		fieldValueFromStruct, _ := fields.StructValueFromName(val, fieldName)
 
 		if validationTag, hasValidationTag := fieldMetadata.Tags().Fetch(Tag); hasValidationTag {
-			if err := checkValidatorsAgainstValue(true, reflectVal, fieldName, fieldValueFromStruct, validationTag, violations); err != nil {
+			if err := checkValidatorsAgainstValue(true, reflectValue, fieldName, fieldValueFromStruct, validationTag, violations); err != nil {
 				return err
 			}
 		}
 
-		if err := validateRecursively(fieldValueFromStruct, violations); err != nil {
+		if err := validateRecursively(depth, fieldValueFromStruct, violations); err != nil {
 			return err
 		}
 	}
@@ -192,7 +200,7 @@ func Var[T any](val T, validatorInstructions string) error {
 	if err := checkValidatorsAgainstValue(false, reflect.Value{}, "", reflectValue, validatorInstructions, violations); err != nil {
 		return err
 	}
-	if err := validateRecursively(reflectValue, violations); err != nil {
+	if err := validateRecursively(0, reflectValue, violations); err != nil {
 		return err
 	}
 	return violations.NilIfEmpty()

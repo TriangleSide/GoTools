@@ -39,7 +39,7 @@ func TestIPAddrValidator(t *testing.T) {
 		{
 			name:          "when value is a nil pointer, it should fail",
 			value:         (*string)(nil),
-			expectedError: "value is nil",
+			expectedError: "the value could not be dereferenced",
 		},
 		{
 			name:          "when value is a pointer to string with valid IP, it should succeed",
@@ -64,7 +64,7 @@ func TestIPAddrValidator(t *testing.T) {
 		{
 			name:          "when value is an interface wrapping a nil pointer, it should fail",
 			value:         interface{}((*string)(nil)),
-			expectedError: "value is nil",
+			expectedError: "the value could not be dereferenced",
 		},
 		{
 			name:          "when value is an interface wrapping a non-string value, it should return an error",
