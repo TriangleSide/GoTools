@@ -86,25 +86,26 @@ func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, 
 			Parameters:       instruction,
 		}
 
-		var violation *Violation
-		var validatorsStop *stopValidators
-		var valuesNew *newValues
-
-		if err := callback(callbackParameters); err != nil {
-			if errors.As(err, &violation) {
-				violations.AddViolation(violation)
-				return true, nil
-			} else if errors.As(err, &validatorsStop) {
+		if callbackResponse := callback(callbackParameters); callbackResponse != nil {
+			if callbackResponse.err != nil {
+				var violation *Violation
+				if errors.As(callbackResponse.err, &violation) {
+					violations.AddViolation(violation)
+					return false, nil
+				} else {
+					return false, callbackResponse.err
+				}
+			} else if callbackResponse.stop {
 				return false, nil
-			} else if errors.As(err, &valuesNew) {
-				for _, newValue := range valuesNew.values {
+			} else if callbackResponse.newValues != nil {
+				for _, newValue := range callbackResponse.newValues {
 					if newValErr := checkValidatorsAgainstValue(isStructValue, structValue, structFieldName, newValue, rest(), violations); newValErr != nil {
 						return false, newValErr
 					}
 				}
 				return false, nil
 			} else {
-				return false, err
+				return false, fmt.Errorf("callback response is not correctly filled for validator %s", name)
 			}
 		}
 

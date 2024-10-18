@@ -13,15 +13,17 @@ const (
 
 // init registers the validator.
 func init() {
-	MustRegisterValidator(OneOfValidatorName, func(params *CallbackParameters) error {
+	MustRegisterValidator(OneOfValidatorName, func(params *CallbackParameters) *CallbackResult {
+		result := NewCallbackResult()
+
 		if strings.TrimSpace(params.Parameters) == "" {
-			return errors.New("no parameters provided")
+			return result.WithError(errors.New("no parameters provided"))
 		}
 		allowedValues := strings.Fields(params.Parameters)
 
 		value := params.Value
 		if ValueIsNil(value) {
-			return NewViolation(OneOfValidatorName, params, defaultNilErrorMessage)
+			return result.WithError(NewViolation(OneOfValidatorName, params, DefaultNilErrorMessage))
 		}
 		DereferenceValue(&value)
 
@@ -39,6 +41,6 @@ func init() {
 			}
 		}
 
-		return NewViolation(OneOfValidatorName, params, fmt.Sprintf("the value '%s' is not one of the allowed values %v", valueStr, allowedValues))
+		return result.WithError(NewViolation(OneOfValidatorName, params, fmt.Sprintf("the value '%s' is not one of the allowed values %v", valueStr, allowedValues)))
 	})
 }

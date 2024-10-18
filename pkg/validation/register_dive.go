@@ -11,24 +11,26 @@ const (
 
 // init registers the validator.
 func init() {
-	MustRegisterValidator(DiveValidatorName, func(params *CallbackParameters) error {
+	MustRegisterValidator(DiveValidatorName, func(params *CallbackParameters) *CallbackResult {
+		result := NewCallbackResult()
+
 		value := params.Value
 		if ValueIsNil(value) {
-			return NewViolation(DiveValidatorName, params, defaultNilErrorMessage)
+			return result.WithError(NewViolation(DiveValidatorName, params, DefaultNilErrorMessage))
 		}
 		DereferenceValue(&value)
 
 		if value.Kind() != reflect.Slice {
-			return errors.New("the dive validator only accepts slice values")
+			return result.WithError(errors.New("the dive validator only accepts slice values"))
 		}
 
-		valuesToValidate := make([]reflect.Value, 0, value.Len())
+		if value.Len() == 0 {
+			return result.WithStop()
+		}
+
 		for i := 0; i < value.Len(); i++ {
-			valuesToValidate = append(valuesToValidate, value.Index(i))
+			result.AddValue(value.Index(i))
 		}
-
-		return &newValues{
-			values: valuesToValidate,
-		}
+		return result
 	})
 }

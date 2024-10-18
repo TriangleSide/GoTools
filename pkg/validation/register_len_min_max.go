@@ -22,29 +22,32 @@ func init() {
 
 // registerStringLengthValidation consolidates common logic for string length validations.
 func registerStringLengthValidation(name Validator, compareFunc func(length, target int) bool, descriptor string) {
-	MustRegisterValidator(name, func(params *CallbackParameters) error {
+	MustRegisterValidator(name, func(params *CallbackParameters) *CallbackResult {
+		result := NewCallbackResult()
+
 		targetLength, err := strconv.Atoi(params.Parameters)
 		if err != nil {
-			return fmt.Errorf("invalid instruction '%s' for %s: %w", params.Parameters, name, err)
+			return result.WithError(fmt.Errorf("invalid instruction '%s' for %s: %w", params.Parameters, name, err))
 		}
 		if targetLength < 0 {
-			return errors.New("the length parameter can't be negative")
+			return result.WithError(errors.New("the length parameter can't be negative"))
 		}
 
 		value := params.Value
 		if ValueIsNil(value) {
-			return NewViolation(name, params, defaultNilErrorMessage)
+			return result.WithError(NewViolation(name, params, DefaultNilErrorMessage))
 		}
 		DereferenceValue(&value)
 
 		if value.Kind() != reflect.String {
-			return fmt.Errorf("the value must be a string for the %s validator", name)
+			return result.WithError(fmt.Errorf("the value must be a string for the %s validator", name))
 		}
 
 		var valueStr = value.String()
 		if !compareFunc(len(valueStr), targetLength) {
-			return NewViolation(name, params, fmt.Sprintf("the length %d must be %s %d", len(valueStr), descriptor, targetLength))
+			return result.WithError(NewViolation(name, params, fmt.Sprintf("the length %d must be %s %d", len(valueStr), descriptor, targetLength)))
 		}
+
 		return nil
 	})
 }

@@ -2,7 +2,6 @@ package validation
 
 import (
 	"errors"
-	"reflect"
 	"strings"
 )
 
@@ -85,22 +84,4 @@ func (v *Violations) Error() string {
 		errorStrings = append(errorStrings, violation.Error())
 	}
 	return strings.Join(errorStrings, "; ")
-}
-
-// stopValidators is an error used to signal skipping the rest of the validators.
-type stopValidators struct{}
-
-// Error ensures stopValidators has the error interface.
-func (v *stopValidators) Error() string {
-	return "validation halted by stopValidators signal"
-}
-
-// newValues is an error used to signal to run the rest of the validators on these new values.
-type newValues struct {
-	values []reflect.Value
-}
-
-// Error ensures newValues has the error interface.
-func (v *newValues) Error() string {
-	return "validation continues with new values"
 }

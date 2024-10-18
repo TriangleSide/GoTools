@@ -12,19 +12,21 @@ const (
 
 // init registers the validator.
 func init() {
-	MustRegisterValidator(FilepathValidatorName, func(params *CallbackParameters) error {
+	MustRegisterValidator(FilepathValidatorName, func(params *CallbackParameters) *CallbackResult {
+		result := NewCallbackResult()
+
 		value := params.Value
 		if ValueIsNil(value) {
-			return NewViolation(FilepathValidatorName, params, defaultNilErrorMessage)
+			return result.WithError(NewViolation(FilepathValidatorName, params, DefaultNilErrorMessage))
 		}
 		DereferenceValue(&value)
 
 		if value.Kind() != reflect.String {
-			return fmt.Errorf("the value must be a string for the %s validator", FilepathValidatorName)
+			return result.WithError(fmt.Errorf("the value must be a string for the %s validator", FilepathValidatorName))
 		}
 
 		if _, err := os.Stat(value.String()); err != nil {
-			return NewViolation(FilepathValidatorName, params, fmt.Sprintf("the file '%s' is not accessible", value))
+			return result.WithError(NewViolation(FilepathValidatorName, params, fmt.Sprintf("the file '%s' is not accessible", value)))
 		}
 
 		return nil

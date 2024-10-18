@@ -23,15 +23,17 @@ func init() {
 
 // registerComparisonValidation consolidates the common logic for comparison validations.
 func registerComparisonValidation(name Validator, compareFunc func(a, b float64) bool, operator string) {
-	MustRegisterValidator(name, func(params *CallbackParameters) error {
+	MustRegisterValidator(name, func(params *CallbackParameters) *CallbackResult {
+		result := NewCallbackResult()
+
 		threshold, err := strconv.ParseFloat(params.Parameters, 64)
 		if err != nil {
-			return fmt.Errorf("invalid parameters '%s' for %s: %w", params.Parameters, name, err)
+			return result.WithError(fmt.Errorf("invalid parameters '%s' for %s: %w", params.Parameters, name, err))
 		}
 
 		value := params.Value
 		if ValueIsNil(value) {
-			return NewViolation(name, params, defaultNilErrorMessage)
+			return result.WithError(NewViolation(name, params, DefaultNilErrorMessage))
 		}
 		DereferenceValue(&value)
 
@@ -44,12 +46,13 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 		case reflect.Float32, reflect.Float64:
 			val = value.Float()
 		default:
-			return NewViolation(name, params, fmt.Sprintf("the %s validation not supported for kind %s", name, kind))
+			return result.WithError(NewViolation(name, params, fmt.Sprintf("the %s validation not supported for kind %s", name, kind)))
 		}
 
 		if !compareFunc(val, threshold) {
-			return NewViolation(name, params, fmt.Sprintf("the value %v must be %s %v", val, operator, threshold))
+			return result.WithError(NewViolation(name, params, fmt.Sprintf("the value %v must be %s %v", val, operator, threshold)))
 		}
+
 		return nil
 	})
 }

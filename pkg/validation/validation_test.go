@@ -157,6 +157,18 @@ func TestValidation(t *testing.T) {
 		}), "empty validate instructions")
 	})
 
+	t.Run("when a struct a struct field and its validation fails it should return an error", func(t *testing.T) {
+		t.Parallel()
+		type fieldStruct struct {
+			FieldStructValue int `validate:"gt=0"`
+		}
+		type testStruct struct {
+			Value fieldStruct `validate:"required"`
+		}
+		assert.ErrorPart(t, Struct(&testStruct{Value: fieldStruct{FieldStructValue: -1}}), "validation failed on field 'FieldStructValue'")
+		assert.ErrorPart(t, Var(&testStruct{Value: fieldStruct{FieldStructValue: -1}}, "required"), "validation failed on field 'FieldStructValue'")
+	})
+
 	t.Run("when a struct has a slice of structs and one of their validation fails it should return an error", func(t *testing.T) {
 		t.Parallel()
 		type testSliceStruct struct {
@@ -223,5 +235,14 @@ func TestValidation(t *testing.T) {
 		mapValue := map[string]testMapStruct{"test": {SliceStructValue: 1}}
 		assert.ErrorPart(t, Struct(&testStruct{Map: mapValue}), "validation with name 'not_exist' is not registered")
 		assert.ErrorPart(t, Var(&testStruct{Map: mapValue}, "required"), "validation with name 'not_exist' is not registered")
+	})
+
+	t.Run("when the callback result is not correctly filled it should return an error", func(t *testing.T) {
+		t.Parallel()
+		MustRegisterValidator("test_not_filled", func(parameters *CallbackParameters) *CallbackResult { return NewCallbackResult() })
+		type testStruct struct {
+			Value string `validate:"test_not_filled"`
+		}
+		assert.ErrorPart(t, Struct(&testStruct{Value: "test"}), "callback response is not correctly filled")
 	})
 }

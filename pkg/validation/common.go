@@ -9,8 +9,8 @@ import (
 type Validator string
 
 var (
-	// defaultNilErrorMessage is returned if the validator encounters a nil value.
-	defaultNilErrorMessage = "the value is nil"
+	// DefaultNilErrorMessage is returned if the validator encounters a nil value.
+	DefaultNilErrorMessage = "the value is nil"
 )
 
 // ValueIsNil returns true if the value is nil.
