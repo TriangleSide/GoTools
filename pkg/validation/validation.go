@@ -167,7 +167,7 @@ func Struct[T any](val T) error {
 func validateStruct[T any](val T, depth int) error {
 	reflectValue := reflect.ValueOf(val)
 	if !DereferenceValue(&reflectValue) {
-		return errors.New(defaultDeferenceErrorMessage)
+		return errors.New(DefaultDeferenceErrorMessage)
 	}
 	if reflectValue.Kind() != reflect.Struct {
 		panic(fmt.Sprintf("Struct validation parameter must be a struct but got %s.", reflectValue.Kind()))

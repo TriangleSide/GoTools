@@ -9,7 +9,7 @@ import (
 type Validator string
 
 var (
-	defaultDeferenceErrorMessage = "the value could not be dereferenced"
+	DefaultDeferenceErrorMessage = "the value could not be dereferenced"
 )
 
 // valueIsNil returns true if the value is nil.

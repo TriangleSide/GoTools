@@ -17,7 +17,7 @@ func init() {
 
 		value := params.Value
 		if !DereferenceValue(&value) {
-			return result.WithError(NewViolation(IPAddrValidatorName, params, defaultDeferenceErrorMessage))
+			return result.WithError(NewViolation(IPAddrValidatorName, params, DefaultDeferenceErrorMessage))
 		}
 
 		if value.Kind() != reflect.String {

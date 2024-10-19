@@ -23,10 +23,10 @@ func init() {
 
 		value := params.Value
 		if !validation.DereferenceValue(&value) {
-			return result.WithError(validation.NewViolation(pathValidationTag, params, "the path is a nil value"))
+			return result.WithError(validation.NewViolation(pathValidationTag, params, validation.DefaultDeferenceErrorMessage))
 		}
 		if value.Kind() != reflect.String {
-			return result.WithError(fmt.Errorf("path is of type %s but it must be a string or a ptr to a string", value.Kind().String()))
+			return result.WithError(validation.NewViolation(pathValidationTag, params, "the value must be a string"))
 		}
 
 		path := value.String()

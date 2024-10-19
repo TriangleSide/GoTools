@@ -17,7 +17,7 @@ func required(validator Validator, params *CallbackParameters) *CallbackResult {
 
 	value := params.Value
 	if !DereferenceValue(&value) {
-		return result.WithError(NewViolation(validator, params, defaultDeferenceErrorMessage))
+		return result.WithError(NewViolation(validator, params, DefaultDeferenceErrorMessage))
 	}
 
 	if value.IsZero() {

@@ -276,7 +276,7 @@ func TestHTTPApi(t *testing.T) {
 			Path: 1,
 		}
 		err := validation.Struct(&test)
-		assert.ErrorPart(t, err, "path is of type int but it must be a string or a ptr to a string")
+		assert.ErrorPart(t, err, "must be a string")
 	})
 
 	t.Run("when path validation is done on a pointer field that it not a string it should return an error", func(t *testing.T) {
@@ -289,7 +289,7 @@ func TestHTTPApi(t *testing.T) {
 			Path: &i,
 		}
 		err := validation.Struct(&test)
-		assert.ErrorPart(t, err, "path is of type int but it must be a string or a ptr to a string")
+		assert.ErrorPart(t, err, "must be a string")
 	})
 
 	t.Run("when path validation is done nil pointer string it should fail", func(t *testing.T) {
@@ -301,6 +301,6 @@ func TestHTTPApi(t *testing.T) {
 			Path: nil,
 		}
 		err := validation.Struct(&test)
-		assert.ErrorPart(t, err, "the path is a nil value")
+		assert.ErrorPart(t, err, "the value could not be dereferenced")
 	})
 }

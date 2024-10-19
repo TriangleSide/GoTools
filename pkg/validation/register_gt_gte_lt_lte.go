@@ -33,7 +33,7 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 
 		value := params.Value
 		if !DereferenceValue(&value) {
-			return result.WithError(NewViolation(name, params, defaultDeferenceErrorMessage))
+			return result.WithError(NewViolation(name, params, DefaultDeferenceErrorMessage))
 		}
 
 		var val float64

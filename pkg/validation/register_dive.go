@@ -16,7 +16,7 @@ func init() {
 
 		value := params.Value
 		if !DereferenceValue(&value) {
-			return result.WithError(NewViolation(DiveValidatorName, params, defaultDeferenceErrorMessage))
+			return result.WithError(NewViolation(DiveValidatorName, params, DefaultDeferenceErrorMessage))
 		}
 
 		if value.Kind() != reflect.Slice {

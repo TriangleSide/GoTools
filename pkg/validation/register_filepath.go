@@ -17,7 +17,7 @@ func init() {
 
 		value := params.Value
 		if !DereferenceValue(&value) {
-			return result.WithError(NewViolation(FilepathValidatorName, params, defaultDeferenceErrorMessage))
+			return result.WithError(NewViolation(FilepathValidatorName, params, DefaultDeferenceErrorMessage))
 		}
 
 		if value.Kind() != reflect.String {

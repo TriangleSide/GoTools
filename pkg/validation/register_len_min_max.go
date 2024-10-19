@@ -35,7 +35,7 @@ func registerStringLengthValidation(name Validator, compareFunc func(length, tar
 
 		value := params.Value
 		if !DereferenceValue(&value) {
-			return result.WithError(NewViolation(name, params, defaultDeferenceErrorMessage))
+			return result.WithError(NewViolation(name, params, DefaultDeferenceErrorMessage))
 		}
 
 		if value.Kind() != reflect.String {

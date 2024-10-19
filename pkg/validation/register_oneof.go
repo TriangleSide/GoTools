@@ -23,7 +23,7 @@ func init() {
 
 		value := params.Value
 		if !DereferenceValue(&value) {
-			return result.WithError(NewViolation(OneOfValidatorName, params, defaultDeferenceErrorMessage))
+			return result.WithError(NewViolation(OneOfValidatorName, params, DefaultDeferenceErrorMessage))
 		}
 
 		var valueStr string
