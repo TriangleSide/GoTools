@@ -180,7 +180,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 		request, err := http.NewRequest(http.MethodPost, "/", nil)
 		assert.NoError(t, err)
 		readCloser := &testJsonReadCloser{
-			ReturnedError: errors.New("test error"),
+			ReturnedError: errors.New("close error"),
 		}
 		request.Body = readCloser
 		request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJson)
@@ -188,7 +188,25 @@ func TestDecodeHTTPParameters(t *testing.T) {
 		decoded, err := parameters.Decode[struct {
 			Field string `json:"message"`
 		}](request)
-		assert.ErrorPart(t, err, "test error")
+		assert.ErrorExact(t, err, "failed to close the response body (close error)")
+		assert.True(t, readCloser.Closed)
+		assert.Nil(t, decoded)
+	})
+
+	t.Run("when the body fails to close and theres a decode error it should return both errors", func(t *testing.T) {
+		t.Parallel()
+		request, err := http.NewRequest(http.MethodPost, "/", nil)
+		assert.NoError(t, err)
+		readCloser := &testJsonReadCloser{
+			ReturnedError: errors.New("close error"),
+		}
+		request.Body = readCloser
+		request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJson)
+		request = request.WithContext(context.Background())
+		decoded, err := parameters.Decode[struct {
+			Field string `json:"message" validate:"oneof=NOT_EXISTS"`
+		}](request)
+		assert.ErrorPart(t, err, "and failed to close the response body (close error)")
 		assert.True(t, readCloser.Closed)
 		assert.Nil(t, decoded)
 	})

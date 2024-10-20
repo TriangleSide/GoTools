@@ -60,7 +60,7 @@ func TestJSONStreamResponder(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
-				return nil, 0, &errors.BadRequest{Err: goerrors.New("invalid parameters")}
+				return nil, http.StatusOK, nil
 			})
 		}))
 		defer server.Close()

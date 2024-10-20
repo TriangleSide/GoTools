@@ -20,8 +20,10 @@ const (
 	// Tag is the name of the struct field tag.
 	//
 	// type Example struct {
-	//     Value int `validate:"gt=0"`
+	//     Value *int `validate:"required,gt=0"`
 	// }
+	//
+	// The tag contents contains the validators and their respective instructions.
 	Tag = "validate"
 )
 
@@ -32,7 +34,7 @@ func parseValidatorNameAndInstruction(nameToInstruction string) (string, string,
 	const validatorInstructionsIndex = 1
 	nameToInstructionParts := strings.Split(nameToInstruction, NameAndInstructionsSep)
 	if len(nameToInstructionParts) > maxNameToInstructionParts {
-		return "", "", fmt.Errorf("malformed validator and instruction")
+		return "", "", errors.New("malformed validator and instruction")
 	}
 	validatorName := nameToInstructionParts[validatorNameIndex]
 	validatorInstructions := ""
@@ -79,11 +81,11 @@ func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, 
 		}
 		callback := callbackNotCast.(Callback)
 		callbackParameters := &CallbackParameters{
-			StructValidation: isStructValue,
-			StructValue:      structValue,
-			StructFieldName:  structFieldName,
-			Value:            fieldValue,
-			Parameters:       instruction,
+			IsStructValidation: isStructValue,
+			StructValue:        structValue,
+			StructFieldName:    structFieldName,
+			Value:              fieldValue,
+			Parameters:         instruction,
 		}
 
 		if callbackResponse := callback(callbackParameters); callbackResponse != nil {
@@ -118,7 +120,7 @@ func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, 
 func validateRecursively(depth int, val reflect.Value, violations *Violations) error {
 	const maxDepth = 32
 	if depth >= maxDepth {
-		return fmt.Errorf("cycle found in the validation")
+		return errors.New("cycle found in the validation")
 	}
 
 	if !DereferenceValue(&val) {

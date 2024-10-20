@@ -12,7 +12,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("when Error is called on a struct Violation it should a formatted message", func(t *testing.T) {
 		violation := NewViolation("test", &CallbackParameters{
-			StructValidation: true,
+			IsStructValidation: true,
 			StructValue: reflect.ValueOf(struct {
 				Value int
 			}{}),

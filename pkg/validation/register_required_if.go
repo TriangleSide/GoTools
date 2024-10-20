@@ -18,12 +18,13 @@ func init() {
 	MustRegisterValidator(RequiredIfValidatorName, func(params *CallbackParameters) *CallbackResult {
 		result := NewCallbackResult()
 
-		if !params.StructValidation {
+		if !params.IsStructValidation {
 			return result.WithError(errors.New("required_if can only be used on struct fields"))
 		}
 
+		const requiredPartCount = 2
 		parts := strings.Fields(params.Parameters)
-		if len(parts) != 2 {
+		if len(parts) != requiredPartCount {
 			return result.WithError(errors.New("required_if requires a field name and a value to compare"))
 		}
 		requiredIfFieldName := parts[0]

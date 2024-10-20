@@ -16,7 +16,7 @@ type Violation struct {
 func NewViolation(name Validator, params *CallbackParameters, msg string) *Violation {
 	sb := strings.Builder{}
 	sb.WriteString("validation failed")
-	if params.StructValidation {
+	if params.IsStructValidation {
 		sb.WriteString(" on field '")
 		sb.WriteString(params.StructFieldName)
 		sb.WriteString("'")

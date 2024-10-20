@@ -25,7 +25,7 @@ type registeredErrorResponse struct {
 }
 
 var (
-	// registeredErrorTypes is a map of reflect.Type to *registeredErrorResponse
+	// registeredErrorResponses is a map of reflect.Type to *registeredErrorResponse.
 	registeredErrorResponses = sync.Map{}
 )
 

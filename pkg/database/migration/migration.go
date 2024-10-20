@@ -259,7 +259,7 @@ func runMigrations(ctx context.Context, migrationsToRun []*Registration, manager
 		if err := manager.PersistStatus(ctx, migrationToRun.Order, Completed); err != nil {
 			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Completed, migrationToRun.Order, err)
 		}
-		logger.Debugf(ctx, "Migration finished in %s.", time.Now().Sub(startTime))
+		logger.Debugf(ctx, "Migration finished in %s.", time.Since(startTime))
 	}
 
 	return nil

@@ -38,7 +38,7 @@ func TestRegistry(t *testing.T) {
 				Migrate: nil,
 				Enabled: true,
 			})
-		}, fmt.Sprintf("Validation failed for registration"))
+		}, "Validation failed for registration")
 	})
 
 	t.Run("when orderedRegistrations is called the registration should be in order", func(t *testing.T) {
@@ -67,5 +67,4 @@ func TestRegistry(t *testing.T) {
 			_ = orderedRegistrations()
 		}, fmt.Sprintf("order %d was not a *Registration", Order(1)))
 	})
-
 }

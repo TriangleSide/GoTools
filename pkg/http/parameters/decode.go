@@ -14,7 +14,20 @@ import (
 )
 
 // Decode populates a parameter struct with values from an HTTP request and performs validation on the struct.
-func Decode[T any](request *http.Request) (*T, error) {
+func Decode[T any](request *http.Request) (returnParams *T, returnErr error) {
+	defer func() {
+		if request.Body != nil {
+			if err := request.Body.Close(); err != nil {
+				returnParams = nil
+				if returnErr != nil {
+					returnErr = fmt.Errorf("%w and failed to close the response body (%w)", returnErr, err)
+				} else {
+					returnErr = fmt.Errorf("failed to close the response body (%w)", err)
+				}
+			}
+		}
+	}()
+
 	params := new(T)
 	if reflect.ValueOf(*params).Kind() != reflect.Struct {
 		panic("the generic must be a struct")
@@ -43,12 +56,6 @@ func Decode[T any](request *http.Request) (*T, error) {
 
 	if err := validation.Struct(params); err != nil {
 		return nil, fmt.Errorf("validation failed for request parameters (%w)", err)
-	}
-
-	if request.Body != nil {
-		if err := request.Body.Close(); err != nil {
-			return nil, err
-		}
 	}
 
 	return params, nil
