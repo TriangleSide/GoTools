@@ -657,16 +657,18 @@ func TestServer(t *testing.T) {
 					type params struct {
 						Value string `json:"-" urlQuery:"value" validate:"required"`
 					}
-					responders.Status[params](writer, request, func(*params) (int, error) {
+					err := responders.Status[params](writer, request, func(*params) (int, error) {
 						return http.StatusOK, nil
 					})
+					assert.NoError(t, err)
 				},
 			},
 			&testHandler{
 				Path:   "/error",
 				Method: http.MethodGet,
 				Handler: func(writer http.ResponseWriter, request *http.Request) {
-					responders.Error(writer, request, &testErrorResponse{})
+					err := responders.Error(writer, &testErrorResponse{})
+					assert.NoError(t, err)
 				},
 			},
 			&testHandler{
@@ -680,11 +682,12 @@ func TestServer(t *testing.T) {
 					type response struct {
 						Id string
 					}
-					responders.JSON(writer, request, func(params *requestParams) (*response, int, error) {
+					err := responders.JSON(writer, request, func(params *requestParams) (*response, int, error) {
 						return &response{
 							Id: params.Id,
 						}, http.StatusOK, nil
 					})
+					assert.NoError(t, err)
 				},
 			},
 			&testHandler{
@@ -695,7 +698,7 @@ func TestServer(t *testing.T) {
 					type response struct {
 						Id string
 					}
-					responders.JSONStream(writer, request, func(params *requestParams) (<-chan *response, int, error) {
+					err := responders.JSONStream(writer, request, func(params *requestParams) (<-chan *response, int, error) {
 						responseChan := make(chan *response)
 						go func() {
 							defer close(responseChan)
@@ -705,6 +708,7 @@ func TestServer(t *testing.T) {
 						}()
 						return responseChan, http.StatusOK, nil
 					})
+					assert.NoError(t, err)
 				},
 			},
 		))
@@ -727,12 +731,12 @@ func TestServer(t *testing.T) {
 				request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJson)
 			}
 			response, err := http.DefaultClient.Do(request)
+			assert.NoError(t, err, assert.Continue())
 			if err != nil {
-				assert.NoError(t, err, assert.Continue())
 				return
 			}
+			assert.Equals(t, response.StatusCode, expected, assert.Continue())
 			assert.NoError(t, response.Body.Close(), assert.Continue())
-			assert.Equals(t, expected, response.StatusCode, assert.Continue())
 		}
 
 		// Error endpoint.
@@ -771,19 +775,6 @@ func TestServer(t *testing.T) {
 			}()
 		}
 
-		// JSON endpoint bad decode.
-		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				<-waitToStart
-				for i := 0; i < totalRequestsPerGoRoutine; i++ {
-					bodyData := bytes.NewBuffer([]byte(`"data":"value"`))
-					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusBadRequest)
-				}
-			}()
-		}
-
 		// JSON endpoint good.
 		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
 			wg.Add(1)
@@ -791,7 +782,21 @@ func TestServer(t *testing.T) {
 				defer wg.Done()
 				<-waitToStart
 				for i := 0; i < totalRequestsPerGoRoutine; i++ {
-					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", nil, http.StatusBadRequest)
+					bodyData := bytes.NewBuffer([]byte(`{"data":"value"}`))
+					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusOK)
+				}
+			}()
+		}
+
+		// JSON endpoint invalid.
+		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-waitToStart
+				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+					bodyData := bytes.NewBuffer([]byte(`{"data":""}`))
+					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusBadRequest)
 				}
 			}()
 		}

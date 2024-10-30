@@ -118,7 +118,7 @@ func TestMigrate(t *testing.T) {
 		name          string
 		manager       *managerRecorder
 		setupRegistry func(manager *managerRecorder)
-		expectedErr   string
+		expectedErrs  []string
 		expectedOps   []string
 		options       []Option
 		asserts       func(t *testing.T, manager *managerRecorder)
@@ -127,7 +127,7 @@ func TestMigrate(t *testing.T) {
 			name:          "when configProvider fails it should return an error",
 			manager:       &managerRecorder{},
 			setupRegistry: func(manager *managerRecorder) {},
-			expectedErr:   "failed to get the migration configuration",
+			expectedErrs:  []string{"failed to get the migration configuration"},
 			expectedOps:   nil,
 			options: []Option{
 				WithConfigProvider(func() (*Config, error) {
@@ -150,7 +150,7 @@ func TestMigrate(t *testing.T) {
 					Enabled: false,
 				})
 			},
-			expectedErr: "",
+			expectedErrs: nil,
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -177,7 +177,7 @@ func TestMigrate(t *testing.T) {
 				AcquireDBLockError: errors.New("AcquireDBLock error"),
 			},
 			setupRegistry: func(manager *managerRecorder) {},
-			expectedErr:   "failed to acquire the database lock (AcquireDBLock error)",
+			expectedErrs:  []string{"failed to acquire the database lock (AcquireDBLock error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 			},
@@ -192,7 +192,7 @@ func TestMigrate(t *testing.T) {
 				EnsureDataStoresError: errors.New("EnsureDataStores error"),
 			},
 			setupRegistry: func(manager *managerRecorder) {},
-			expectedErr:   "failed to ensure the data stores are created (EnsureDataStores error)",
+			expectedErrs:  []string{"failed to ensure the data stores are created (EnsureDataStores error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -210,7 +210,10 @@ func TestMigrate(t *testing.T) {
 				ReleaseDBLockError:    errors.New("ReleaseDBLockError error"),
 			},
 			setupRegistry: func(manager *managerRecorder) {},
-			expectedErr:   "failed to ensure the data stores are created (EnsureDataStores error) and failed to release the database lock (ReleaseDBLockError error)",
+			expectedErrs: []string{
+				"failed to ensure the data stores are created (EnsureDataStores error)",
+				"failed to release the database lock (ReleaseDBLockError error)",
+			},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -229,7 +232,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErr: "failed to release the database lock (ReleaseDBLock error)",
+			expectedErrs: []string{"failed to release the database lock (ReleaseDBLock error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -246,7 +249,7 @@ func TestMigrate(t *testing.T) {
 				MigrationLockError: errors.New("AcquireMigrationLock error"),
 			},
 			setupRegistry: func(manager *managerRecorder) {},
-			expectedErr:   "failed to acquire the migration lock (AcquireMigrationLock error)",
+			expectedErrs:  []string{"failed to acquire the migration lock (AcquireMigrationLock error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -264,7 +267,7 @@ func TestMigrate(t *testing.T) {
 				ListStatusesError: errors.New("ListStatuses error"),
 			},
 			setupRegistry: func(manager *managerRecorder) {},
-			expectedErr:   "failed to list the persisted statuses (ListStatuses error)",
+			expectedErrs:  []string{"failed to list the persisted statuses (ListStatuses error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -287,7 +290,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErr: "the value 'INVALID' is not one of the allowed values",
+			expectedErrs: []string{"the value 'INVALID' is not one of the allowed values"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -310,7 +313,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErr: "",
+			expectedErrs: nil,
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -340,7 +343,7 @@ func TestMigrate(t *testing.T) {
 					Enabled: true,
 				})
 			},
-			expectedErr: "failed to complete the migration with order 1 (migrate error)",
+			expectedErrs: []string{"failed to complete the migration with order 1 (migrate error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -365,7 +368,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErr: "failed to persist the status PENDING for the migration order 1 (fail on PENDING)",
+			expectedErrs: []string{"failed to persist the status PENDING for the migration order 1 (fail on PENDING)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -387,7 +390,7 @@ func TestMigrate(t *testing.T) {
 				},
 			},
 			setupRegistry: func(manager *managerRecorder) {},
-			expectedErr:   "found persisted migration(s) that are not in the registry",
+			expectedErrs:  []string{"found persisted migration(s) that are not in the registry"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -408,7 +411,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErr: "failed to release the migration lock (ReleaseMigrationLock error)",
+			expectedErrs: []string{"failed to release the migration lock (ReleaseMigrationLock error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -441,7 +444,11 @@ func TestMigrate(t *testing.T) {
 					Enabled: true,
 				})
 			},
-			expectedErr: "failed to complete the migration with order 1 (context canceled) and failed to persist its status to FAILED (context canceled)) and heartbeat failed 3 time(s) with latest error of (heartbeat error)",
+			expectedErrs: []string{
+				"failed to complete the migration with order 1 (context canceled)",
+				"failed to persist its status to FAILED (context canceled))",
+				"heartbeat failed 3 time(s) with latest error of (heartbeat error)",
+			},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -484,7 +491,11 @@ func TestMigrate(t *testing.T) {
 					Enabled: true,
 				})
 			},
-			expectedErr: "failed to complete the migration with order 1 (context canceled) and failed to persist its status to FAILED (context canceled)) and heartbeat failed 3 time(s) with latest error of (heartbeat error) and failed to release the migration lock (ReleaseMigrationLockError error)",
+			expectedErrs: []string{
+				"failed to complete the migration with order 1 (context canceled)",
+				"failed to persist its status to FAILED (context canceled))",
+				"heartbeat failed 3 time(s) with latest error of (heartbeat error)",
+				"failed to release the migration lock (ReleaseMigrationLockError error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -526,7 +537,7 @@ func TestMigrate(t *testing.T) {
 					Enabled: true,
 				})
 			},
-			expectedErr: "",
+			expectedErrs: nil,
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -561,7 +572,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErr: "found two persisted statuses with order 1",
+			expectedErrs: []string{"found two persisted statuses with order 1"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -584,7 +595,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErr: "",
+			expectedErrs: nil,
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -605,7 +616,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErr: "failed to persist the status STARTED for the migration order 1 (fail on STARTED)",
+			expectedErrs: []string{"failed to persist the status STARTED for the migration order 1 (fail on STARTED)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -628,7 +639,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErr: "failed to persist the status COMPLETED for the migration order 1 (fail on COMPLETED)",
+			expectedErrs: []string{"failed to persist the status COMPLETED for the migration order 1 (fail on COMPLETED)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -656,7 +667,7 @@ func TestMigrate(t *testing.T) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 				MustRegister(standardRegisteredMigration(manager, Order(2)))
 			},
-			expectedErr: "cannot run migrations out of order (found 1 but latest completed is 2)",
+			expectedErrs: []string{"cannot run migrations out of order (found 1 but latest completed is 2)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",
@@ -678,10 +689,12 @@ func TestMigrate(t *testing.T) {
 				tt.setupRegistry(tt.manager)
 			}
 			err := Migrate(tt.manager, tt.options...)
-			if tt.expectedErr == "" {
-				assert.NoError(t, err)
+			if len(tt.expectedErrs) > 0 {
+				for _, expectedErr := range tt.expectedErrs {
+					assert.ErrorPart(t, err, expectedErr)
+				}
 			} else {
-				assert.ErrorPart(t, err, tt.expectedErr)
+				assert.NoError(t, err)
 			}
 			assert.Equals(t, tt.expectedOps, tt.manager.Operations)
 			if tt.asserts != nil {

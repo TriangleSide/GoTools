@@ -2,27 +2,25 @@ package responders
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
-	"github.com/TriangleSide/GoBase/pkg/http/errors"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
 	"github.com/TriangleSide/GoBase/pkg/http/parameters"
-	"github.com/TriangleSide/GoBase/pkg/logger"
 )
 
 // JSONStream responds to an HTTP request by streaming responses as JSON objects.
 // The producer is responsible for closing the response channel.
-func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWriter, request *http.Request, callback func(requestParameters *RequestParameters) (responseStream <-chan *ResponseBody, status int, err error)) {
+// An error is returned if there was an error writing the response.
+func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWriter, request *http.Request, callback func(*RequestParameters) (<-chan *ResponseBody, int, error)) error {
 	requestParams, err := parameters.Decode[RequestParameters](request)
 	if err != nil {
-		Error(writer, request, &errors.BadRequest{Err: err})
-		return
+		return Error(writer, err)
 	}
 
 	responseChan, status, err := callback(requestParams)
 	if err != nil {
-		Error(writer, request, err)
-		return
+		return Error(writer, err)
 	}
 
 	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJson)
@@ -30,20 +28,21 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 	writer.WriteHeader(status)
 
 	ctx := request.Context()
+	flusher, isFlusher := writer.(http.Flusher)
 	jsonEncoder := json.NewEncoder(writer)
+
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case response, isOpen := <-responseChan:
 			if !isOpen {
-				return
+				return nil
 			}
 			if encoderError := jsonEncoder.Encode(response); encoderError != nil {
-				logger.Errorf(ctx, "Failed to encode response (%s).", encoderError.Error())
-				return
+				return fmt.Errorf("failed to encode response (%w)", encoderError)
 			}
-			if flusher, ok := writer.(http.Flusher); ok {
+			if isFlusher {
 				flusher.Flush()
 			}
 		}

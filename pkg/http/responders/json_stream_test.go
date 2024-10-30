@@ -3,13 +3,11 @@ package responders_test
 import (
 	"context"
 	"encoding/json"
-	goerrors "errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/http/errors"
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
 	"github.com/TriangleSide/GoBase/pkg/http/responders"
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
@@ -30,7 +28,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
+			assert.NoError(t, responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
 				ch := make(chan *responseBody)
 				go func() {
 					defer close(ch)
@@ -38,7 +36,7 @@ func TestJSONStreamResponder(t *testing.T) {
 					ch <- &responseBody{Message: "second"}
 				}()
 				return ch, http.StatusOK, nil
-			})
+			}))
 		}))
 		defer server.Close()
 
@@ -59,9 +57,9 @@ func TestJSONStreamResponder(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
+			assert.NoError(t, responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
 				return nil, http.StatusOK, nil
-			})
+			}))
 		}))
 		defer server.Close()
 
@@ -69,7 +67,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 
-		responseObj := &errors.Error{}
+		responseObj := &responders.ErrorResponse{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseObj))
 		assert.Contains(t, responseObj.Message, "validation failed on field 'ID'")
 		assert.NoError(t, response.Body.Close())
@@ -79,9 +77,9 @@ func TestJSONStreamResponder(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
-				return nil, 0, &errors.BadRequest{Err: goerrors.New("invalid parameters")}
-			})
+			assert.NoError(t, responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
+				return nil, 0, &testError{}
+			}))
 		}))
 		defer server.Close()
 
@@ -89,9 +87,9 @@ func TestJSONStreamResponder(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 
-		responseObj := &errors.Error{}
+		responseObj := &responders.ErrorResponse{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseObj))
-		assert.Equals(t, responseObj.Message, "invalid parameters")
+		assert.Equals(t, responseObj.Message, "test error")
 		assert.NoError(t, response.Body.Close())
 	})
 
@@ -103,14 +101,14 @@ func TestJSONStreamResponder(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSONStream[requestParams, unmarshalableResponse](w, r, func(params *requestParams) (<-chan *unmarshalableResponse, int, error) {
+			assert.Error(t, responders.JSONStream[requestParams, unmarshalableResponse](w, r, func(params *requestParams) (<-chan *unmarshalableResponse, int, error) {
 				ch := make(chan *unmarshalableResponse, 1)
 				go func() {
 					defer close(ch)
 					ch <- &unmarshalableResponse{}
 				}()
 				return ch, http.StatusOK, nil
-			})
+			}))
 		}))
 		defer server.Close()
 
@@ -131,14 +129,15 @@ func TestJSONStreamResponder(t *testing.T) {
 			ctx, cancel := context.WithCancel(r.Context())
 			r = r.WithContext(ctx)
 			cancel()
-			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
+			assert.NoError(t, responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
+				<-r.Context().Done()
 				ch := make(chan *responseBody)
 				go func() {
 					defer close(ch)
 					ch <- &responseBody{Message: "first"}
 				}()
 				return ch, http.StatusOK, nil
-			})
+			}))
 		}))
 		defer server.Close()
 

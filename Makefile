@@ -24,11 +24,6 @@ lint:
 .PHONY: test
 test:
 	@echo "Running unit tests with coverage report."
-	@$(CGO_DOCKER_RUN) test ./pkg/... -coverprofile=.unit_tests_coverage.out -count=1 -race=1
-	@$(GO_DOCKER_RUN) tool cover -html=.unit_tests_coverage.out -o .unit_tests_coverage.html
+	@$(CGO_DOCKER_RUN) test ./pkg/... -coverprofile=test_coverage.out -count=1 -race=1
+	@$(GO_DOCKER_RUN) tool cover -html=test_coverage.out -o test_coverage.html
 	@echo "Test suites completed."
-
-.PHONY: open_coverage_report
-open_coverage_report:
-	@echo "Opening the unit tests coverage report in a web browser."
-	@open .unit_tests_coverage.html

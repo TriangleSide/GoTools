@@ -161,6 +161,7 @@ func validateRecursively(depth int, val reflect.Value, violations *Violations) e
 }
 
 // Struct validates all struct fields using their validation tags, returning an error if any fail.
+// In the case that the struct has tag violations, a Violations error is returned.
 func Struct[T any](val T) error {
 	return validateStruct(val, 0)
 }
@@ -196,6 +197,7 @@ func validateStruct[T any](val T, depth int) error {
 }
 
 // Var validates a single variable with the given instructions, returning an error if it fails.
+// In the case that the variable has tag violations, a Violations error is returned.
 func Var[T any](val T, validatorInstructions string) error {
 	reflectValue := reflect.ValueOf(val)
 	violations := NewViolations()

@@ -2,6 +2,7 @@ package migration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -75,11 +76,7 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 		cancel()
 		releaseMigrationLockWG.Wait()
 		if releaseMigrationLockErr != nil {
-			if returnErr != nil {
-				returnErr = fmt.Errorf("%w and %w", returnErr, releaseMigrationLockErr)
-			} else {
-				returnErr = releaseMigrationLockErr
-			}
+			returnErr = errors.Join(returnErr, releaseMigrationLockErr)
 		}
 	}()
 
@@ -122,11 +119,7 @@ func ensureDataStores(ctx context.Context, manager Manager, cfg *Config) (return
 		releaseCtx, releaseCancel := context.WithDeadline(context.Background(), releaseDeadline)
 		defer releaseCancel()
 		if releaseErr := manager.ReleaseDBLock(releaseCtx); releaseErr != nil {
-			if returnErr != nil {
-				returnErr = fmt.Errorf("%w and failed to release the database lock (%w)", returnErr, releaseErr)
-			} else {
-				returnErr = fmt.Errorf("failed to release the database lock (%w)", releaseErr)
-			}
+			returnErr = errors.Join(returnErr, fmt.Errorf("failed to release the database lock (%w)", releaseErr))
 		}
 	}()
 
@@ -145,11 +138,7 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 		releaseCtx, releaseCancel := context.WithDeadline(context.Background(), releaseDeadline)
 		defer releaseCancel()
 		if releaseErr := manager.ReleaseMigrationLock(releaseCtx); releaseErr != nil {
-			if returnErr != nil {
-				returnErr = fmt.Errorf("%w and failed to release the migration lock (%w)", returnErr, releaseErr)
-			} else {
-				returnErr = fmt.Errorf("failed to release the migration lock (%w)", releaseErr)
-			}
+			returnErr = errors.Join(returnErr, fmt.Errorf("failed to release the migration lock (%w)", releaseErr))
 		}
 	}()
 

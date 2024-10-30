@@ -2,6 +2,7 @@ package parameters
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -18,12 +19,8 @@ func Decode[T any](request *http.Request) (returnParams *T, returnErr error) {
 	defer func() {
 		if request.Body != nil {
 			if err := request.Body.Close(); err != nil {
+				returnErr = errors.Join(returnErr, fmt.Errorf("failed to close the response body (%w)", err))
 				returnParams = nil
-				if returnErr != nil {
-					returnErr = fmt.Errorf("%w and failed to close the response body (%w)", returnErr, err)
-				} else {
-					returnErr = fmt.Errorf("failed to close the response body (%w)", err)
-				}
 			}
 		}
 	}()
