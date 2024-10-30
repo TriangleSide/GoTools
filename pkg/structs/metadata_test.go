@@ -1,12 +1,12 @@
-package fields_test
+package structs_test
 
 import (
+	"github.com/TriangleSide/GoBase/pkg/structs"
 	"reflect"
 	"sync"
 	"testing"
 
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
-	"github.com/TriangleSide/GoBase/pkg/utils/fields"
 )
 
 func TestStructMetadata(t *testing.T) {
@@ -14,17 +14,17 @@ func TestStructMetadata(t *testing.T) {
 
 	t.Run("when the type is not a struct it should panic", func(t *testing.T) {
 		assert.PanicPart(t, func() {
-			_ = fields.StructMetadata[int]()
+			_ = structs.Metadata[int]()
 		}, "Type must be a struct or a pointer to a struct")
 	})
 
 	t.Run("when the type is a pointer to a struct it return the structs meta", func(t *testing.T) {
-		metadata := fields.StructMetadata[*struct{ Value int }]()
+		metadata := structs.Metadata[*struct{ Value int }]()
 		assert.Equals(t, metadata.Size(), 1)
 	})
 
 	t.Run("when the struct is empty it should return an empty map", func(t *testing.T) {
-		metadata := fields.StructMetadata[struct{}]()
+		metadata := structs.Metadata[struct{}]()
 		assert.Equals(t, metadata.Size(), 0)
 	})
 
@@ -32,7 +32,7 @@ func TestStructMetadata(t *testing.T) {
 		type testStruct struct {
 			Value string
 		}
-		metadata := fields.StructMetadata[testStruct]()
+		metadata := structs.Metadata[testStruct]()
 		assert.Equals(t, metadata.Size(), 1)
 		valueField := metadata.Get("Value")
 		assert.True(t, metadata.Has("Value"))
@@ -45,7 +45,7 @@ func TestStructMetadata(t *testing.T) {
 		type testStruct struct {
 			Value int `key:"Value"`
 		}
-		metadata := fields.StructMetadata[testStruct]()
+		metadata := structs.Metadata[testStruct]()
 		assert.Equals(t, metadata.Size(), 1)
 		valueField := metadata.Get("Value")
 		assert.True(t, metadata.Has("Value"))
@@ -58,7 +58,7 @@ func TestStructMetadata(t *testing.T) {
 		type testStruct struct {
 			Value float32 `key1:"Value1" key2:"Value2"`
 		}
-		metadata := fields.StructMetadata[testStruct]()
+		metadata := structs.Metadata[testStruct]()
 		assert.Equals(t, metadata.Size(), 1)
 		valueField := metadata.Get("Value")
 		assert.True(t, metadata.Has("Value"))
@@ -74,7 +74,7 @@ func TestStructMetadata(t *testing.T) {
 			Value6 string `key7:"Value8" key9:"Value10"`
 		}
 
-		metadata := fields.StructMetadata[testStruct]()
+		metadata := structs.Metadata[testStruct]()
 		assert.Equals(t, metadata.Size(), 2)
 		value1Field := metadata.Get("Value1")
 		assert.True(t, metadata.Has("Value1"))
@@ -109,7 +109,7 @@ func TestStructMetadata(t *testing.T) {
 			OuterField string `key:"Outer"`
 		}
 
-		metadata := fields.StructMetadata[outerStruct]()
+		metadata := structs.Metadata[outerStruct]()
 		assert.Equals(t, metadata.Size(), 4)
 		deepField := metadata.Get("DeepField")
 		assert.True(t, metadata.Has("DeepField"))
@@ -151,7 +151,7 @@ func TestStructMetadata(t *testing.T) {
 		}
 
 		assert.PanicPart(t, func() {
-			_ = fields.StructMetadata[outerStruct]()
+			_ = structs.Metadata[outerStruct]()
 		}, "field Field is ambiguous")
 	})
 
@@ -171,7 +171,7 @@ func TestStructMetadata(t *testing.T) {
 				defer wg.Done()
 				<-waitChan
 				for k := 0; k < loopCount; k++ {
-					metadata := fields.StructMetadata[testStruct]()
+					metadata := structs.Metadata[testStruct]()
 					assert.Equals(t, metadata.Size(), 1)
 					valueField := metadata.Get("Value")
 					assert.True(t, metadata.Has("Value"))

@@ -1,4 +1,4 @@
-package assign
+package structs
 
 import (
 	"encoding"
@@ -6,23 +6,21 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-
-	"github.com/TriangleSide/GoBase/pkg/utils/fields"
 )
 
-// StructField sets a struct field specified by its name to a provided value encoded as a string.
+// AssignToField sets a struct field specified by its name to a provided value encoded as a string.
 // The function handles various data types including basic types (string, int, etc.),
 // complex types (structs, slices, maps) and types implementing the encoding.TextUnmarshaler interface.
 // The conversion from string to the appropriate type is performed based on the field's underlying type.
 // JSON format is expected for complex types. This function supports setting both direct values and pointers to the values.
-func StructField[T any](obj *T, fieldName string, stringEncodedValue string) error {
+func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) error {
 	structValue := reflect.ValueOf(obj)
 	if structValue.Kind() != reflect.Ptr || structValue.Elem().Kind() != reflect.Struct {
 		panic("obj must be a pointer to a struct")
 	}
 
 	// Get the field metadata for all the structs fields.
-	fieldsToMetadata := fields.StructMetadata[T]()
+	fieldsToMetadata := Metadata[T]()
 	fieldMetadata, foundFieldMetadata := fieldsToMetadata.Fetch(fieldName)
 	if !foundFieldMetadata {
 		panic(fmt.Sprintf("no field '%s' in struct '%s'", fieldName, structValue.Type().String()))

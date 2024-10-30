@@ -1,4 +1,4 @@
-package fields
+package structs
 
 import (
 	"errors"
@@ -6,8 +6,8 @@ import (
 	"reflect"
 )
 
-// StructValueFromName returns the fields value if it exists.
-func StructValueFromName[T any](structInstance T, fieldName string) (reflect.Value, error) {
+// ValueFromName returns the fields value if it exists.
+func ValueFromName[T any](structInstance T, fieldName string) (reflect.Value, error) {
 	reflectVal := reflect.ValueOf(structInstance)
 	if reflectVal.Kind() == reflect.Ptr {
 		if reflectVal.IsNil() {

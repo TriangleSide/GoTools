@@ -1,4 +1,4 @@
-package assign_test
+package structs_test
 
 import (
 	"strings"
@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/TriangleSide/GoBase/pkg/ptr"
+	"github.com/TriangleSide/GoBase/pkg/structs"
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
-	"github.com/TriangleSide/GoBase/pkg/utils/assign"
 )
 
 type unmarshallTestStruct struct {
@@ -82,14 +82,14 @@ func TestAssign(t *testing.T) {
 	t.Run("when a value is assigned on a value that is not a struct", func(t *testing.T) {
 		t.Parallel()
 		assert.PanicPart(t, func() {
-			_ = assign.StructField(new(int), "StringValue", "test")
+			_ = structs.AssignToField(new(int), "StringValue", "test")
 		}, "obj must be a pointer to a struct")
 	})
 
 	t.Run("when an unknown field is set it should panic", func(t *testing.T) {
 		values := &testStruct{}
 		assert.PanicPart(t, func() {
-			_ = assign.StructField(values, "NonExistentField", "some value")
+			_ = structs.AssignToField(values, "NonExistentField", "some value")
 		}, "no field 'NonExistentField' in struct")
 	})
 
@@ -99,9 +99,9 @@ func TestAssign(t *testing.T) {
 		expectedTime, err := time.Parse(time.RFC3339, setValue)
 		assert.NoError(t, err)
 		values := &testStruct{}
-		assert.NoError(t, assign.StructField(values, "TimeValue", setValue))
+		assert.NoError(t, structs.AssignToField(values, "TimeValue", setValue))
 		assert.Equals(t, expectedTime, values.TimeValue)
-		assert.NoError(t, assign.StructField(values, "TimePtrValue", setValue))
+		assert.NoError(t, structs.AssignToField(values, "TimePtrValue", setValue))
 		assert.Equals(t, expectedTime, *values.TimePtrValue)
 	})
 
@@ -153,7 +153,7 @@ func TestAssign(t *testing.T) {
 		}
 		for _, subTest := range subTests {
 			values := &testStruct{}
-			assert.NoError(t, assign.StructField(values, subTest.fieldName, subTest.strValue))
+			assert.NoError(t, structs.AssignToField(values, subTest.fieldName, subTest.strValue))
 			assert.Equals(t, subTest.expected, subTest.value(values))
 		}
 	})
@@ -184,7 +184,7 @@ func TestAssign(t *testing.T) {
 		}
 		for _, subTest := range subTests {
 			values := &testStruct{}
-			err := assign.StructField(values, subTest.fieldName, subTest.strValue)
+			err := structs.AssignToField(values, subTest.fieldName, subTest.strValue)
 			assert.ErrorPart(t, err, subTest.errorPart)
 		}
 	})

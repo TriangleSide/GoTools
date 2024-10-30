@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TriangleSide/GoBase/pkg/utils/assign"
-	"github.com/TriangleSide/GoBase/pkg/utils/fields"
+	"github.com/TriangleSide/GoBase/pkg/structs"
 	"github.com/TriangleSide/GoBase/pkg/utils/stringcase"
 	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
 const (
-	// FormatTag is the field name pre-processor. Is a field is called StructField and has a snake-case formatter,
-	// it is transformed into STRUCT_FIELD.
+	// FormatTag is the field name pre-processor.
 	FormatTag = "config_format"
 
 	// DefaultTag is the default to use in case there is no environment variable that matches the formatted field name.
@@ -48,7 +46,7 @@ func Process[T any](opts ...Option) (*T, error) {
 		opt(cfg)
 	}
 
-	fieldsMetadata := fields.StructMetadata[T]()
+	fieldsMetadata := structs.Metadata[T]()
 	conf := new(T)
 
 	for fieldName, fieldMetadata := range fieldsMetadata.All() {
@@ -70,13 +68,13 @@ func Process[T any](opts ...Option) (*T, error) {
 
 		envValue, hasEnvValue := os.LookupEnv(formattedEnvName)
 		if hasEnvValue {
-			if err := assign.StructField(conf, fieldName, envValue); err != nil {
+			if err := structs.AssignToField(conf, fieldName, envValue); err != nil {
 				return nil, fmt.Errorf("failed to assign env var %s to field %s (%w)", envValue, fieldName, err)
 			}
 		} else {
 			defaultValue, hasDefaultTag := fieldMetadata.Tags().Fetch(DefaultTag)
 			if hasDefaultTag {
-				if err := assign.StructField(conf, fieldName, defaultValue); err != nil {
+				if err := structs.AssignToField(conf, fieldName, defaultValue); err != nil {
 					return nil, fmt.Errorf("failed to assign default value %s to field %s (%w)", defaultValue, fieldName, err)
 				}
 			}

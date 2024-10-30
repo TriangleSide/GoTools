@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/TriangleSide/GoBase/pkg/utils/fields"
+	"github.com/TriangleSide/GoBase/pkg/structs"
 )
 
 const (
@@ -177,10 +177,10 @@ func validateStruct[T any](val T, depth int) error {
 	}
 
 	violations := NewViolations()
-	structMetadataMap := fields.StructMetadataFromType(reflectValue.Type())
+	structMetadataMap := structs.MetadataFromType(reflectValue.Type())
 
 	for fieldName, fieldMetadata := range structMetadataMap.All() {
-		fieldValueFromStruct, _ := fields.StructValueFromName(val, fieldName)
+		fieldValueFromStruct, _ := structs.ValueFromName(val, fieldName)
 
 		if validationTag, hasValidationTag := fieldMetadata.Tags().Fetch(Tag); hasValidationTag {
 			if err := checkValidatorsAgainstValue(true, reflectValue, fieldName, fieldValueFromStruct, validationTag, violations); err != nil {

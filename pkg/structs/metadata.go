@@ -1,4 +1,4 @@
-package fields
+package structs
 
 import (
 	"fmt"
@@ -14,17 +14,17 @@ var (
 	// tagMatchRegex matches all tag entries on a struct field.
 	tagMatchRegex = regexp.MustCompile(`(\w+):"([^"]*)"`)
 
-	// typeToMetadataCache is used to cache the result of the StructMetadata function.
+	// typeToMetadataCache is used to cache the result of the Metadata function.
 	typeToMetadataCache = cache.New[reflect.Type, *readonly.Map[string, *FieldMetadata]]()
 )
 
-// StructMetadata returns a map of a structs field names to their respective metadata.
-func StructMetadata[T any]() *readonly.Map[string, *FieldMetadata] {
-	return StructMetadataFromType(reflect.TypeFor[T]())
+// Metadata returns a map of a structs field names to their respective metadata.
+func Metadata[T any]() *readonly.Map[string, *FieldMetadata] {
+	return MetadataFromType(reflect.TypeFor[T]())
 }
 
-// StructMetadataFromType returns a map of a structs field names to their respective metadata.
-func StructMetadataFromType(reflectType reflect.Type) *readonly.Map[string, *FieldMetadata] {
+// MetadataFromType returns a map of a structs field names to their respective metadata.
+func MetadataFromType(reflectType reflect.Type) *readonly.Map[string, *FieldMetadata] {
 	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonly.Map[string, *FieldMetadata], *time.Duration, error) {
 		fieldsToMetadata := make(map[string]*FieldMetadata)
 		processType(reflectType, fieldsToMetadata, make([]string, 0))

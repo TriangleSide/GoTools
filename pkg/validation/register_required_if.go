@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/TriangleSide/GoBase/pkg/utils/fields"
+	"github.com/TriangleSide/GoBase/pkg/structs"
 )
 
 const (
@@ -30,7 +30,7 @@ func init() {
 		requiredIfFieldName := parts[0]
 		requiredIfStrValue := parts[1]
 
-		requiredFieldValue, err := fields.StructValueFromName(params.StructValue.Interface(), requiredIfFieldName)
+		requiredFieldValue, err := structs.ValueFromName(params.StructValue.Interface(), requiredIfFieldName)
 		if err != nil {
 			return result.WithError(NewViolation(RequiredIfValidatorName, params, err.Error()))
 		}
