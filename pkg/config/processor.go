@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/TriangleSide/GoBase/pkg/stringcase"
 	"github.com/TriangleSide/GoBase/pkg/structs"
-	"github.com/TriangleSide/GoBase/pkg/utils/stringcase"
 	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
