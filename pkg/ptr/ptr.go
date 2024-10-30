@@ -16,6 +16,6 @@ func Of[T any](val T) *T {
 // Is checks if the generic parameter is a pointer type.
 // Returns true if T is a pointer, false otherwise.
 func Is[T any]() bool {
-	var zeroVal T
-	return reflect.TypeOf(zeroVal).Kind() == reflect.Ptr
+	reflectType := reflect.TypeFor[T]()
+	return reflectType.Kind() == reflect.Ptr
 }

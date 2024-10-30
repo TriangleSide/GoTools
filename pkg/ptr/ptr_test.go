@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/TriangleSide/GoBase/pkg/ptr"
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
-	"github.com/TriangleSide/GoBase/pkg/utils/ptr"
 )
 
 func TestPtr(t *testing.T) {

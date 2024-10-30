@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/TriangleSide/GoBase/pkg/ptr"
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
-	"github.com/TriangleSide/GoBase/pkg/utils/ptr"
 	"github.com/TriangleSide/GoBase/pkg/validation"
 )
 
