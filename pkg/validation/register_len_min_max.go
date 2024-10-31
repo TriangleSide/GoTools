@@ -35,7 +35,7 @@ func registerStringLengthValidation(name Validator, compareFunc func(length, tar
 
 		value, err := DereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewViolation(params, err.Error()))
+			return result.WithError(NewViolation(params, err))
 		}
 		if value.Kind() != reflect.String {
 			return result.WithError(fmt.Errorf("the value must be a string for the %s validator", name))
@@ -43,7 +43,7 @@ func registerStringLengthValidation(name Validator, compareFunc func(length, tar
 
 		var valueStr = value.String()
 		if !compareFunc(len(valueStr), targetLength) {
-			return result.WithError(NewViolation(params, fmt.Sprintf("the length %d must be %s %d", len(valueStr), descriptor, targetLength)))
+			return result.WithError(NewViolation(params, fmt.Errorf("the length %d must be %s %d", len(valueStr), descriptor, targetLength)))
 		}
 
 		return nil

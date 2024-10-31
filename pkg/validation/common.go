@@ -14,7 +14,7 @@ func DereferenceAndNilCheck(value reflect.Value) (reflect.Value, error) {
 		return reflect.Value{}, err
 	}
 	if reflection.IsNil(dereferenced) {
-		return reflect.Value{}, errors.New("theqq value is nil")
+		return reflect.Value{}, errors.New("the value is nil")
 	}
 	return dereferenced, nil
 }

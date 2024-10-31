@@ -1,5 +1,7 @@
 package validation
 
+import "errors"
+
 const (
 	RequiredValidatorName Validator = "required"
 )
@@ -17,11 +19,11 @@ func required(params *CallbackParameters) *CallbackResult {
 
 	value, err := DereferenceAndNilCheck(params.Value)
 	if err != nil {
-		return result.WithError(NewViolation(params, err.Error()))
+		return result.WithError(NewViolation(params, err))
 	}
 
 	if value.IsZero() {
-		return result.WithError(NewViolation(params, "the value is the zero-value"))
+		return result.WithError(NewViolation(params, errors.New("the value is the zero-value")))
 	}
 
 	return nil

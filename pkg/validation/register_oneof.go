@@ -23,7 +23,7 @@ func init() {
 
 		value, err := DereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewViolation(params, err.Error()))
+			return result.WithError(NewViolation(params, err))
 		}
 
 		var valueStr string
@@ -40,6 +40,6 @@ func init() {
 			}
 		}
 
-		return result.WithError(NewViolation(params, fmt.Sprintf("the value is not one of the allowed values")))
+		return result.WithError(NewViolation(params, fmt.Errorf("the value is not one of the allowed values")))
 	})
 }

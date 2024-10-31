@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -12,7 +12,7 @@ type Violation struct {
 }
 
 // NewViolation instantiates a *Violation.
-func NewViolation(params *CallbackParameters, msg string) *Violation {
+func NewViolation(params *CallbackParameters, err error) *Violation {
 	sb := strings.Builder{}
 	sb.WriteString("validation failed")
 	if params.IsStructValidation {
@@ -28,11 +28,10 @@ func NewViolation(params *CallbackParameters, msg string) *Violation {
 		sb.WriteString(params.Parameters)
 		sb.WriteString("'")
 	}
-	sb.WriteString(" because ")
-	sb.WriteString(msg)
+	sb.WriteString(" because %w")
 	return &Violation{
 		parameters: params,
-		err:        errors.New(sb.String()),
+		err:        fmt.Errorf(sb.String(), err),
 	}
 }
 

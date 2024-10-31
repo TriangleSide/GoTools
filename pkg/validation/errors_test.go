@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -20,7 +21,7 @@ func TestErrors(t *testing.T) {
 			StructFieldName: "Value",
 			Value:           reflect.ValueOf(1),
 			Parameters:      "parameters",
-		}, "test message")
+		}, errors.New("test message"))
 		assert.Equals(t, violation.Error(), "validation failed on field 'Value' with validator 'test' and parameters 'parameters' because test message")
 	})
 }
