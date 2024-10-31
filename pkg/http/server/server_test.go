@@ -657,18 +657,16 @@ func TestServer(t *testing.T) {
 					type params struct {
 						Value string `json:"-" urlQuery:"value" validate:"required"`
 					}
-					err := responders.Status[params](writer, request, func(*params) (int, error) {
+					responders.Status[params](writer, request, func(*params) (int, error) {
 						return http.StatusOK, nil
 					})
-					assert.NoError(t, err)
 				},
 			},
 			&testHandler{
 				Path:   "/error",
 				Method: http.MethodGet,
 				Handler: func(writer http.ResponseWriter, request *http.Request) {
-					err := responders.Error(writer, &testErrorResponse{})
-					assert.NoError(t, err)
+					responders.Error(writer, &testErrorResponse{})
 				},
 			},
 			&testHandler{
@@ -682,12 +680,11 @@ func TestServer(t *testing.T) {
 					type response struct {
 						Id string
 					}
-					err := responders.JSON(writer, request, func(params *requestParams) (*response, int, error) {
+					responders.JSON(writer, request, func(params *requestParams) (*response, int, error) {
 						return &response{
 							Id: params.Id,
 						}, http.StatusOK, nil
 					})
-					assert.NoError(t, err)
 				},
 			},
 			&testHandler{
@@ -698,7 +695,7 @@ func TestServer(t *testing.T) {
 					type response struct {
 						Id string
 					}
-					err := responders.JSONStream(writer, request, func(params *requestParams) (<-chan *response, int, error) {
+					responders.JSONStream(writer, request, func(params *requestParams) (<-chan *response, int, error) {
 						responseChan := make(chan *response)
 						go func() {
 							defer close(responseChan)
@@ -708,7 +705,6 @@ func TestServer(t *testing.T) {
 						}()
 						return responseChan, http.StatusOK, nil
 					})
-					assert.NoError(t, err)
 				},
 			},
 		))
