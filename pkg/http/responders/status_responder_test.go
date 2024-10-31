@@ -35,7 +35,7 @@ func TestStatus(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.Status[requestParams](w, r, statusHandler, responders.WithWriteErrorCallback(writeErrorCallback))
+			responders.Status[requestParams](w, r, statusHandler, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -57,7 +57,7 @@ func TestStatus(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.Status[requestParams](w, r, statusHandler, responders.WithWriteErrorCallback(writeErrorCallback))
+			responders.Status[requestParams](w, r, statusHandler, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -66,7 +66,7 @@ func TestStatus(t *testing.T) {
 		assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 		assert.NoError(t, writeError)
 
-		responseBody := &responders.ErrorResponse{}
+		responseBody := &responders.StandardErrorResponse{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseBody))
 		assert.Contains(t, responseBody.Message, "validation failed on field 'ID'")
 		assert.NoError(t, response.Body.Close())
@@ -81,7 +81,7 @@ func TestStatus(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.Status[requestParams](w, r, statusHandler, responders.WithWriteErrorCallback(writeErrorCallback))
+			responders.Status[requestParams](w, r, statusHandler, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -90,7 +90,7 @@ func TestStatus(t *testing.T) {
 		assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 		assert.NoError(t, writeError)
 
-		responseBody := &responders.ErrorResponse{}
+		responseBody := &responders.StandardErrorResponse{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseBody))
 		assert.Equals(t, responseBody.Message, "test error")
 		assert.NoError(t, response.Body.Close())

@@ -43,7 +43,7 @@ func TestJSONResponder(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSON[requestParams, responseBody](w, r, jsonHandler, responders.WithWriteErrorCallback(writeErrorCallback))
+			responders.JSON[requestParams, responseBody](w, r, jsonHandler, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -67,7 +67,7 @@ func TestJSONResponder(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSON[requestParams, responseBody](w, r, jsonHandler, responders.WithWriteErrorCallback(writeErrorCallback))
+			responders.JSON[requestParams, responseBody](w, r, jsonHandler, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -76,7 +76,7 @@ func TestJSONResponder(t *testing.T) {
 		assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 		assert.NoError(t, writeError)
 
-		body := &responders.ErrorResponse{}
+		body := &responders.StandardErrorResponse{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(body))
 		assert.Contains(t, body.Message, "validation failed on field 'ID'")
 		assert.NoError(t, response.Body.Close())
@@ -91,7 +91,7 @@ func TestJSONResponder(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSON[requestParams, responseBody](w, r, jsonHandler, responders.WithWriteErrorCallback(writeErrorCallback))
+			responders.JSON[requestParams, responseBody](w, r, jsonHandler, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -100,7 +100,7 @@ func TestJSONResponder(t *testing.T) {
 		assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 		assert.NoError(t, writeError)
 
-		body := &responders.ErrorResponse{}
+		body := &responders.StandardErrorResponse{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(body))
 		assert.Equals(t, body.Message, "test error")
 		assert.NoError(t, response.Body.Close())
@@ -117,7 +117,7 @@ func TestJSONResponder(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			responders.JSON[requestParams, unmarshalableResponse](w, r, func(params *requestParams) (*unmarshalableResponse, int, error) {
 				return &unmarshalableResponse{}, http.StatusOK, nil
-			}, responders.WithWriteErrorCallback(writeErrorCallback))
+			}, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -142,7 +142,7 @@ func TestJSONResponder(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.JSON[requestParams, responseBody](ew, r, jsonHandler, responders.WithWriteErrorCallback(writeErrorCallback))
+			responders.JSON[requestParams, responseBody](ew, r, jsonHandler, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 

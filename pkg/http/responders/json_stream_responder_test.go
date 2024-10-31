@@ -41,7 +41,7 @@ func TestJSONStreamResponder(t *testing.T) {
 					ch <- &responseBody{Message: "second"}
 				}()
 				return ch, http.StatusOK, nil
-			}, responders.WithWriteErrorCallback(writeErrorCallback))
+			}, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -70,7 +70,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
 				return nil, http.StatusOK, nil
-			}, responders.WithWriteErrorCallback(writeErrorCallback))
+			}, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -79,7 +79,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 		assert.NoError(t, writeError)
 
-		responseObj := &responders.ErrorResponse{}
+		responseObj := &responders.StandardErrorResponse{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseObj))
 		assert.Contains(t, responseObj.Message, "validation failed on field 'ID'")
 		assert.NoError(t, response.Body.Close())
@@ -96,7 +96,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
 				return nil, 0, &testError{}
-			}, responders.WithWriteErrorCallback(writeErrorCallback))
+			}, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -105,7 +105,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 		assert.NoError(t, writeError)
 
-		responseObj := &responders.ErrorResponse{}
+		responseObj := &responders.StandardErrorResponse{}
 		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseObj))
 		assert.Equals(t, responseObj.Message, "test error")
 		assert.NoError(t, response.Body.Close())
@@ -131,7 +131,7 @@ func TestJSONStreamResponder(t *testing.T) {
 					ch <- &unmarshalableResponse{}
 				}()
 				return ch, http.StatusOK, nil
-			}, responders.WithWriteErrorCallback(writeErrorCallback))
+			}, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -166,7 +166,7 @@ func TestJSONStreamResponder(t *testing.T) {
 					ch <- &responseBody{Message: "first"}
 				}()
 				return ch, http.StatusOK, nil
-			}, responders.WithWriteErrorCallback(writeErrorCallback))
+			}, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 
@@ -203,7 +203,7 @@ func TestJSONStreamResponder(t *testing.T) {
 					ch <- &responseBody{}
 				}()
 				return ch, http.StatusOK, nil
-			}, responders.WithWriteErrorCallback(writeErrorCallback))
+			}, responders.WithErrorCallback(writeErrorCallback))
 		}))
 		defer server.Close()
 

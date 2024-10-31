@@ -11,16 +11,16 @@ import (
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 
-func init() {
-	responders.MustRegisterErrorResponse[testError](http.StatusBadRequest, func(err *testError) string {
-		return err.Error()
-	})
-}
-
 type testError struct{}
 
 func (e *testError) Error() string {
 	return "test error"
+}
+
+type testUnmarshalableError struct{}
+
+func (e *testUnmarshalableError) Error() string {
+	return "unmarshalable error"
 }
 
 type errorWriter struct {
@@ -33,29 +33,26 @@ func (w *errorWriter) Write([]byte) (int, error) {
 	return 0, errors.New("simulated write failure")
 }
 
-func mustDeserializeError(t *testing.T, recorder *httptest.ResponseRecorder) *responders.ErrorResponse {
+func mustDeserializeError(t *testing.T, recorder *httptest.ResponseRecorder) *responders.StandardErrorResponse {
 	t.Helper()
-	httpError := &responders.ErrorResponse{}
+	httpError := &responders.StandardErrorResponse{}
 	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(httpError))
 	return httpError
 }
 
+func init() {
+	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(err *testError) *responders.StandardErrorResponse {
+		return &responders.StandardErrorResponse{
+			Message: err.Error(),
+		}
+	})
+	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(err *testUnmarshalableError) *struct{ C chan int } {
+		return &struct{ C chan int }{}
+	})
+}
+
 func TestErrorResponder(t *testing.T) {
 	t.Parallel()
-
-	t.Run("when the error response is empty it should be able to be marshalled", func(t *testing.T) {
-		t.Parallel()
-		_, err := json.Marshal(&responders.ErrorResponse{})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when the error response is has a message it should be able to be marshalled", func(t *testing.T) {
-		t.Parallel()
-		_, err := json.Marshal(&responders.ErrorResponse{
-			Message: "test",
-		})
-		assert.NoError(t, err)
-	})
 
 	t.Run("when the error is unknown it should return internal server error", func(t *testing.T) {
 		t.Parallel()
@@ -63,7 +60,7 @@ func TestErrorResponder(t *testing.T) {
 		var writeError error
 		writeErrorCallback := func(err error) { writeError = err }
 		standardError := errors.New("standard error")
-		responders.Error(recorder, standardError, responders.WithWriteErrorCallback(writeErrorCallback))
+		responders.Error(recorder, standardError, responders.WithErrorCallback(writeErrorCallback))
 		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
@@ -75,7 +72,7 @@ func TestErrorResponder(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		var writeError error
 		writeErrorCallback := func(err error) { writeError = err }
-		responders.Error(recorder, nil, responders.WithWriteErrorCallback(writeErrorCallback))
+		responders.Error(recorder, nil, responders.WithErrorCallback(writeErrorCallback))
 		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
@@ -87,7 +84,7 @@ func TestErrorResponder(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		var writeError error
 		writeErrorCallback := func(err error) { writeError = err }
-		responders.Error(recorder, &testError{}, responders.WithWriteErrorCallback(writeErrorCallback))
+		responders.Error(recorder, &testError{}, responders.WithErrorCallback(writeErrorCallback))
 		assert.Equals(t, recorder.Code, http.StatusBadRequest)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, "test error")
@@ -99,14 +96,14 @@ func TestErrorResponder(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		var writeError error
 		writeErrorCallback := func(err error) { writeError = err }
-		responders.Error(recorder, errors.Join(&testError{}, errors.New("other error")), responders.WithWriteErrorCallback(writeErrorCallback))
+		responders.Error(recorder, errors.Join(&testError{}, errors.New("other error")), responders.WithErrorCallback(writeErrorCallback))
 		assert.Equals(t, recorder.Code, http.StatusBadRequest)
 		httpError := mustDeserializeError(t, recorder)
 		assert.Equals(t, httpError.Message, "test error")
 		assert.NoError(t, writeError)
 	})
 
-	t.Run("when the writer returns an error it should return an error", func(t *testing.T) {
+	t.Run("when the writer returns an error it should invoke to the callback", func(t *testing.T) {
 		t.Parallel()
 		recorder := httptest.NewRecorder()
 		ew := &errorWriter{
@@ -115,8 +112,17 @@ func TestErrorResponder(t *testing.T) {
 		}
 		var writeError error
 		writeErrorCallback := func(err error) { writeError = err }
-		responders.Error(ew, errors.New("some error"), responders.WithWriteErrorCallback(writeErrorCallback))
+		responders.Error(ew, errors.New("some error"), responders.WithErrorCallback(writeErrorCallback))
 		assert.True(t, ew.WriteFailed)
 		assert.ErrorPart(t, writeError, "simulated write failure")
+	})
+
+	t.Run("when the error response cannot be marshalled it should invoke the callback", func(t *testing.T) {
+		t.Parallel()
+		recorder := httptest.NewRecorder()
+		var writeError error
+		writeErrorCallback := func(err error) { writeError = err }
+		responders.Error(recorder, &testUnmarshalableError{}, responders.WithErrorCallback(writeErrorCallback))
+		assert.ErrorPart(t, writeError, "json")
 	})
 }

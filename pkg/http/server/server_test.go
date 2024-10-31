@@ -50,8 +50,10 @@ func (t *testErrorResponse) Error() string {
 }
 
 func init() {
-	responders.MustRegisterErrorResponse(http.StatusInternalServerError, func(err *testErrorResponse) string {
-		return err.Error()
+	responders.MustRegisterErrorResponse(http.StatusInternalServerError, func(err *testErrorResponse) *responders.StandardErrorResponse {
+		return &responders.StandardErrorResponse{
+			Message: err.Error(),
+		}
 	})
 }
 

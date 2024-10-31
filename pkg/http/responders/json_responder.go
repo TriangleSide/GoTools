@@ -39,6 +39,6 @@ func JSON[RequestParameters any, ResponseBody any](writer http.ResponseWriter, r
 	writer.WriteHeader(status)
 
 	if _, writeErr := io.Copy(writer, bytes.NewBuffer(jsonBytes)); writeErr != nil {
-		cfg.writeErrorCallback(writeErr)
+		cfg.errorCallback(writeErr)
 	}
 }

@@ -43,7 +43,7 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 				return
 			}
 			if encoderError := jsonEncoder.Encode(response); encoderError != nil {
-				cfg.writeErrorCallback(encoderError)
+				cfg.errorCallback(encoderError)
 				return
 			}
 			if isFlusher {

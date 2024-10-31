@@ -12,11 +12,6 @@ import (
 	"github.com/TriangleSide/GoBase/pkg/http/headers"
 )
 
-// ErrorResponse is the standard JSON response an API endpoint makes when an error occurs in the endpoint handler.
-type ErrorResponse struct {
-	Message string `json:"message"`
-}
-
 // errJoinUnwrap unwraps errors joined by errors.Join.
 type errJoinUnwrap interface {
 	Unwrap() []error
@@ -54,24 +49,29 @@ func findRegistryMatch(err error) (error, *registeredErrorResponse) {
 func Error(writer http.ResponseWriter, err error, opts ...Option) {
 	cfg := configure(opts...)
 
-	statusCode := http.StatusInternalServerError
-	errResponse := ErrorResponse{
-		Message: http.StatusText(http.StatusInternalServerError),
-	}
-
+	var statusCode int
+	var errResponse any
 	if matchErr, match := findRegistryMatch(err); match != nil {
 		statusCode = match.Status
-		errResponse.Message = match.MessageCallback(matchErr)
+		errResponse = match.Callback(matchErr)
+	} else {
+		statusCode = http.StatusInternalServerError
+		errResponse = StandardErrorResponse{
+			Message: http.StatusText(http.StatusInternalServerError),
+		}
 	}
 
-	// The error isn't checked here because Marshal should always succeed on the ErrorResponse struct.
-	jsonBytes, _ := json.Marshal(errResponse)
+	jsonBytes, err := json.Marshal(errResponse)
+	if err != nil {
+		cfg.errorCallback(err)
+		return
+	}
 
 	writer.Header().Set(headers.ContentLength, strconv.Itoa(len(jsonBytes)))
 	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJson)
 	writer.WriteHeader(statusCode)
 
 	if _, writeErr := io.Copy(writer, bytes.NewBuffer(jsonBytes)); writeErr != nil {
-		cfg.writeErrorCallback(writeErr)
+		cfg.errorCallback(writeErr)
 	}
 }
