@@ -15,18 +15,17 @@ func init() {
 	MustRegisterValidator(IPAddrValidatorName, func(params *CallbackParameters) *CallbackResult {
 		result := NewCallbackResult()
 
-		value := params.Value
-		if !DereferenceValue(&value) {
-			return result.WithError(NewViolation(IPAddrValidatorName, params, DefaultDeferenceErrorMessage))
+		value, err := DereferenceAndNilCheck(params.Value)
+		if err != nil {
+			return result.WithError(NewViolation(params, err.Error()))
 		}
-
 		if value.Kind() != reflect.String {
-			return result.WithError(fmt.Errorf("value must be a string for the %s validator", IPAddrValidatorName))
+			return result.WithError(fmt.Errorf("the value must be a string"))
 		}
 
 		var valueStr = value.String()
 		if ip := net.ParseIP(valueStr); ip == nil {
-			return result.WithError(NewViolation(IPAddrValidatorName, params, fmt.Sprintf("the value '%s' could not be parsed as an IP address", valueStr)))
+			return result.WithError(NewViolation(params, fmt.Sprintf("the value '%s' could not be parsed as an IP address", valueStr)))
 		}
 
 		return nil

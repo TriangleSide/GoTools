@@ -51,6 +51,7 @@ var (
 // CallbackParameters are the parameters sent to the validation callback.
 // Struct fields are only set on Struct validation.
 type CallbackParameters struct {
+	Validator          Validator
 	IsStructValidation bool
 	StructValue        reflect.Value
 	StructFieldName    string

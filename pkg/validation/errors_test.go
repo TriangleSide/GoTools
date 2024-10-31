@@ -11,7 +11,8 @@ func TestErrors(t *testing.T) {
 	t.Parallel()
 
 	t.Run("when Error is called on a struct Violation it should a formatted message", func(t *testing.T) {
-		violation := NewViolation("test", &CallbackParameters{
+		violation := NewViolation(&CallbackParameters{
+			Validator:          "test",
 			IsStructValidation: true,
 			StructValue: reflect.ValueOf(struct {
 				Value int

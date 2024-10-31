@@ -26,7 +26,7 @@ func TestDiveValidatorWithValidations(t *testing.T) {
 				Name:             "dive is used on a nil value",
 				Value:            nil,
 				Validation:       "dive",
-				ExpectedErrorMsg: "the value could not be dereferenced",
+				ExpectedErrorMsg: "value is nil",
 			},
 			{
 				Name:             "slice of int values all greater than 0",
@@ -80,7 +80,7 @@ func TestDiveValidatorWithValidations(t *testing.T) {
 				Name:             "slice of pointer to int with nil value",
 				Value:            []*int{ptr.Of(1), nil},
 				Validation:       "dive,required",
-				ExpectedErrorMsg: "the value could not be dereferenced",
+				ExpectedErrorMsg: "found nil while dereferencing",
 			},
 			{
 				Name:             "slice of strings with empty string",
@@ -98,7 +98,7 @@ func TestDiveValidatorWithValidations(t *testing.T) {
 				Name:             "dive is called twice with a nil slice value",
 				Value:            [][]string{{"a"}, nil},
 				Validation:       "dive,dive,required",
-				ExpectedErrorMsg: "the value could not be dereferenced",
+				ExpectedErrorMsg: "value is nil",
 			},
 			{
 				Name:             "dive is the only argument",
@@ -116,7 +116,7 @@ func TestDiveValidatorWithValidations(t *testing.T) {
 				Name:             "nil slice of integers",
 				Value:            ([]int)(nil),
 				Validation:       "dive,gt=0",
-				ExpectedErrorMsg: "the value could not be dereferenced",
+				ExpectedErrorMsg: "value is nil",
 			},
 			{
 				Name:             "non-slice value with dive",

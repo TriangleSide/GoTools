@@ -301,6 +301,6 @@ func TestHTTPApi(t *testing.T) {
 			Path: nil,
 		}
 		err := validation.Struct(&test)
-		assert.ErrorPart(t, err, "the value could not be dereferenced")
+		assert.ErrorPart(t, err, "found nil while dereferencing")
 	})
 }

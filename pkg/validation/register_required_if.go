@@ -32,10 +32,12 @@ func init() {
 
 		requiredFieldValue, err := structs.ValueFromName(params.StructValue.Interface(), requiredIfFieldName)
 		if err != nil {
-			return result.WithError(NewViolation(RequiredIfValidatorName, params, err.Error()))
+			return result.WithError(NewViolation(params, err.Error()))
 		}
+
 		// If the value to check is nil, it can never match, therefore the value is not required.
-		if !DereferenceValue(&requiredFieldValue) {
+		requiredFieldValue, err = DereferenceAndNilCheck(requiredFieldValue)
+		if err != nil {
 			return nil
 		}
 
@@ -48,7 +50,7 @@ func init() {
 		}
 
 		if requiredFieldValueStr == requiredIfStrValue {
-			return required(RequiredIfValidatorName, params)
+			return required(params)
 		}
 
 		return nil

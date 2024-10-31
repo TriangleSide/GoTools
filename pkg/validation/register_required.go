@@ -7,21 +7,21 @@ const (
 // init registers the validator.
 func init() {
 	MustRegisterValidator(RequiredValidatorName, func(params *CallbackParameters) *CallbackResult {
-		return required(RequiredValidatorName, params)
+		return required(params)
 	})
 }
 
 // required check if the value is a zero value for its type.
-func required(validator Validator, params *CallbackParameters) *CallbackResult {
+func required(params *CallbackParameters) *CallbackResult {
 	result := NewCallbackResult()
 
-	value := params.Value
-	if !DereferenceValue(&value) {
-		return result.WithError(NewViolation(validator, params, DefaultDeferenceErrorMessage))
+	value, err := DereferenceAndNilCheck(params.Value)
+	if err != nil {
+		return result.WithError(NewViolation(params, err.Error()))
 	}
 
 	if value.IsZero() {
-		return result.WithError(NewViolation(validator, params, "the value is the zero-value"))
+		return result.WithError(NewViolation(params, "the value is the zero-value"))
 	}
 
 	return nil

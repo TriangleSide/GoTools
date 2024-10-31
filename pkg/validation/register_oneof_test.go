@@ -26,7 +26,7 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when the value does not match any of the allowed strings it should fail",
 			value:         "orange",
 			validation:    "oneof=apple banana cherry",
-			expectedError: "value 'orange' is not one of the allowed values [apple banana cherry]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:       "when the value matches one of the allowed integers it should pass",
@@ -37,7 +37,7 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when the value does not match any of the allowed integers it should fail",
 			value:         50,
 			validation:    "oneof=42 100 200",
-			expectedError: "value '50' is not one of the allowed values [42 100 200]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:       "when the value is a pointer matching an allowed value it should pass",
@@ -48,13 +48,13 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when the value is a pointer not matching any allowed value it should fail",
 			value:         ptr.Of("grape"),
 			validation:    "oneof=apple banana cherry",
-			expectedError: "value 'grape' is not one of the allowed values [apple banana cherry]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:          "when the value is nil it should not pass",
 			value:         nil,
 			validation:    "oneof=apple banana cherry",
-			expectedError: "the value could not be dereferenced",
+			expectedError: "value is nil",
 		},
 		{
 			name:       "when the value is an interface matching an allowed value it should pass",
@@ -65,7 +65,7 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when the value is an interface not matching any allowed value it should fail",
 			value:         interface{}("pear"),
 			validation:    "oneof=apple banana cherry",
-			expectedError: "value 'pear' is not one of the allowed values [apple banana cherry]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:          "when the value is an unsupported type it should convert to string and validate",
@@ -88,13 +88,13 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when using 'dive' with 'oneof' and an element does not match it should fail",
 			value:         []string{"apple", "orange"},
 			validation:    "dive,oneof=apple banana cherry",
-			expectedError: "value 'orange' is not one of the allowed values [apple banana cherry]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:          "when the value is a slice and not using 'dive' it should treat slice as a single value",
 			value:         []string{"apple", "banana"},
 			validation:    "oneof=apple banana cherry",
-			expectedError: "value '[apple banana]' is not one of the allowed values [apple banana cherry]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:          "when the value is empty string and empty is allowed it should pass",
@@ -106,7 +106,7 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when the value is empty string and empty is not allowed it should fail",
 			value:         "",
 			validation:    "oneof=apple banana cherry",
-			expectedError: "value '' is not one of the allowed values [apple banana cherry]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:       "when using 'omitempty' and the value is empty it should skip 'oneof' validation",
@@ -117,7 +117,7 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when using 'omitempty' and the value is non-empty but invalid it should fail",
 			value:         "orange",
 			validation:    "omitempty,oneof=apple banana cherry",
-			expectedError: "value 'orange' is not one of the allowed values [apple banana cherry]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:       "when the value is an integer and matches string representation it should pass",
@@ -128,7 +128,7 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when the value is an integer and does not match string representation it should fail",
 			value:         150,
 			validation:    "oneof=100 200 300",
-			expectedError: "value '150' is not one of the allowed values [100 200 300]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name: "when using 'dive' with pointers and all elements match it should pass",
@@ -146,7 +146,7 @@ func TestOneOfValidator(t *testing.T) {
 				ptr.Of("cherry"),
 			},
 			validation:    "dive,oneof=apple banana cherry",
-			expectedError: "the value could not be dereferenced",
+			expectedError: "found nil while dereferencing",
 		},
 		{
 			name: "when using 'dive' with pointers and an element does not match it should fail",
@@ -155,7 +155,7 @@ func TestOneOfValidator(t *testing.T) {
 				ptr.Of("grape"),
 			},
 			validation:    "dive,oneof=apple banana cherry",
-			expectedError: "value 'grape' is not one of the allowed values [apple banana cherry]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:          "when the allowed values contain special characters it should match correctly",
@@ -178,7 +178,7 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when using multiple validators and 'oneof' fails it should not proceed to next validator",
 			value:         "orange",
 			validation:    "oneof=apple banana,len=6",
-			expectedError: "value 'orange' is not one of the allowed values [apple banana]",
+			expectedError: "value is not one of the allowed values",
 		},
 		{
 			name:       "when using 'oneof' with numbers and value is a float matching an allowed value it should pass",
@@ -189,7 +189,7 @@ func TestOneOfValidator(t *testing.T) {
 			name:          "when using 'oneof' with numbers and value is a float not matching allowed values it should fail",
 			value:         1.62,
 			validation:    "oneof=3.14 2.71",
-			expectedError: "value '1.62' is not one of the allowed values [3.14 2.71]",
+			expectedError: "value is not one of the allowed values",
 		},
 	}
 

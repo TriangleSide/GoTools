@@ -34,12 +34,12 @@ func TestIPAddrValidator(t *testing.T) {
 		{
 			name:          "when value is a non-string value, it should return an error",
 			value:         12345,
-			expectedError: "value must be a string for the ip_addr validator",
+			expectedError: "value must be a string",
 		},
 		{
 			name:          "when value is a nil pointer, it should fail",
 			value:         (*string)(nil),
-			expectedError: "the value could not be dereferenced",
+			expectedError: "found nil while dereferencing",
 		},
 		{
 			name:          "when value is a pointer to string with valid IP, it should succeed",
@@ -64,12 +64,12 @@ func TestIPAddrValidator(t *testing.T) {
 		{
 			name:          "when value is an interface wrapping a nil pointer, it should fail",
 			value:         interface{}((*string)(nil)),
-			expectedError: "the value could not be dereferenced",
+			expectedError: "found nil while dereferencing",
 		},
 		{
 			name:          "when value is an interface wrapping a non-string value, it should return an error",
 			value:         interface{}(12345),
-			expectedError: "value must be a string for the ip_addr validator",
+			expectedError: "the value must be a string",
 		},
 		{
 			name:          "when value is a string with extra spaces, it should return an error",

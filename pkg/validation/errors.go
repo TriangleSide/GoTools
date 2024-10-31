@@ -7,13 +7,12 @@ import (
 
 // Violation represents a failure for a specific validator.
 type Violation struct {
-	validator  Validator
 	parameters *CallbackParameters
 	err        error
 }
 
 // NewViolation instantiates a *Violation.
-func NewViolation(name Validator, params *CallbackParameters, msg string) *Violation {
+func NewViolation(params *CallbackParameters, msg string) *Violation {
 	sb := strings.Builder{}
 	sb.WriteString("validation failed")
 	if params.IsStructValidation {
@@ -22,7 +21,7 @@ func NewViolation(name Validator, params *CallbackParameters, msg string) *Viola
 		sb.WriteString("'")
 	}
 	sb.WriteString(" with validator '")
-	sb.WriteString(string(name))
+	sb.WriteString(string(params.Validator))
 	sb.WriteString("'")
 	if params.Parameters != "" {
 		sb.WriteString(" and parameters '")
@@ -32,7 +31,6 @@ func NewViolation(name Validator, params *CallbackParameters, msg string) *Viola
 	sb.WriteString(" because ")
 	sb.WriteString(msg)
 	return &Violation{
-		validator:  name,
 		parameters: params,
 		err:        errors.New(sb.String()),
 	}

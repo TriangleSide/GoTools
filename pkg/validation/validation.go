@@ -9,6 +9,10 @@ import (
 	"github.com/TriangleSide/GoBase/pkg/structs"
 )
 
+// Validator is the name of a validate rule.
+// For example: oneof, required, dive, etc...
+type Validator string
+
 const (
 	// ValidatorsSep is the separator between validation names. For example: "required,oneof=THIS THAT".
 	ValidatorsSep = ","
@@ -81,6 +85,7 @@ func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, 
 		}
 		callback := callbackNotCast.(Callback)
 		callbackParameters := &CallbackParameters{
+			Validator:          Validator(name),
 			IsStructValidation: isStructValue,
 			StructValue:        structValue,
 			StructFieldName:    structFieldName,
@@ -123,7 +128,8 @@ func validateRecursively(depth int, val reflect.Value, violations *Violations) e
 		return errors.New("cycle found in the validation")
 	}
 
-	if !DereferenceValue(&val) {
+	val, err := DereferenceAndNilCheck(val)
+	if err != nil {
 		return nil
 	}
 
@@ -168,9 +174,9 @@ func Struct[T any](val T) error {
 
 // validateStruct is a helper for the Struct and validateRecursively functions.
 func validateStruct[T any](val T, depth int) error {
-	reflectValue := reflect.ValueOf(val)
-	if !DereferenceValue(&reflectValue) {
-		return errors.New(DefaultDeferenceErrorMessage)
+	reflectValue, err := DereferenceAndNilCheck(reflect.ValueOf(val))
+	if err != nil {
+		return err
 	}
 	if reflectValue.Kind() != reflect.Struct {
 		panic(fmt.Sprintf("Struct validation parameter must be a struct but got %s.", reflectValue.Kind()))

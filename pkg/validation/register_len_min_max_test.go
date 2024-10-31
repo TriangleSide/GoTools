@@ -88,7 +88,7 @@ func TestStringLengthValidators(t *testing.T) {
 			validator:     "len",
 			param:         "5",
 			value:         (*string)(nil),
-			expectedError: "the value could not be dereferenced",
+			expectedError: "found nil while dereferencing",
 		},
 		{
 			name:      "when using len validator with an empty string and zero length it should pass",

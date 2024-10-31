@@ -18,7 +18,7 @@ func TestValidation(t *testing.T) {
 		t.Parallel()
 		type testStruct struct{}
 		var instance *testStruct = nil
-		assert.ErrorPart(t, Struct(instance), "the value could not be dereferenced")
+		assert.ErrorPart(t, Struct(instance), "found nil while dereferencing")
 	})
 
 	t.Run("when the struct parameter is not a struct it should panic", func(t *testing.T) {

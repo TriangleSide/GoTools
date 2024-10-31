@@ -43,7 +43,7 @@ func TestFilepathValidator(t *testing.T) {
 		{
 			name:          "when value is a nil pointer, it should fail",
 			value:         (*string)(nil),
-			expectedError: "the value could not be dereferenced",
+			expectedError: "found nil while dereferencing",
 		},
 		{
 			name: "when value is a pointer to string with existing file it should succeed",
@@ -82,7 +82,7 @@ func TestFilepathValidator(t *testing.T) {
 		{
 			name:          "when value is a nil interface it should fail",
 			value:         interface{}(nil),
-			expectedError: "the value could not be dereferenced",
+			expectedError: "the value is nil",
 		},
 	}
 

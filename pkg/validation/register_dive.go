@@ -14,11 +14,10 @@ func init() {
 	MustRegisterValidator(DiveValidatorName, func(params *CallbackParameters) *CallbackResult {
 		result := NewCallbackResult()
 
-		value := params.Value
-		if !DereferenceValue(&value) {
-			return result.WithError(NewViolation(DiveValidatorName, params, DefaultDeferenceErrorMessage))
+		value, err := DereferenceAndNilCheck(params.Value)
+		if err != nil {
+			return result.WithError(NewViolation(params, err.Error()))
 		}
-
 		if value.Kind() != reflect.Slice {
 			return result.WithError(errors.New("the dive validator only accepts slice values"))
 		}

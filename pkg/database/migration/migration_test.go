@@ -290,7 +290,7 @@ func TestMigrate(t *testing.T) {
 			setupRegistry: func(manager *managerRecorder) {
 				MustRegister(standardRegisteredMigration(manager, Order(1)))
 			},
-			expectedErrs: []string{"the value 'INVALID' is not one of the allowed values"},
+			expectedErrs: []string{"the value is not one of the allowed values"},
 			expectedOps: []string{
 				"AcquireDBLock()",
 				"EnsureDataStores()",

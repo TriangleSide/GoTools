@@ -21,9 +21,9 @@ func init() {
 		}
 		allowedValues := strings.Fields(params.Parameters)
 
-		value := params.Value
-		if !DereferenceValue(&value) {
-			return result.WithError(NewViolation(OneOfValidatorName, params, DefaultDeferenceErrorMessage))
+		value, err := DereferenceAndNilCheck(params.Value)
+		if err != nil {
+			return result.WithError(NewViolation(params, err.Error()))
 		}
 
 		var valueStr string
@@ -40,6 +40,6 @@ func init() {
 			}
 		}
 
-		return result.WithError(NewViolation(OneOfValidatorName, params, fmt.Sprintf("the value '%s' is not one of the allowed values %v", valueStr, allowedValues)))
+		return result.WithError(NewViolation(params, fmt.Sprintf("the value is not one of the allowed values")))
 	})
 }

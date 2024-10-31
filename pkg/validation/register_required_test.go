@@ -81,7 +81,7 @@ func TestRequiredValidator(t *testing.T) {
 			name:          "when the value is a nil pointer it should fail",
 			value:         (*int)(nil),
 			validation:    "required",
-			expectedError: "the value could not be dereferenced",
+			expectedError: "found nil while dereferencing",
 		},
 		{
 			name:          "when the value is a pointer to zero value it should fail",
@@ -120,10 +120,10 @@ func TestRequiredValidator(t *testing.T) {
 			expectedError: "",
 		},
 		{
-			name:          "when the value could not be dereferenced interface it should fail",
+			name:          "when the an interface is nil it should fail",
 			value:         interface{}(nil),
 			validation:    "required",
-			expectedError: "the value could not be dereferenced",
+			expectedError: "value is nil",
 		},
 		{
 			name:          "when using 'dive' on a slice with all non-zero elements it should pass",
@@ -141,7 +141,7 @@ func TestRequiredValidator(t *testing.T) {
 			name:          "when using 'dive' on a slice with nil pointers it should fail",
 			value:         []*int{ptr.Of(1), nil, ptr.Of(3)},
 			validation:    "dive,required",
-			expectedError: "the value could not be dereferenced",
+			expectedError: "found nil while dereferencing",
 		},
 		{
 			name:          "when the value is boolean true it should pass",
@@ -165,7 +165,7 @@ func TestRequiredValidator(t *testing.T) {
 			name:          "when the value is a nil channel it should fail",
 			value:         (chan int)(nil),
 			validation:    "required",
-			expectedError: "the value could not be dereferenced",
+			expectedError: "value is nil",
 		},
 		{
 			name:          "when the value is a non-nil function it should pass",
@@ -177,7 +177,7 @@ func TestRequiredValidator(t *testing.T) {
 			name:          "when the value is a nil function it should fail",
 			value:         (func())(nil),
 			validation:    "required",
-			expectedError: "the value could not be dereferenced",
+			expectedError: "value is nil",
 		},
 		{
 			name:          "when the value is a zero complex number it should fail",
