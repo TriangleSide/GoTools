@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/structs"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/structs"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestStructMetadata(t *testing.T) {

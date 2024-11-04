@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/TriangleSide/GoBase/pkg/datastructures/cache"
-	"github.com/TriangleSide/GoBase/pkg/datastructures/readonly"
+	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
+	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
 )
 
 var (

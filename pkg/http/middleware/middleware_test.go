@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/http/middleware"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/http/middleware"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestHTTPMiddleware(t *testing.T) {

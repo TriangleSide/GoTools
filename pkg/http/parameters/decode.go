@@ -8,10 +8,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/TriangleSide/GoBase/pkg/datastructures/readonly"
-	"github.com/TriangleSide/GoBase/pkg/http/headers"
-	"github.com/TriangleSide/GoBase/pkg/structs"
-	"github.com/TriangleSide/GoBase/pkg/validation"
+	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
+	"github.com/TriangleSide/GoTools/pkg/http/headers"
+	"github.com/TriangleSide/GoTools/pkg/structs"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 // Decode populates a parameter struct with values from an HTTP request and performs validation on the struct.

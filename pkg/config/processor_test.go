@@ -3,8 +3,8 @@ package config_test
 import (
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/config"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/config"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestEnvProcessor(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/http/responders"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/http/responders"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 type testError struct{}

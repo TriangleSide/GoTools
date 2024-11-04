@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/http/responders"
-	"github.com/TriangleSide/GoBase/pkg/ptr"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/http/responders"
+	"github.com/TriangleSide/GoTools/pkg/ptr"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestErrorRegistry(t *testing.T) {

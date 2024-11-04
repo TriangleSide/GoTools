@@ -1,3 +1,3 @@
-module github.com/TriangleSide/GoBase
+module github.com/TriangleSide/GoTools
 
 go 1.23

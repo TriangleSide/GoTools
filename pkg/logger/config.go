@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/TriangleSide/GoBase/pkg/config"
+	"github.com/TriangleSide/GoTools/pkg/config"
 )
 
 // Config contains the values needed to configure the logger.

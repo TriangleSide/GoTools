@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/config"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
-	"github.com/TriangleSide/GoBase/pkg/validation"
+	"github.com/TriangleSide/GoTools/pkg/config"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 type managerRecorder struct {

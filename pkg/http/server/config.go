@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/TriangleSide/GoBase/pkg/config"
+	"github.com/TriangleSide/GoTools/pkg/config"
 )
 
 // TLSMode represents the TLS mode of the HTTP server.

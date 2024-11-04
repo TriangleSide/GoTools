@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoBase/pkg/ptr"
-	"github.com/TriangleSide/GoBase/pkg/structs"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/ptr"
+	"github.com/TriangleSide/GoTools/pkg/structs"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 type unmarshallTestStruct struct {

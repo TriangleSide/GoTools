@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestFormatter(t *testing.T) {

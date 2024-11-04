@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/TriangleSide/GoBase/pkg/http/headers"
-	"github.com/TriangleSide/GoBase/pkg/http/parameters"
+	"github.com/TriangleSide/GoTools/pkg/http/headers"
+	"github.com/TriangleSide/GoTools/pkg/http/parameters"
 )
 
 // JSON responds to an HTTP request by encoding the response as JSON.

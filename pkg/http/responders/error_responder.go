@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/TriangleSide/GoBase/pkg/http/headers"
+	"github.com/TriangleSide/GoTools/pkg/http/headers"
 )
 
 // errJoinUnwrap unwraps errors joined by errors.Join.

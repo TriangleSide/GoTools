@@ -1,6 +1,6 @@
-# GoBase
+# GoTools
 
-GoBase is a library for other GoLang projects. It provides utilities designed to standardize development practices and streamline the creation of new applications.
+GoTools is a tool set for GoLang projects.
 
 ## Documentation
 

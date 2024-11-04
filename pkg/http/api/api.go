@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/TriangleSide/GoBase/pkg/http/middleware"
-	"github.com/TriangleSide/GoBase/pkg/validation"
+	"github.com/TriangleSide/GoTools/pkg/http/middleware"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 const (

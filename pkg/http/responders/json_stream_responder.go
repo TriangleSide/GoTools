@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/TriangleSide/GoBase/pkg/http/headers"
-	"github.com/TriangleSide/GoBase/pkg/http/parameters"
+	"github.com/TriangleSide/GoTools/pkg/http/headers"
+	"github.com/TriangleSide/GoTools/pkg/http/parameters"
 )
 
 // JSONStream responds to an HTTP request by streaming responses as JSON objects.

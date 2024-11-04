@@ -3,7 +3,7 @@ package structs
 import (
 	"reflect"
 
-	"github.com/TriangleSide/GoBase/pkg/datastructures/readonly"
+	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
 )
 
 // FieldMetadata is the metadata extracted a struct fields.

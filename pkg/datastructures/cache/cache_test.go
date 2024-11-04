@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoBase/pkg/ptr"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/ptr"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func cacheMustHaveKeyAndValue[Key comparable, Value any](t *testing.T, testCache *Cache[Key, Value], key Key, value Value) {

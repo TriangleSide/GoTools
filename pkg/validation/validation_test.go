@@ -3,7 +3,7 @@ package validation
 import (
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestValidation(t *testing.T) {

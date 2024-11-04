@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/TriangleSide/GoBase/pkg/structs"
+	"github.com/TriangleSide/GoTools/pkg/structs"
 )
 
 const (

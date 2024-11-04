@@ -3,9 +3,9 @@ package parameters_test
 import (
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/http/headers"
-	"github.com/TriangleSide/GoBase/pkg/http/parameters"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/http/headers"
+	"github.com/TriangleSide/GoTools/pkg/http/parameters"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestTags(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TriangleSide/GoBase/pkg/logger"
-	"github.com/TriangleSide/GoBase/pkg/validation"
+	"github.com/TriangleSide/GoTools/pkg/logger"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 // Status represents the status of a persisted migration.

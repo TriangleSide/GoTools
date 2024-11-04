@@ -3,7 +3,7 @@ package responders
 import (
 	"net/http"
 
-	"github.com/TriangleSide/GoBase/pkg/http/parameters"
+	"github.com/TriangleSide/GoTools/pkg/http/parameters"
 )
 
 // Status responds to an HTTP request with a status but no response body.

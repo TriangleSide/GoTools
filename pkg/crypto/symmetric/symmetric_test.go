@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/crypto/symmetric"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/crypto/symmetric"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestSymmetricEncryption(t *testing.T) {

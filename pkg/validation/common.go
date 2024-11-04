@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/TriangleSide/GoBase/pkg/reflection"
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 )
 
 // DereferenceAndNilCheck is used to get the base type and ensure it's not nil.

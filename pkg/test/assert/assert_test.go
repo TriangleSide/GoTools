@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 type testRecorder struct {

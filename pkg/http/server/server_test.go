@@ -20,13 +20,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoBase/pkg/config"
-	"github.com/TriangleSide/GoBase/pkg/http/api"
-	"github.com/TriangleSide/GoBase/pkg/http/headers"
-	"github.com/TriangleSide/GoBase/pkg/http/middleware"
-	"github.com/TriangleSide/GoBase/pkg/http/responders"
-	"github.com/TriangleSide/GoBase/pkg/http/server"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/config"
+	"github.com/TriangleSide/GoTools/pkg/http/api"
+	"github.com/TriangleSide/GoTools/pkg/http/headers"
+	"github.com/TriangleSide/GoTools/pkg/http/middleware"
+	"github.com/TriangleSide/GoTools/pkg/http/responders"
+	"github.com/TriangleSide/GoTools/pkg/http/server"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 type testHandler struct {

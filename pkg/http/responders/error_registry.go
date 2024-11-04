@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/TriangleSide/GoBase/pkg/validation"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 // registeredErrorTypeResponse is used by the Error responder to format the response.

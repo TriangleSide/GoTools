@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestMustConfigure(t *testing.T) {

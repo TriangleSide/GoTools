@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/TriangleSide/GoBase/pkg/validation"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 // Order represents the sequence in which migrations are meant to be run.

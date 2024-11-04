@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/ptr"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
-	"github.com/TriangleSide/GoBase/pkg/validation"
+	"github.com/TriangleSide/GoTools/pkg/ptr"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 func TestStringLengthValidators(t *testing.T) {

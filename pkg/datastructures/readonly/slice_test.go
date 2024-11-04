@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/datastructures/readonly"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func verifySliceValue[T any](t *testing.T, roSlice *readonly.Slice[T], index int, expectedValue T) {

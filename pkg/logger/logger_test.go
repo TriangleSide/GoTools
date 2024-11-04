@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/logger"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/logger"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestSetOutput(t *testing.T) {

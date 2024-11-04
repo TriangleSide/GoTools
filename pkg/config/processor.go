@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TriangleSide/GoBase/pkg/stringcase"
-	"github.com/TriangleSide/GoBase/pkg/structs"
-	"github.com/TriangleSide/GoBase/pkg/validation"
+	"github.com/TriangleSide/GoTools/pkg/stringcase"
+	"github.com/TriangleSide/GoTools/pkg/structs"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 const (

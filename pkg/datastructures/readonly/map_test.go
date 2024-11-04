@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/TriangleSide/GoBase/pkg/datastructures/readonly"
-	"github.com/TriangleSide/GoBase/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
+	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func verifyMapKeyAndValue[Key comparable, Value any](t *testing.T, roMap *readonly.Map[Key, Value], key Key, value Value) {
