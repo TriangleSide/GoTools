@@ -40,5 +40,6 @@ func JSON[RequestParameters any, ResponseBody any](writer http.ResponseWriter, r
 
 	if _, writeErr := io.Copy(writer, bytes.NewBuffer(jsonBytes)); writeErr != nil {
 		cfg.errorCallback(writeErr)
+		return
 	}
 }

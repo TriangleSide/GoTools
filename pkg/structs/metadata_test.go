@@ -1,11 +1,11 @@
 package structs_test
 
 import (
-	"github.com/TriangleSide/GoBase/pkg/structs"
 	"reflect"
 	"sync"
 	"testing"
 
+	"github.com/TriangleSide/GoBase/pkg/structs"
 	"github.com/TriangleSide/GoBase/pkg/test/assert"
 )
 

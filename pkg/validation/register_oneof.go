@@ -40,6 +40,6 @@ func init() {
 			}
 		}
 
-		return result.WithError(NewViolation(params, fmt.Errorf("the value is not one of the allowed values")))
+		return result.WithError(NewViolation(params, errors.New("the value is not one of the allowed values")))
 	})
 }

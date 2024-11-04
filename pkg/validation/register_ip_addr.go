@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -20,7 +21,7 @@ func init() {
 			return result.WithError(NewViolation(params, err))
 		}
 		if value.Kind() != reflect.String {
-			return result.WithError(fmt.Errorf("the value must be a string"))
+			return result.WithError(errors.New("the value must be a string"))
 		}
 
 		var valueStr = value.String()

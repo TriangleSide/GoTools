@@ -73,5 +73,6 @@ func Error(writer http.ResponseWriter, err error, opts ...Option) {
 
 	if _, writeErr := io.Copy(writer, bytes.NewBuffer(jsonBytes)); writeErr != nil {
 		cfg.errorCallback(writeErr)
+		return
 	}
 }
