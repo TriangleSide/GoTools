@@ -24,7 +24,8 @@ type Cache[Key comparable, Value any] struct {
 	keyToItem        map[Key]*item[Value]
 }
 
-// New creates a new instance of the Cache interface.
+// New creates a new Cache instance. The benefit of using Cache instead of a regular map is that
+// Cache is thread safe. It also handles expiring items.
 func New[Key comparable, Value any]() *Cache[Key, Value] {
 	return &Cache[Key, Value]{
 		rwMutex:          sync.RWMutex{},

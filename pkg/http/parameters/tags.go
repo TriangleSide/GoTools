@@ -15,7 +15,7 @@ import (
 // Tag is a string of metadata associated at compile time with a field of a struct.
 //
 //	type MyStruct struct {
-//	    HeaderParameter string `httpHeader:"x-my-parameter"`
+//		HeaderParameter string `httpHeader:"x-my-parameter"`
 //	}
 //
 // In this case, the tag would be "httpHeader".
@@ -87,14 +87,14 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 //
 // Returns the following map:
 //
-//	 {
-//			"httpHeader": {
-//				"x-my-parameter": "MyParameter"
-//			},
-//		    "urlPath": {
-//				"my-id": "PathParameter"
-//			}
+//	{
+//		"httpHeader": {
+//			"x-my-parameter": "MyParameter"
+//		},
+//		"urlPath": {
+//			"my-id": "PathParameter"
 //		}
+//	}
 func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonly.Map[Tag, LookupKeyToFieldName], error) {
 	reflectType := reflect.TypeFor[T]()
 	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], *time.Duration, error) {
