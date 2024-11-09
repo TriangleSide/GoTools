@@ -22,7 +22,7 @@ type loggerConfig struct {
 // ConfigOption sets values on the loggerConfig.
 type ConfigOption func(*loggerConfig)
 
-// WithConfigProvider sets the provider for the config.Logger.
+// WithConfigProvider sets the provider for the Config.
 func WithConfigProvider(provider func() (*Config, error)) ConfigOption {
 	return func(c *loggerConfig) {
 		c.configProvider = provider
@@ -36,7 +36,7 @@ func WithOutputProvider(provider func() (io.Writer, error)) ConfigOption {
 	}
 }
 
-// MustConfigure parses the logger conf and configures the application logger.
+// MustConfigure parses the Config and sets values for the application logger.
 func MustConfigure(opts ...ConfigOption) {
 	cfg := &loggerConfig{
 		configProvider: func() (*Config, error) {

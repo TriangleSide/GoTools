@@ -21,11 +21,15 @@ var appLogLevel = LevelInfo
 
 // SetLevel sets the application log level.
 func SetLevel(level LogLevel) {
+	lock.Lock()
+	defer lock.Unlock()
 	appLogLevel = level
 }
 
 // GetLevel returns the applications log level.
 func GetLevel() LogLevel {
+	lock.RLock()
+	defer lock.RUnlock()
 	return appLogLevel
 }
 

@@ -7,11 +7,18 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/logger"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
+
+type testWriter struct{}
+
+func (w *testWriter) Write(p []byte) (n int, err error) {
+	return len(p), nil
+}
 
 func TestSetOutput(t *testing.T) {
 	var output bytes.Buffer
@@ -24,7 +31,6 @@ func TestSetOutput(t *testing.T) {
 }
 
 func TestLogger(t *testing.T) {
-	ctx := context.Background()
 	setAndRecordOutput := func() *bytes.Buffer {
 		var output bytes.Buffer
 		logger.SetOutput(&output)
@@ -33,6 +39,7 @@ func TestLogger(t *testing.T) {
 		})
 		return &output
 	}
+
 	t.Cleanup(func() {
 		logger.SetOutput(os.Stdout)
 		logger.SetLevel(logger.LevelInfo)
@@ -40,13 +47,13 @@ func TestLogger(t *testing.T) {
 
 	t.Run("when logging at Panic level it should panic with the messages", func(t *testing.T) {
 		assert.PanicPart(t, func() {
-			logger.Panic(ctx, "Panic Message")
+			logger.Panic("Panic Message")
 		}, "Panic Message")
 		assert.PanicPart(t, func() {
-			logger.Panicf(ctx, "Panic %s", "Message F")
+			logger.Panicf("Panic %s", "Message F")
 		}, "Panic Message F")
 		assert.PanicPart(t, func() {
-			logger.PanicFn(ctx, func() []any {
+			logger.PanicFn(func() []any {
 				return []any{"Panic Message Fn"}
 			})
 		}, "Panic Message Fn")
@@ -68,21 +75,21 @@ func TestLogger(t *testing.T) {
 			assert.Equals(t, logger.GetLevel(), tc.level)
 			output := setAndRecordOutput()
 			assert.Equals(t, len(output.Bytes()), 0)
-			logger.Error(ctx, "E")
-			logger.Errorf(ctx, "E")
-			logger.ErrorFn(ctx, func() []any { return []any{"E"} })
-			logger.Warn(ctx, "W")
-			logger.Warnf(ctx, "W")
-			logger.WarnFn(ctx, func() []any { return []any{"W"} })
-			logger.Info(ctx, "I")
-			logger.Infof(ctx, "I")
-			logger.InfoFn(ctx, func() []any { return []any{"I"} })
-			logger.Debug(ctx, "D")
-			logger.Debugf(ctx, "D")
-			logger.DebugFn(ctx, func() []any { return []any{"D"} })
-			logger.Trace(ctx, "T")
-			logger.Tracef(ctx, "T")
-			logger.TraceFn(ctx, func() []any { return []any{"T"} })
+			logger.Error("E")
+			logger.Errorf("E")
+			logger.ErrorFn(func() []any { return []any{"E"} })
+			logger.Warn("W")
+			logger.Warnf("W")
+			logger.WarnFn(func() []any { return []any{"W"} })
+			logger.Info("I")
+			logger.Infof("I")
+			logger.InfoFn(func() []any { return []any{"I"} })
+			logger.Debug("D")
+			logger.Debugf("D")
+			logger.DebugFn(func() []any { return []any{"D"} })
+			logger.Trace("T")
+			logger.Tracef("T")
+			logger.TraceFn(func() []any { return []any{"T"} })
 			assert.Equals(t, strings.ReplaceAll(output.String(), "\n", ""), tc.expected)
 		}
 	})
@@ -91,10 +98,12 @@ func TestLogger(t *testing.T) {
 func testFatalScenario(t *testing.T, uniqueEnvName string, testName string, fatalCallback func()) {
 	t.Helper()
 	t.Parallel()
+
 	if os.Getenv(uniqueEnvName) == "1" {
 		fatalCallback()
 		os.Exit(0) // Shouldn't reach here.
 	}
+
 	cmd := exec.Command(os.Args[0], "-test.run="+testName)
 	cmd.Env = append(os.Environ(), uniqueEnvName+"=1")
 	var output bytes.Buffer
@@ -110,20 +119,69 @@ func testFatalScenario(t *testing.T, uniqueEnvName string, testName string, fata
 
 func TestFatal(t *testing.T) {
 	testFatalScenario(t, "TEST_FATAL", "TestFatal", func() {
-		logger.Fatal(context.Background(), "Should call os.Exit(1).")
+		logger.Fatal("Should call os.Exit(1).")
 	})
 }
 
 func TestFatalf(t *testing.T) {
 	testFatalScenario(t, "TEST_FATALF", "TestFatalf", func() {
-		logger.Fatalf(context.Background(), "Should call %s.", "os.Exit(1)")
+		logger.Fatalf("Should call %s.", "os.Exit(1)")
 	})
 }
 
 func TestFatalFn(t *testing.T) {
 	testFatalScenario(t, "TEST_FATAL_FN", "TestFatalFn", func() {
-		logger.FatalFn(context.Background(), func() []any {
+		logger.FatalFn(func() []any {
 			return []any{"Should call os.Exit(1)."}
 		})
 	})
+}
+
+func TestLoggerConcurrency(t *testing.T) {
+	t.Cleanup(func() {
+		logger.SetOutput(os.Stdout)
+		logger.SetLevel(logger.LevelInfo)
+		logger.SetFormatter(logger.DefaultFormatter)
+	})
+
+	const threadCount = 4
+	const opsPerThread = 1000
+
+	wg := &sync.WaitGroup{}
+	waitChan := make(chan struct{})
+
+	for i := 0; i < threadCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-waitChan
+			for k := 0; k < opsPerThread; k++ {
+				logger.SetOutput(&testWriter{})
+				logger.SetFormatter(logger.DefaultFormatter)
+				for _, level := range []logger.LogLevel{logger.LevelError, logger.LevelWarn, logger.LevelInfo, logger.LevelDebug, logger.LevelTrace} {
+					logger.SetLevel(level)
+					ctx := context.Background()
+					logEntry := logger.AddField(&ctx, "test", "test")
+					logEntry.Error("test")
+					logEntry.Errorf("test %s", "test")
+					logEntry.ErrorFn(func() []any { return []any{"test"} })
+					logEntry.Warn("test")
+					logEntry.Warnf("test %s", "test")
+					logEntry.WarnFn(func() []any { return []any{"test"} })
+					logEntry.Info("test")
+					logEntry.Infof("test %s", "test")
+					logEntry.InfoFn(func() []any { return []any{"test"} })
+					logEntry.Debug("test")
+					logEntry.Debugf("test %s", "test")
+					logEntry.DebugFn(func() []any { return []any{"test"} })
+					logEntry.Trace("test")
+					logEntry.Tracef("test %s", "test")
+					logEntry.TraceFn(func() []any { return []any{"test"} })
+				}
+			}
+		}()
+	}
+
+	close(waitChan)
+	wg.Wait()
 }

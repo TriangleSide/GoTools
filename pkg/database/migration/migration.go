@@ -195,16 +195,16 @@ func listMigrationsToRun(ctx context.Context, manager Manager) ([]*Registration,
 		if migrationStatusFound {
 			delete(orderToPersistedStatus, registeredMigration.Order)
 			if migrationStatus == Completed {
-				logger.Debugf(ctx, "Registration with order %d already completed. Skipping.", registeredMigration.Order)
+				logger.Debugf("Registration with order %d already completed. Skipping.", registeredMigration.Order)
 				if registeredMigration.Order > latestCompletedMigration {
 					latestCompletedMigration = registeredMigration.Order
 				}
 			} else {
-				logger.Debugf(ctx, "Will attempt to run the migration with order %d and status %s again.", registeredMigration.Order, migrationStatus)
+				logger.Debugf("Will attempt to run the migration with order %d and status %s again.", registeredMigration.Order, migrationStatus)
 				migrationsToRun = append(migrationsToRun, registeredMigration)
 			}
 		} else {
-			logger.Debugf(ctx, "New migration with order %d found.", registeredMigration.Order)
+			logger.Debugf("New migration with order %d found.", registeredMigration.Order)
 			migrationsToRun = append(migrationsToRun, registeredMigration)
 		}
 	}
@@ -232,8 +232,8 @@ func runMigrations(ctx context.Context, migrationsToRun []*Registration, manager
 	}
 
 	for _, migrationToRun := range migrationsToRun {
-		ctx = logger.WithField(ctx, "order", migrationToRun.Order)
-		logger.Debug(ctx, "Starting migration.")
+		logEntry := logger.AddField(&ctx, "order", migrationToRun.Order)
+		logEntry.Debug("Starting migration.")
 		startTime := time.Now()
 		if err := manager.PersistStatus(ctx, migrationToRun.Order, Started); err != nil {
 			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Started, migrationToRun.Order, err)
@@ -248,7 +248,7 @@ func runMigrations(ctx context.Context, migrationsToRun []*Registration, manager
 		if err := manager.PersistStatus(ctx, migrationToRun.Order, Completed); err != nil {
 			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Completed, migrationToRun.Order, err)
 		}
-		logger.Debugf(ctx, "Migration finished in %s.", time.Since(startTime))
+		logEntry.Debugf("Migration finished in %s.", time.Since(startTime))
 	}
 
 	return nil

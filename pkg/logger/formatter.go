@@ -1,21 +1,28 @@
 package logger
 
 import (
-	"context"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 )
 
-// logFormatterType defines a function type that takes in a map of fields and a message string
+// SetOutput sets the writer for the application logger.
+func SetOutput(out io.Writer) {
+	lock.Lock()
+	defer lock.Unlock()
+	appLogger.SetOutput(out)
+}
+
+// FormatterFunc defines a function type that takes in a map of fields and a message string
 // and returns a formatted log string. This allows for customizable log formatting.
-type logFormatterType func(fields map[string]any, msg string) string
+type FormatterFunc func(fields map[string]any, msg string) string
 
 // appLogFormatter holds the current log formatter function.
-var appLogFormatter logFormatterType = defaultLogFormatter
+var appLogFormatter FormatterFunc = DefaultFormatter
 
-// defaultLogFormatter formats the log entry.
-func defaultLogFormatter(fields map[string]any, msg string) string {
+// DefaultFormatter formats the log entry.
+func DefaultFormatter(fields map[string]any, msg string) string {
 	timestamp := time.Now().UTC().Format(time.DateTime)
 	fieldsSb := strings.Builder{}
 	for k, v := range fields {
@@ -26,22 +33,13 @@ func defaultLogFormatter(fields map[string]any, msg string) string {
 
 // SetFormatter sets a custom log formatter function.
 // It replaces the default log formatter with the provided one.
-func SetFormatter(f logFormatterType) {
-	appLogFormatter = f
+func SetFormatter(formatter FormatterFunc) {
+	lock.Lock()
+	defer lock.Unlock()
+	appLogFormatter = formatter
 }
 
 // formatLog formats the log message using the fields in the context and the provided message.
-func formatLog(ctx context.Context, msg string) string {
-	if ctx == nil {
-		return appLogFormatter(nil, msg)
-	}
-	fieldsNotCast := ctx.Value(contextKey)
-	if fieldsNotCast == nil {
-		return appLogFormatter(nil, msg)
-	}
-	fields, fieldsCastOk := fieldsNotCast.(map[string]any)
-	if !fieldsCastOk {
-		panic("The logger context fields is not the correct type.")
-	}
+func formatLog(fields map[string]any, msg string) string {
 	return appLogFormatter(fields, msg)
 }

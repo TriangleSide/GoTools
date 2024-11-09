@@ -1,133 +1,118 @@
 package logger
 
-import (
-	"context"
-	"fmt"
-	"io"
-	"log"
-	"os"
-)
-
 var (
-	appLogger = log.New(os.Stdout, "", 0)
+	// appEntry is the entry for the entire application.
+	appEntry Logger = &entry{}
 )
 
-func SetOutput(out io.Writer) {
-	appLogger.SetOutput(out)
-}
-
+// LogFn is used by the Logger and is invoked selectively when the log level is allowed.
 type LogFn func() []any
 
-func Panic(ctx context.Context, args ...any) {
-	appLogger.Panicln(formatLog(ctx, fmt.Sprint(args...)))
+// Logger describes log functions.
+type Logger interface {
+	Panic(args ...any)
+	Panicf(format string, args ...any)
+	PanicFn(fn LogFn)
+	Fatal(args ...any)
+	Fatalf(format string, args ...any)
+	FatalFn(fn LogFn)
+	Error(args ...any)
+	Errorf(format string, args ...any)
+	ErrorFn(fn LogFn)
+	Warn(args ...any)
+	Warnf(format string, args ...any)
+	WarnFn(fn LogFn)
+	Info(args ...any)
+	Infof(format string, args ...any)
+	InfoFn(fn LogFn)
+	Debug(args ...any)
+	Debugf(format string, args ...any)
+	DebugFn(fn LogFn)
+	Trace(args ...any)
+	Tracef(format string, args ...any)
+	TraceFn(fn LogFn)
 }
 
-func Panicf(ctx context.Context, format string, args ...any) {
-	appLogger.Panicln(formatLog(ctx, fmt.Sprintf(format, args...)))
+func Panic(args ...any) {
+	appEntry.Panic(args...)
 }
 
-func PanicFn(ctx context.Context, fn LogFn) {
-	appLogger.Panicln(formatLog(ctx, fmt.Sprint(fn()...)))
+func Panicf(format string, args ...any) {
+	appEntry.Panicf(format, args...)
 }
 
-func Fatal(ctx context.Context, args ...any) {
-	appLogger.Fatalln(formatLog(ctx, fmt.Sprint(args...)))
+func PanicFn(fn LogFn) {
+	appEntry.PanicFn(fn)
 }
 
-func Fatalf(ctx context.Context, format string, args ...any) {
-	appLogger.Fatalln(formatLog(ctx, fmt.Sprintf(format, args...)))
+func Fatal(args ...any) {
+	appEntry.Fatal(args...)
 }
 
-func FatalFn(ctx context.Context, fn LogFn) {
-	appLogger.Fatalln(formatLog(ctx, fmt.Sprint(fn()...)))
+func Fatalf(format string, args ...any) {
+	appEntry.Fatalf(format, args...)
 }
 
-func Error(ctx context.Context, args ...any) {
-	if appLogLevel >= LevelError {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(args...)))
-	}
+func FatalFn(fn LogFn) {
+	appEntry.FatalFn(fn)
 }
 
-func Errorf(ctx context.Context, format string, args ...any) {
-	if appLogLevel >= LevelError {
-		appLogger.Println(formatLog(ctx, fmt.Sprintf(format, args...)))
-	}
+func Error(args ...any) {
+	appEntry.Error(args...)
 }
 
-func ErrorFn(ctx context.Context, fn LogFn) {
-	if appLogLevel >= LevelError {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(fn()...)))
-	}
+func Errorf(format string, args ...any) {
+	appEntry.Errorf(format, args...)
 }
 
-func Warn(ctx context.Context, args ...any) {
-	if appLogLevel >= LevelWarn {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(args...)))
-	}
+func ErrorFn(fn LogFn) {
+	appEntry.ErrorFn(fn)
 }
 
-func Warnf(ctx context.Context, format string, args ...any) {
-	if appLogLevel >= LevelWarn {
-		appLogger.Println(formatLog(ctx, fmt.Sprintf(format, args...)))
-	}
+func Warn(args ...any) {
+	appEntry.Warn(args...)
 }
 
-func WarnFn(ctx context.Context, fn LogFn) {
-	if appLogLevel >= LevelWarn {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(fn()...)))
-	}
+func Warnf(format string, args ...any) {
+	appEntry.Warnf(format, args...)
 }
 
-func Info(ctx context.Context, args ...any) {
-	if appLogLevel >= LevelInfo {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(args...)))
-	}
+func WarnFn(fn LogFn) {
+	appEntry.WarnFn(fn)
 }
 
-func Infof(ctx context.Context, format string, args ...any) {
-	if appLogLevel >= LevelInfo {
-		appLogger.Println(formatLog(ctx, fmt.Sprintf(format, args...)))
-	}
+func Info(args ...any) {
+	appEntry.Info(args...)
 }
 
-func InfoFn(ctx context.Context, fn LogFn) {
-	if appLogLevel >= LevelInfo {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(fn()...)))
-	}
+func Infof(format string, args ...any) {
+	appEntry.Infof(format, args...)
 }
 
-func Debug(ctx context.Context, args ...any) {
-	if appLogLevel >= LevelDebug {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(args...)))
-	}
+func InfoFn(fn LogFn) {
+	appEntry.InfoFn(fn)
 }
 
-func Debugf(ctx context.Context, format string, args ...any) {
-	if appLogLevel >= LevelDebug {
-		appLogger.Println(formatLog(ctx, fmt.Sprintf(format, args...)))
-	}
+func Debug(args ...any) {
+	appEntry.Debug(args...)
 }
 
-func DebugFn(ctx context.Context, fn LogFn) {
-	if appLogLevel >= LevelDebug {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(fn()...)))
-	}
+func Debugf(format string, args ...any) {
+	appEntry.Debugf(format, args...)
 }
 
-func Trace(ctx context.Context, args ...any) {
-	if appLogLevel >= LevelTrace {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(args...)))
-	}
+func DebugFn(fn LogFn) {
+	appEntry.DebugFn(fn)
 }
 
-func Tracef(ctx context.Context, format string, args ...any) {
-	if appLogLevel >= LevelTrace {
-		appLogger.Println(formatLog(ctx, fmt.Sprintf(format, args...)))
-	}
+func Trace(args ...any) {
+	appEntry.Trace(args...)
 }
 
-func TraceFn(ctx context.Context, fn LogFn) {
-	if appLogLevel >= LevelTrace {
-		appLogger.Println(formatLog(ctx, fmt.Sprint(fn()...)))
-	}
+func Tracef(format string, args ...any) {
+	appEntry.Tracef(format, args...)
+}
+
+func TraceFn(fn LogFn) {
+	appEntry.TraceFn(fn)
 }
