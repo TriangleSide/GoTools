@@ -95,7 +95,7 @@ func (encryptor *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
 // It returns a plain-text slice of data and an error if any occurs during the decryption process.
 func (encryptor *aesEncryptor) Decrypt(encryptedData []byte) ([]byte, error) {
 	if len(encryptedData) < aes.BlockSize {
-		return nil, fmt.Errorf("cipher-text of len %d is shorter then the minimum length of %d", len(encryptedData), aes.BlockSize)
+		return nil, fmt.Errorf("cipher-text of len %d is shorter than the minimum length of %d", len(encryptedData), aes.BlockSize)
 	}
 
 	iv := encryptedData[:aes.BlockSize]
