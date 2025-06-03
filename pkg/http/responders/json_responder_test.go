@@ -50,6 +50,7 @@ func TestJSONResponder(t *testing.T) {
 		response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":123}`))
 		assert.NoError(t, err)
 		assert.Equals(t, response.StatusCode, http.StatusOK)
+		assert.Equals(t, response.Header.Get(headers.ContentType), headers.ContentTypeApplicationJson)
 		assert.NoError(t, writeError)
 
 		body := &responseBody{}
