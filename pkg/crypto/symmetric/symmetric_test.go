@@ -70,7 +70,7 @@ func TestSymmetricEncryption(t *testing.T) {
 		t.Parallel()
 		encryptor := newEncryptor(t)
 		decrypted, err := encryptor.Decrypt(nil)
-		assert.ErrorPart(t, err, "shorter then the minimum length")
+		assert.ErrorPart(t, err, "shorter than the minimum length")
 		assert.Nil(t, decrypted)
 	})
 
