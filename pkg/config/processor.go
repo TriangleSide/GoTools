@@ -13,14 +13,6 @@ const (
 
 	// DefaultTag supplies a fallback value when a processor does not return a value for the field.
 	DefaultTag = "config_default"
-
-	// ProcessorTypeEnv identifies the environment variable processor.
-	ProcessorTypeEnv = "ENV"
-)
-
-var (
-	// processors is a map of ProcessorTag value to how the values are fetched.
-	processors = map[string]SourceFunc{}
 )
 
 // Options is the configuration copied to the SourceFunc.
@@ -30,20 +22,6 @@ type Options struct {
 
 // Option configures how Process operates.
 type Option func(*Options)
-
-// SourceFunc fetches a configuration value for a field. It should return the value and whether it was found.
-type SourceFunc func(fieldName string, fieldMetadata *structs.FieldMetadata, cfg Options) (string, bool, error)
-
-// MustRegisterProcessor registers a SourceFunc for a given processor name.
-func MustRegisterProcessor(name string, fn SourceFunc) {
-	if fn == nil {
-		panic(fmt.Sprintf("Must register a non-nil SourceFunc for the %s configuration processor.", name))
-	}
-	if _, exists := processors[name]; exists {
-		panic(fmt.Sprintf("Processor with name %q already registered.", name))
-	}
-	processors[name] = fn
-}
 
 // WithPrefix sets the prefix to look for in the source values. For the ENV processor, given a struct field named
 // Value and the prefix TEST, the processor will look for TEST_VALUE.
