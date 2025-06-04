@@ -10,7 +10,7 @@ import (
 
 // Config contains the values needed to configure the logger.
 type Config struct {
-	LogLevel string `config_format:"snake" config_default:"INFO" validate:"required,oneof=ERROR WARN INFO DEBUG TRACE"`
+	LogLevel string `config:"ENV" config_default:"INFO" validate:"required,oneof=ERROR WARN INFO DEBUG TRACE"`
 }
 
 // loggerConfig is configured by the ConfigOption functions.
