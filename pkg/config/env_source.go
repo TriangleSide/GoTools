@@ -8,6 +8,11 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/structs"
 )
 
+const (
+	// ProcessorTypeEnv identifies the environment variable processor.
+	ProcessorTypeEnv = "ENV"
+)
+
 // envSource fetches configuration values from environment variables. The variable name is derived from the
 // struct field name converted to SNAKE_CASE. If a prefix is provided, it is prepended followed by an underscore.
 func envSource(fieldName string, _ *structs.FieldMetadata, cfg Options) (string, bool, error) {
