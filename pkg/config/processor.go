@@ -2,46 +2,64 @@ package config
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/TriangleSide/GoTools/pkg/stringcase"
 	"github.com/TriangleSide/GoTools/pkg/structs"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 const (
-	// FormatTag is the field name pre-processor.
-	FormatTag = "config_format"
+	// ProcessorTag specifies which configuration processor should populate the struct field.
+	ProcessorTag = "config"
 
-	// DefaultTag is the default to use in case there is no environment variable that matches the formatted field name.
+	// DefaultTag supplies a fallback value when a processor does not return a value for the field.
 	DefaultTag = "config_default"
 
-	// FormatTypeSnake tells the processor to transform the field name into snake-case. StructField becomes STRUCT_FIELD.
-	FormatTypeSnake = "snake"
+	// ProcessorTypeEnv identifies the environment variable processor.
+	ProcessorTypeEnv = "ENV"
 )
 
-// config is the configuration for the ProcessAndValidate function.
-type config struct {
-	prefix string
+var (
+	// processors is a map of ProcessorTag value to how the values are fetched.
+	processors = map[string]SourceFunc{}
+)
+
+// Options is the configuration copied to the SourceFunc.
+type Options struct {
+	Prefix string
 }
 
-// Option is used to set parameters for the environment variable processor.
-type Option func(*config)
+// Option configures how Process operates.
+type Option func(*Options)
 
-// WithPrefix sets the prefix to look for in the environment variables.
-// Given a struct field named Value and the prefix TEST, the processor will look for TEST_VALUE.
+// SourceFunc fetches a configuration value for a field. It should return the value and whether it was found.
+type SourceFunc func(fieldName string, fieldMetadata *structs.FieldMetadata, cfg Options) (string, bool, error)
+
+// MustRegisterProcessor registers a SourceFunc for a given processor name.
+func MustRegisterProcessor(name string, fn SourceFunc) {
+	if fn == nil {
+		panic(fmt.Sprintf("Must register a non-nil SourceFunc for the %s configuration processor.", name))
+	}
+	if _, exists := processors[name]; exists {
+		panic(fmt.Sprintf("Processor with name %q already registered.", name))
+	}
+	processors[name] = fn
+}
+
+// WithPrefix sets the prefix to look for in the source values. For the ENV processor, given a struct field named
+// Value and the prefix TEST, the processor will look for TEST_VALUE.
 func WithPrefix(prefix string) Option {
-	return func(p *config) {
-		p.prefix = prefix
+	return func(p *Options) {
+		p.Prefix = prefix
 	}
 }
 
-// Process sets the value of the struct fields from the associated environment variables.
+// Process sets struct field values using registered configuration sources. A field is processed only when it
+// specifies the `config` tag with a source type. If the source returns no value and a default is not provided
+// via the `config_default` tag, an error is returned.
 func Process[T any](opts ...Option) (*T, error) {
-	cfg := &config{
-		prefix: "",
+	cfg := &Options{
+		Prefix: "",
 	}
-
 	for _, opt := range opts {
 		opt(cfg)
 	}
@@ -50,50 +68,49 @@ func Process[T any](opts ...Option) (*T, error) {
 	conf := new(T)
 
 	for fieldName, fieldMetadata := range fieldsMetadata.All() {
-		formatValue, hasFormatTag := fieldMetadata.Tags().Fetch(FormatTag)
-		if !hasFormatTag {
+		processorType, hasProcessorTag := fieldMetadata.Tags().Fetch(ProcessorTag)
+		if !hasProcessorTag {
 			continue
 		}
 
-		var formattedEnvName string
-		switch formatValue {
-		case FormatTypeSnake:
-			formattedEnvName = stringcase.CamelToSnake(fieldName)
-			if cfg.prefix != "" {
-				formattedEnvName = fmt.Sprintf("%s_%s", cfg.prefix, formattedEnvName)
-			}
-		default:
-			panic(fmt.Sprintf("invalid config format (%s)", formatValue))
+		fetcher, ok := processors[processorType]
+		if !ok {
+			return nil, fmt.Errorf("processor %s not registered", processorType)
 		}
 
-		envValue, hasEnvValue := os.LookupEnv(formattedEnvName)
-		if hasEnvValue {
-			if err := structs.AssignToField(conf, fieldName, envValue); err != nil {
-				return nil, fmt.Errorf("failed to assign env var %s to field %s (%w)", envValue, fieldName, err)
-			}
-		} else {
+		value, found, err := fetcher(fieldName, fieldMetadata, *cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
 			defaultValue, hasDefaultTag := fieldMetadata.Tags().Fetch(DefaultTag)
-			if hasDefaultTag {
-				if err := structs.AssignToField(conf, fieldName, defaultValue); err != nil {
-					return nil, fmt.Errorf("failed to assign default value %s to field %s (%w)", defaultValue, fieldName, err)
-				}
+			if !hasDefaultTag {
+				return nil, fmt.Errorf("no value found for field %s", fieldName)
 			}
+			value = defaultValue
+			if err := structs.AssignToField(conf, fieldName, value); err != nil {
+				return nil, fmt.Errorf("failed to assign default value %s to field %s (%w)", value, fieldName, err)
+			}
+			continue
+		}
+
+		if err := structs.AssignToField(conf, fieldName, value); err != nil {
+			return nil, fmt.Errorf("failed to assign value %s to field %s (%w)", value, fieldName, err)
 		}
 	}
 
 	return conf, nil
 }
 
-// ProcessAndValidate sets the value of the struct fields from the associated environment variables.
+// ProcessAndValidate processes configuration and validates the resulting struct.
 func ProcessAndValidate[T any](opts ...Option) (*T, error) {
 	conf, err := Process[T](opts...)
 	if err != nil {
 		return nil, err
 	}
-
 	if err := validation.Struct(conf); err != nil {
 		return nil, fmt.Errorf("failed while validating the configuration (%w)", err)
 	}
-
 	return conf, nil
 }
