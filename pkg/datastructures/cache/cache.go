@@ -16,7 +16,7 @@ type getOrSetKeyLock[Value any] struct {
 	FnError  error
 }
 
-// Cache is an implementation of the Cache interface.
+// Cache stores key/value pairs with optional expiration.
 type Cache[Key comparable, Value any] struct {
 	rwMutex          sync.RWMutex
 	getOrSetLock     sync.Mutex
