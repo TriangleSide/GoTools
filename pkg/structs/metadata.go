@@ -18,12 +18,12 @@ var (
 	typeToMetadataCache = cache.New[reflect.Type, *readonly.Map[string, *FieldMetadata]]()
 )
 
-// Metadata returns a map of a structs field names to their respective metadata.
+// Metadata returns a map of a struct's field names to their respective metadata.
 func Metadata[T any]() *readonly.Map[string, *FieldMetadata] {
 	return MetadataFromType(reflect.TypeFor[T]())
 }
 
-// MetadataFromType returns a map of a structs field names to their respective metadata.
+// MetadataFromType returns a map of a struct's field names to their respective metadata.
 func MetadataFromType(reflectType reflect.Type) *readonly.Map[string, *FieldMetadata] {
 	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonly.Map[string, *FieldMetadata], *time.Duration, error) {
 		fieldsToMetadata := make(map[string]*FieldMetadata)

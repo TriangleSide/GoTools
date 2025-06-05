@@ -27,7 +27,7 @@ const (
 	//     Value *int `validate:"required,gt=0"`
 	// }
 	//
-	// The tag contents contains the validators and their respective instructions.
+	// The tag contains the validators and their respective instructions.
 	Tag = "validate"
 )
 
