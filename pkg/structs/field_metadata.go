@@ -6,7 +6,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
 )
 
-// FieldMetadata is the metadata extracted from struct fields.
+// FieldMetadata is the metadata extracted from a structs field.
 type FieldMetadata struct {
 	reflectType reflect.Type
 	tags        *readonly.Map[string, string]
