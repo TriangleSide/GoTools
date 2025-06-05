@@ -34,19 +34,19 @@ type Config struct {
 	// BindPort is the port number the server listens on.
 	BindPort uint16 `config:"ENV" config_default:"0" validate:"gte=0"`
 
-	// ReadTimeoutMilliseconds is the maximum time (in seconds) to read the request.
+	// ReadTimeoutMilliseconds is the maximum time (in milliseconds) to read the request.
 	// Zero or negative means no timeout.
 	ReadTimeoutMilliseconds int `config:"ENV" config_default:"120000" validate:"gte=0"`
 
-	// WriteTimeoutMilliseconds is the maximum time (in seconds) to write the response.
+	// WriteTimeoutMilliseconds is the maximum time (in milliseconds) to write the response.
 	// Zero or negative means no timeout.
 	WriteTimeoutMilliseconds int `config:"ENV" config_default:"120000" validate:"gte=0"`
 
-	// IdleTimeoutMilliseconds sets the max idle time (in seconds) between requests when keep-alives are enabled.
+	// IdleTimeoutMilliseconds sets the max idle time (in milliseconds) between requests when keep-alives are enabled.
 	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
 	IdleTimeoutMilliseconds int `config:"ENV" config_default:"0" validate:"gte=0"`
 
-	// HeaderReadTimeoutMilliseconds is the maximum time (in seconds) to read request headers.
+	// HeaderReadTimeoutMilliseconds is the maximum time (in milliseconds) to read request headers.
 	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
 	HeaderReadTimeoutMilliseconds int `config:"ENV" config_default:"0" validate:"gte=0"`
 

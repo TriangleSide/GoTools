@@ -103,9 +103,13 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, fn GetOrSetFn[Key, Value]) (Value,
 	c.getOrSetLock.Unlock()
 
 	if keyLockFound {
+		// In this case, there is a concurrent call with the same key.
+		// Wait for the concurrent call to complete and return its fetched value.
 		<-keyLock.WaitChan
 		return keyLock.FnValue, keyLock.FnError
 	} else {
+		// In this case, there is no concurrent call to GetOrSet with this key.
+		// If a concurrent call happens before the end of this function, it will receive the value set in keyLock.
 		defer func() {
 			c.getOrSetLock.Lock()
 			delete(c.getOrSetKeyLocks, key)
