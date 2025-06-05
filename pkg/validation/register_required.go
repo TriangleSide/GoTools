@@ -13,7 +13,7 @@ func init() {
 	})
 }
 
-// required check if the value is a zero value for its type.
+// required checks if the value is a zero value for its type.
 func required(params *CallbackParameters) *CallbackResult {
 	result := NewCallbackResult()
 

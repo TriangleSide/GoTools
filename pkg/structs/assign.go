@@ -19,7 +19,7 @@ func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) e
 		panic("obj must be a pointer to a struct")
 	}
 
-	// Get the field metadata for all the structs fields.
+	// Get the field metadata for all the struct's fields.
 	fieldsToMetadata := Metadata[T]()
 	fieldMetadata, foundFieldMetadata := fieldsToMetadata.Fetch(fieldName)
 	if !foundFieldMetadata {
@@ -98,7 +98,7 @@ func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) e
 	}
 
 	// If the field is a ptr, set the ptr to the newly allocated value in fieldPtr.
-	// If the field it not a ptr, copy the contents of fieldPtr into it.
+	// If the field is not a ptr, copy the contents of fieldPtr into it.
 	if originalFieldType.Kind() == reflect.Ptr {
 		structFieldValue.Set(fieldPtr)
 	} else {
