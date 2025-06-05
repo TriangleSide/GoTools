@@ -1,8 +1,8 @@
 GOMODCACHE ?= $(HOME)/go/pkg/mod
 GOCACHE ?= $(HOME)/.cache/go-build
 
-GO_DOCKER_VERSION := 1.23.2
-GOLANGCI_LINT_VERSION := v1.61.0
+GO_DOCKER_VERSION := 1.23
+GOLANGCI_LINT_VERSION := v1.64.8
 
 DOCKER_RUN := docker run --rm -v $(PWD):/app -w /app --network host
 
@@ -17,9 +17,9 @@ clean:
 
 .PHONY: lint
 lint:
-	@echo "Starting linting."
+	@echo "Starting linter."
 	@$(DOCKER_RUN) golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run --out-format colored-line-number
-	@echo "Linting finished."
+	@echo "Linter finished."
 
 .PHONY: test
 test:
