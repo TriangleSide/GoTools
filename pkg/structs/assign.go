@@ -56,7 +56,7 @@ func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) e
 		// If the field type implements encoding.TextUnmarshaler, the interface is used parse the value.
 		unmarshaler := fieldPtr.Interface().(encoding.TextUnmarshaler)
 		if err := unmarshaler.UnmarshalText([]byte(stringEncodedValue)); err != nil {
-			return fmt.Errorf("text unmarshall error (%w)", err)
+			return fmt.Errorf("text unmarshal error (%w)", err)
 		}
 	} else {
 		// If the field type is basic, the value is set directly.
