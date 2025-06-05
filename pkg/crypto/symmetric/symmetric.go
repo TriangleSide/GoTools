@@ -76,7 +76,7 @@ func New(key string, opts ...Option) (Encryptor, error) {
 }
 
 // Encrypt takes a slice of data and returns an encrypted version of that data using the AES algorithm.
-// It returns a cypher-text slice of data and an error if any occurs during the encryption process.
+// It returns a ciphertext slice of data and an error if any occurs during the encryption process.
 func (encryptor *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
 	ciphertext := make([]byte, aes.BlockSize+len(data))
 

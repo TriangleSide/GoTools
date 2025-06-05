@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-// ValueFromName returns the fields value if it exists.
+// ValueFromName returns the field's value if it exists.
 func ValueFromName[T any](structInstance T, fieldName string) (reflect.Value, error) {
 	reflectVal := reflect.ValueOf(structInstance)
 	if reflectVal.Kind() == reflect.Ptr {

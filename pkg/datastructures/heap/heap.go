@@ -35,7 +35,7 @@ import (
 
 // A heap can be represented as a complete binary tree. Using a complete binary tree ensures
 // the tree is always balanced. The key property of this representation is that each child
-// must be bigger (if using max heap) then its children. It does not matter if the children
+// must be bigger (if using max heap) than its children. It does not matter if the children
 // are sorted. This ensures the root node is always the largest.
 //
 //       10
@@ -100,7 +100,7 @@ func (h *Heap[T]) Size() int {
 	return len(h.tree)
 }
 
-// Push adds a new values to the heap.
+// Push adds a new value to the heap.
 func (h *Heap[T]) Push(value T) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
@@ -118,7 +118,7 @@ func (h *Heap[T]) Push(value T) {
 }
 
 // Pop removes the largest or smallest element (depending on the comparator) from the heap.
-// It panics if there is no values in the heap.
+// It panics if the heap is empty.
 func (h *Heap[T]) Pop() T {
 	h.lock.Lock()
 	defer h.lock.Unlock()
@@ -170,7 +170,7 @@ func (h *Heap[T]) Pop() T {
 }
 
 // Peek returns the min or max value on this heap. The access is O(1).
-// It panics if there is no values in the heap.
+// It panics if the heap is empty.
 func (h *Heap[T]) Peek() T {
 	h.lock.RLock()
 	defer h.lock.RUnlock()
