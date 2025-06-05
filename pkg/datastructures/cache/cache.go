@@ -18,28 +18,26 @@ type getOrSetKeyLock[Value any] struct {
 
 // Cache stores key/value pairs with optional expiration.
 type Cache[Key comparable, Value any] struct {
-	rwMutex          sync.RWMutex
 	getOrSetKeyLocks sync.Map
-	keyToItem        map[Key]*item[Value]
+	keyToItem        sync.Map
 }
 
 // New creates a new Cache instance. The benefit of using Cache instead of a regular map is that
 // Cache is thread safe. It also handles expiring items.
 func New[Key comparable, Value any]() *Cache[Key, Value] {
 	return &Cache[Key, Value]{
-		rwMutex:          sync.RWMutex{},
 		getOrSetKeyLocks: sync.Map{},
-		keyToItem:        make(map[Key]*item[Value]),
+		keyToItem:        sync.Map{},
 	}
 }
 
-// item is the value stored in the Cache's map.
+// item is what is stored in the internal map of the cache.
 type item[Value any] struct {
 	value  Value
 	expiry *time.Time
 }
 
-// Set is the implementation of the Cache interface.
+// Set sets a value and time-to-live in the cache.
 func (c *Cache[Key, Value]) Set(key Key, value Value, ttl *time.Duration) {
 	var itemToAdd *item[Value]
 	if ttl != nil {
@@ -54,41 +52,26 @@ func (c *Cache[Key, Value]) Set(key Key, value Value, ttl *time.Duration) {
 			expiry: nil,
 		}
 	}
-	c.rwMutex.Lock()
-	c.keyToItem[key] = itemToAdd
-	c.rwMutex.Unlock()
+	c.keyToItem.Store(key, itemToAdd)
 }
 
-// Get is the implementation of the Cache interface.
+// Get retrieves a value from the cache if present.
 func (c *Cache[Key, Value]) Get(key Key) (Value, bool) {
-	c.rwMutex.RLock()
-	itemValue, loaded := c.keyToItem[key]
-	c.rwMutex.RUnlock()
-
-	if loaded {
-		if itemValue.expiry != nil && time.Now().After(*itemValue.expiry) {
-			c.clearIfExpired(key)
-			var zeroValue Value
-			return zeroValue, false
-		}
-		return itemValue.value, true
-	} else {
+	itemValueUncast, loaded := c.keyToItem.Load(key)
+	if !loaded {
 		var zeroValue Value
 		return zeroValue, false
 	}
-}
-
-// clearIfExpired removes the key from the Cache if it is expired.
-func (c *Cache[Key, Value]) clearIfExpired(key Key) {
-	c.rwMutex.Lock()
-	itemValue, loaded := c.keyToItem[key]
-	if loaded && itemValue.expiry != nil && time.Now().After(*itemValue.expiry) {
-		delete(c.keyToItem, key)
+	itemValue := itemValueUncast.(*item[Value])
+	if itemValue.expiry != nil && time.Now().After(*itemValue.expiry) {
+		c.keyToItem.CompareAndDelete(key, itemValue)
+		var zeroValue Value
+		return zeroValue, false
 	}
-	c.rwMutex.Unlock()
+	return itemValue.value, true
 }
 
-// GetOrSet is the implementation of the Cache interface.
+// GetOrSet tries to get the value, and if not present, it calls fn to fetch and set the value.
 func (c *Cache[Key, Value]) GetOrSet(key Key, fn GetOrSetFn[Key, Value]) (Value, error) {
 	keyLockUncast, keyLockFound := c.getOrSetKeyLocks.LoadOrStore(key, &getOrSetKeyLock[Value]{
 		WaitChan: make(chan struct{}),
@@ -125,16 +108,12 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, fn GetOrSetFn[Key, Value]) (Value,
 	return keyLock.FnValue, nil
 }
 
-// Remove is the implementation of the Cache interface.
+// Remove removes a key and its value from the cache if present.
 func (c *Cache[Key, Value]) Remove(key Key) {
-	c.rwMutex.Lock()
-	delete(c.keyToItem, key)
-	c.rwMutex.Unlock()
+	c.keyToItem.Delete(key)
 }
 
-// Reset is the implementation of the Cache interface.
-func (c *Cache[Key, Value]) Reset() {
-	c.rwMutex.Lock()
-	c.keyToItem = make(map[Key]*item[Value])
-	c.rwMutex.Unlock()
+// Clear removes all the values in the cache.
+func (c *Cache[Key, Value]) Clear() {
+	c.keyToItem.Clear()
 }
