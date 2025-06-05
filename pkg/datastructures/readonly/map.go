@@ -42,7 +42,7 @@ func (r *Map[Key, Value]) Keys() []Key {
 	return keys
 }
 
-// All iterates over the values of the map.
+// All iterates over the key/value pairs of the map.
 func (r *Map[Key, Value]) All() iter.Seq2[Key, Value] {
 	return func(yield func(Key, Value) bool) {
 		for key, value := range r.internalMap {
