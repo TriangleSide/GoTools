@@ -35,7 +35,7 @@ func New[Key comparable, Value any]() *Cache[Key, Value] {
 	}
 }
 
-// item are the values that are held in the Cache's map.
+// item is the value stored in the Cache's map.
 type item[Value any] struct {
 	value  Value
 	expiry *time.Time
