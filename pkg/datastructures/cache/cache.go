@@ -19,8 +19,7 @@ type getOrSetKeyLock[Value any] struct {
 // Cache stores key/value pairs with optional expiration.
 type Cache[Key comparable, Value any] struct {
 	rwMutex          sync.RWMutex
-	getOrSetLock     sync.Mutex
-	getOrSetKeyLocks map[Key]*getOrSetKeyLock[Value]
+	getOrSetKeyLocks sync.Map
 	keyToItem        map[Key]*item[Value]
 }
 
@@ -29,8 +28,7 @@ type Cache[Key comparable, Value any] struct {
 func New[Key comparable, Value any]() *Cache[Key, Value] {
 	return &Cache[Key, Value]{
 		rwMutex:          sync.RWMutex{},
-		getOrSetLock:     sync.Mutex{},
-		getOrSetKeyLocks: make(map[Key]*getOrSetKeyLock[Value]),
+		getOrSetKeyLocks: sync.Map{},
 		keyToItem:        make(map[Key]*item[Value]),
 	}
 }
@@ -92,15 +90,10 @@ func (c *Cache[Key, Value]) clearIfExpired(key Key) {
 
 // GetOrSet is the implementation of the Cache interface.
 func (c *Cache[Key, Value]) GetOrSet(key Key, fn GetOrSetFn[Key, Value]) (Value, error) {
-	c.getOrSetLock.Lock()
-	keyLock, keyLockFound := c.getOrSetKeyLocks[key]
-	if !keyLockFound {
-		keyLock = &getOrSetKeyLock[Value]{
-			WaitChan: make(chan struct{}),
-		}
-		c.getOrSetKeyLocks[key] = keyLock
-	}
-	c.getOrSetLock.Unlock()
+	keyLockUncast, keyLockFound := c.getOrSetKeyLocks.LoadOrStore(key, &getOrSetKeyLock[Value]{
+		WaitChan: make(chan struct{}),
+	})
+	keyLock := keyLockUncast.(*getOrSetKeyLock[Value])
 
 	if keyLockFound {
 		// In this case, there is a concurrent call with the same key.
@@ -111,22 +104,19 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, fn GetOrSetFn[Key, Value]) (Value,
 		// In this case, there is no concurrent call to GetOrSet with this key.
 		// If a concurrent call happens before the end of this function, it will receive the value set in keyLock.
 		defer func() {
-			c.getOrSetLock.Lock()
-			delete(c.getOrSetKeyLocks, key)
-			c.getOrSetLock.Unlock()
+			c.getOrSetKeyLocks.Delete(key)
+			close(keyLock.WaitChan)
 		}()
 	}
 
 	var valueFound bool
 	keyLock.FnValue, valueFound = c.Get(key)
 	if valueFound {
-		close(keyLock.WaitChan)
 		return keyLock.FnValue, nil
 	}
 
 	var ttl *time.Duration
 	keyLock.FnValue, ttl, keyLock.FnError = fn(key)
-	defer close(keyLock.WaitChan)
 	if keyLock.FnError != nil {
 		return keyLock.FnValue, keyLock.FnError
 	}

@@ -3,6 +3,8 @@ package cache
 import (
 	"errors"
 	"fmt"
+	"math/rand/v2"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -198,7 +200,12 @@ func TestCache(t *testing.T) {
 		}
 		close(startChan)
 		wg.Wait()
-		assert.Equals(t, len(testCache.getOrSetKeyLocks), 0)
+		totalGetOrSetKeyLocks := 0
+		testCache.getOrSetKeyLocks.Range(func(k, v interface{}) bool {
+			totalGetOrSetKeyLocks++
+			return true
+		})
+		assert.Equals(t, totalGetOrSetKeyLocks, 0)
 	})
 
 	t.Run("it should be able to handle concurrency with get and set on the same key", func(t *testing.T) {
@@ -232,14 +239,19 @@ func TestCache(t *testing.T) {
 		}
 		close(startChan)
 		wg.Wait()
-		assert.Equals(t, len(testCache.getOrSetKeyLocks), 0)
+		totalGetOrSetKeyLocks := 0
+		testCache.getOrSetKeyLocks.Range(func(k, v interface{}) bool {
+			totalGetOrSetKeyLocks++
+			return true
+		})
+		assert.Equals(t, totalGetOrSetKeyLocks, 0)
 	})
 
 	t.Run("it should be able to handle concurrency with get or set on the same key", func(t *testing.T) {
 		t.Parallel()
 		testCache := New[string, string]()
 		const threadCount = 4
-		const loopCount = 5000
+		const loopCount = 10000
 		wg := sync.WaitGroup{}
 		startChan := make(chan struct{})
 		for i := 0; i < threadCount; i++ {
@@ -247,10 +259,11 @@ func TestCache(t *testing.T) {
 			go func() {
 				<-startChan
 				for k := 0; k < loopCount; k++ {
-					const key = "key"
-					const value = "value"
+					randIntStr := strconv.Itoa(rand.IntN(threadCount))
+					key := "key" + randIntStr
+					value := "value" + randIntStr
 					gottenValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
-						return value, ptr.Of(time.Nanosecond), nil
+						return value, ptr.Of(time.Millisecond), nil
 					})
 					assert.NoError(t, err, assert.Continue())
 					assert.Equals(t, gottenValue, value, assert.Continue())
@@ -260,6 +273,11 @@ func TestCache(t *testing.T) {
 		}
 		close(startChan)
 		wg.Wait()
-		assert.Equals(t, len(testCache.getOrSetKeyLocks), 0)
+		totalGetOrSetKeyLocks := 0
+		testCache.getOrSetKeyLocks.Range(func(k, v interface{}) bool {
+			totalGetOrSetKeyLocks++
+			return true
+		})
+		assert.Equals(t, totalGetOrSetKeyLocks, 0)
 	})
 }
