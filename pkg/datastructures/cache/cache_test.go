@@ -51,7 +51,7 @@ func TestCache(t *testing.T) {
 		assert.Equals(t, syncMapLen(&testCache.keyToItem), 0)
 	})
 
-	t.Run("when there is no values in the cache it should should return false when getting a key", func(t *testing.T) {
+	t.Run("when there is no values in the cache it should return false when getting a key", func(t *testing.T) {
 		t.Parallel()
 		testCache := New[string, string]()
 		const key = "key"
