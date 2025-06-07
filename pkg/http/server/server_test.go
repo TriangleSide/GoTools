@@ -130,9 +130,9 @@ func TestServer(t *testing.T) {
 	t.Run("when a server is started it should fail if the TLS mode is invalid", func(t *testing.T) {
 		t.Parallel()
 		srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
-			cfg, err := config.ProcessAndValidate[server.Config](config.WithPrefix(server.ConfigPrefix))
+			cfg, err := config.ProcessAndValidate[server.Config]()
 			assert.NoError(t, err)
-			cfg.TLSMode = "invalid_mode"
+			cfg.HTTPServerTLSMode = "invalid_mode"
 			return cfg, nil
 		}))
 		assert.ErrorPart(t, err, "invalid TLS mode: invalid_mode")
@@ -142,9 +142,9 @@ func TestServer(t *testing.T) {
 	t.Run("when a server is run it should fail if when the address is incorrectly formatted", func(t *testing.T) {
 		t.Parallel()
 		srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
-			cfg, err := config.ProcessAndValidate[server.Config](config.WithPrefix(server.ConfigPrefix))
+			cfg, err := config.ProcessAndValidate[server.Config]()
 			assert.NoError(t, err)
-			cfg.BindIP = "not_an_ip"
+			cfg.HTTPServerBindIP = "not_an_ip"
 			return cfg, nil
 		}))
 		assert.NoError(t, err)
@@ -156,11 +156,11 @@ func TestServer(t *testing.T) {
 	t.Run("when a server is started it should fail if the keys are missing when the TLS mode is TLS", func(t *testing.T) {
 		t.Parallel()
 		srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
-			cfg, err := config.ProcessAndValidate[server.Config](config.WithPrefix(server.ConfigPrefix))
+			cfg, err := config.ProcessAndValidate[server.Config]()
 			assert.NoError(t, err)
-			cfg.TLSMode = server.TLSModeTLS
-			cfg.Key = ""
-			cfg.Cert = ""
+			cfg.HTTPServerTLSMode = server.TLSModeTLS
+			cfg.HTTPServerKey = ""
+			cfg.HTTPServerCert = ""
 			return cfg, nil
 		}))
 		assert.ErrorPart(t, err, "failed to load the server certificates")
@@ -179,10 +179,10 @@ func TestServer(t *testing.T) {
 		assert.True(t, ok)
 		listenerPort := addr.AddrPort().Port()
 		srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
-			cfg, err := config.ProcessAndValidate[server.Config](config.WithPrefix(server.ConfigPrefix))
+			cfg, err := config.ProcessAndValidate[server.Config]()
 			assert.NoError(t, err)
-			cfg.BindIP = ip
-			cfg.BindPort = listenerPort
+			cfg.HTTPServerBindIP = ip
+			cfg.HTTPServerBindPort = listenerPort
 			return cfg, nil
 		}))
 		assert.NoError(t, err)
@@ -420,11 +420,11 @@ func TestServer(t *testing.T) {
 		caCertPool.AppendCertsFromPEM(serverCertPEM)
 
 		certPathsConfigProvider := func(t *testing.T) *server.Config {
-			cfg, configErr := config.ProcessAndValidate[server.Config](config.WithPrefix(server.ConfigPrefix))
+			cfg, configErr := config.ProcessAndValidate[server.Config]()
 			assert.NoError(t, configErr)
-			cfg.Key = serverPrivateKeyPath
-			cfg.Cert = serverCertificatePath
-			cfg.ClientCACerts = clientCaCertPaths
+			cfg.HTTPServerKey = serverPrivateKeyPath
+			cfg.HTTPServerCert = serverCertificatePath
+			cfg.HTTPServerClientCACerts = clientCaCertPaths
 			return cfg
 		}
 
@@ -433,8 +433,8 @@ func TestServer(t *testing.T) {
 			for _, mode := range []server.TLSMode{server.TLSModeTLS, server.TLSModeMutualTLS} {
 				srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 					cfg := certPathsConfigProvider(t)
-					cfg.Cert = ""
-					cfg.TLSMode = mode
+					cfg.HTTPServerCert = ""
+					cfg.HTTPServerTLSMode = mode
 					return cfg, nil
 				}))
 				assert.ErrorPart(t, err, "failed to load the server certificates")
@@ -447,8 +447,8 @@ func TestServer(t *testing.T) {
 			for _, mode := range []server.TLSMode{server.TLSModeTLS, server.TLSModeMutualTLS} {
 				srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 					cfg := certPathsConfigProvider(t)
-					cfg.Key = ""
-					cfg.TLSMode = mode
+					cfg.HTTPServerKey = ""
+					cfg.HTTPServerTLSMode = mode
 					return cfg, nil
 				}))
 				assert.ErrorPart(t, err, "failed to load the server certificates")
@@ -460,8 +460,8 @@ func TestServer(t *testing.T) {
 			t.Parallel()
 			srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
-				cfg.ClientCACerts = []string{}
-				cfg.TLSMode = server.TLSModeMutualTLS
+				cfg.HTTPServerClientCACerts = []string{}
+				cfg.HTTPServerTLSMode = server.TLSModeMutualTLS
 				return cfg, nil
 			}))
 			assert.ErrorPart(t, err, "no client CAs provided")
@@ -472,8 +472,8 @@ func TestServer(t *testing.T) {
 			t.Parallel()
 			srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
-				cfg.ClientCACerts = []string{"does_not_exist.pem"}
-				cfg.TLSMode = server.TLSModeMutualTLS
+				cfg.HTTPServerClientCACerts = []string{"does_not_exist.pem"}
+				cfg.HTTPServerTLSMode = server.TLSModeMutualTLS
 				return cfg, nil
 			}))
 			assert.ErrorPart(t, err, "could not read client CA certificate")
@@ -487,8 +487,8 @@ func TestServer(t *testing.T) {
 			for _, mode := range []server.TLSMode{server.TLSModeTLS, server.TLSModeMutualTLS} {
 				srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 					cfg := certPathsConfigProvider(t)
-					cfg.TLSMode = mode
-					cfg.Cert = invalidCertPath
+					cfg.HTTPServerTLSMode = mode
+					cfg.HTTPServerCert = invalidCertPath
 					return cfg, nil
 				}))
 				assert.ErrorPart(t, err, "failed to load the server certificates")
@@ -503,8 +503,8 @@ func TestServer(t *testing.T) {
 			for _, mode := range []server.TLSMode{server.TLSModeTLS, server.TLSModeMutualTLS} {
 				srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 					cfg := certPathsConfigProvider(t)
-					cfg.TLSMode = mode
-					cfg.Key = invalidKeyPath
+					cfg.HTTPServerTLSMode = mode
+					cfg.HTTPServerKey = invalidKeyPath
 					return cfg, nil
 				}))
 				assert.ErrorPart(t, err, "failed to load the server certificates")
@@ -518,8 +518,8 @@ func TestServer(t *testing.T) {
 			assert.NoError(t, os.WriteFile(invalidCertPath, []byte("invalid data"), 0644))
 			srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
-				cfg.TLSMode = server.TLSModeMutualTLS
-				cfg.ClientCACerts = []string{invalidCertPath}
+				cfg.HTTPServerTLSMode = server.TLSModeMutualTLS
+				cfg.HTTPServerClientCACerts = []string{invalidCertPath}
 				return cfg, nil
 			}))
 			assert.ErrorPart(t, err, "failed to load client CA certificates")
@@ -530,7 +530,7 @@ func TestServer(t *testing.T) {
 			t.Parallel()
 			serverAddr := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
-				cfg.TLSMode = server.TLSModeTLS
+				cfg.HTTPServerTLSMode = server.TLSModeTLS
 				return cfg, nil
 			}))
 			httpClient := &http.Client{
@@ -551,7 +551,7 @@ func TestServer(t *testing.T) {
 			t.Parallel()
 			serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
-				cfg.TLSMode = server.TLSModeTLS
+				cfg.HTTPServerTLSMode = server.TLSModeTLS
 				return cfg, nil
 			}))
 			httpClient := &http.Client{
@@ -569,7 +569,7 @@ func TestServer(t *testing.T) {
 			t.Parallel()
 			serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
-				cfg.TLSMode = server.TLSModeTLS
+				cfg.HTTPServerTLSMode = server.TLSModeTLS
 				return cfg, nil
 			}))
 			httpClient := &http.Client{
@@ -586,7 +586,7 @@ func TestServer(t *testing.T) {
 			t.Parallel()
 			serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
-				cfg.TLSMode = server.TLSModeMutualTLS
+				cfg.HTTPServerTLSMode = server.TLSModeMutualTLS
 				return cfg, nil
 			}))
 			httpClient := &http.Client{
@@ -609,7 +609,7 @@ func TestServer(t *testing.T) {
 			t.Parallel()
 			serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
-				cfg.TLSMode = server.TLSModeMutualTLS
+				cfg.HTTPServerTLSMode = server.TLSModeMutualTLS
 				return cfg, nil
 			}))
 			httpClient := &http.Client{
@@ -628,7 +628,7 @@ func TestServer(t *testing.T) {
 			t.Parallel()
 			serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
-				cfg.TLSMode = server.TLSModeMutualTLS
+				cfg.HTTPServerTLSMode = server.TLSModeMutualTLS
 				return cfg, nil
 			}))
 			httpClient := &http.Client{
