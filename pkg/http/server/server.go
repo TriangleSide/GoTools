@@ -101,11 +101,11 @@ func New(opts ...Option) (*Server, error) {
 	}
 
 	var tlsConfig *tls.Config
-	switch envConfig.TLSMode {
+	switch envConfig.HTTPServerTLSMode {
 	case TLSModeOff:
 		tlsConfig = nil
 	case TLSModeTLS:
-		serverCert, err := tls.LoadX509KeyPair(envConfig.Cert, envConfig.Key)
+		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
 		}
@@ -114,14 +114,14 @@ func New(opts ...Option) (*Server, error) {
 			Certificates: []tls.Certificate{serverCert},
 		}
 	case TLSModeMutualTLS:
-		if len(envConfig.ClientCACerts) == 0 {
+		if len(envConfig.HTTPServerClientCACerts) == 0 {
 			return nil, errors.New("no client CAs provided")
 		}
-		serverCert, err := tls.LoadX509KeyPair(envConfig.Cert, envConfig.Key)
+		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
 		}
-		clientCAs, err := loadMutualTLSClientCAs(envConfig.ClientCACerts)
+		clientCAs, err := loadMutualTLSClientCAs(envConfig.HTTPServerClientCACerts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load client CA certificates (%w)", err)
 		}
@@ -132,29 +132,29 @@ func New(opts ...Option) (*Server, error) {
 			ClientCAs:    clientCAs,
 		}
 	default:
-		return nil, fmt.Errorf("invalid TLS mode: %s", envConfig.TLSMode)
+		return nil, fmt.Errorf("invalid TLS mode: %s", envConfig.HTTPServerTLSMode)
 	}
 
 	srv := &Server{
 		srv: http.Server{
 			Handler:           serveMux,
-			ReadTimeout:       time.Millisecond * time.Duration(envConfig.ReadTimeoutMilliseconds),
-			WriteTimeout:      time.Millisecond * time.Duration(envConfig.WriteTimeoutMilliseconds),
-			IdleTimeout:       time.Millisecond * time.Duration(envConfig.IdleTimeoutMilliseconds),
-			ReadHeaderTimeout: time.Millisecond * time.Duration(envConfig.HeaderReadTimeoutMilliseconds),
-			MaxHeaderBytes:    envConfig.MaxHeaderBytes,
+			ReadTimeout:       time.Millisecond * time.Duration(envConfig.HTTPServerReadTimeoutMillis),
+			WriteTimeout:      time.Millisecond * time.Duration(envConfig.HTTPServerWriteTimeoutMillis),
+			IdleTimeout:       time.Millisecond * time.Duration(envConfig.HTTPServerIdleTimeoutMillis),
+			ReadHeaderTimeout: time.Millisecond * time.Duration(envConfig.HTTPServerHeaderReadTimeoutMillis),
+			MaxHeaderBytes:    envConfig.HTTPServerMaxHeaderBytes,
 			TLSConfig:         tlsConfig,
 		},
 		ran:      atomic.Bool{},
 		shutdown: atomic.Bool{},
 		wg:       sync.WaitGroup{},
 		listenerProvider: func() (*net.TCPListener, error) {
-			return srvOpts.listenerProvider(envConfig.BindIP, envConfig.BindPort)
+			return srvOpts.listenerProvider(envConfig.HTTPServerBindIP, envConfig.HTTPServerBindPort)
 		},
 		boundCallback: srvOpts.boundCallback,
 	}
 
-	srv.srv.SetKeepAlivesEnabled(envConfig.KeepAlive)
+	srv.srv.SetKeepAlivesEnabled(envConfig.HTTPServerKeepAlive)
 	srv.ran.Store(false)
 	srv.shutdown.Store(false)
 
