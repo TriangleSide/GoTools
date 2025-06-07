@@ -22,58 +22,54 @@ const (
 	TLSModeMutualTLS TLSMode = "mutual_tls"
 )
 
-const (
-	ConfigPrefix = "HTTP_SERVER"
-)
-
 // Config holds configuration parameters for an HTTP server.
 type Config struct {
-	// BindIP is the IP address the server listens on.
-	BindIP string `config:"ENV" config_default:"::1" validate:"required,ip_addr"`
+	// HTTPServerBindIP is the IP address the server listens on.
+	HTTPServerBindIP string `config:"ENV" config_default:"::1" validate:"required,ip_addr"`
 
-	// BindPort is the port number the server listens on.
-	BindPort uint16 `config:"ENV" config_default:"0" validate:"gte=0"`
+	// HTTPServerBindPort is the port number the server listens on.
+	HTTPServerBindPort uint16 `config:"ENV" config_default:"0" validate:"gte=0"`
 
-	// ReadTimeoutMilliseconds is the maximum time (in milliseconds) to read the request.
+	// HTTPServerReadTimeoutMillis is the maximum time (in milliseconds) to read the request.
 	// Zero or negative means no timeout.
-	ReadTimeoutMilliseconds int `config:"ENV" config_default:"120000" validate:"gte=0"`
+	HTTPServerReadTimeoutMillis int `config:"ENV" config_default:"120000" validate:"gte=0"`
 
-	// WriteTimeoutMilliseconds is the maximum time (in milliseconds) to write the response.
+	// HTTPServerWriteTimeoutMillis is the maximum time (in milliseconds) to write the response.
 	// Zero or negative means no timeout.
-	WriteTimeoutMilliseconds int `config:"ENV" config_default:"120000" validate:"gte=0"`
+	HTTPServerWriteTimeoutMillis int `config:"ENV" config_default:"120000" validate:"gte=0"`
 
-	// IdleTimeoutMilliseconds sets the max idle time (in milliseconds) between requests when keep-alives are enabled.
+	// HTTPServerIdleTimeoutMillis sets the max idle time (in milliseconds) between requests when keep-alives are enabled.
 	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
-	IdleTimeoutMilliseconds int `config:"ENV" config_default:"0" validate:"gte=0"`
+	HTTPServerIdleTimeoutMillis int `config:"ENV" config_default:"0" validate:"gte=0"`
 
-	// HeaderReadTimeoutMilliseconds is the maximum time (in milliseconds) to read request headers.
+	// HTTPServerHeaderReadTimeoutMillis is the maximum time (in milliseconds) to read request headers.
 	// If zero, ReadTimeout is used. If both are zero, it means no timeout.
-	HeaderReadTimeoutMilliseconds int `config:"ENV" config_default:"0" validate:"gte=0"`
+	HTTPServerHeaderReadTimeoutMillis int `config:"ENV" config_default:"0" validate:"gte=0"`
 
-	// TLSMode specifies the TLS mode of the server: off, tls, or mutual_tls.
-	TLSMode TLSMode `config:"ENV" config_default:"tls" validate:"oneof=off tls mutual_tls"`
+	// HTTPServerTLSMode specifies the TLS mode of the server: off, tls, or mutual_tls.
+	HTTPServerTLSMode TLSMode `config:"ENV" config_default:"tls" validate:"oneof=off tls mutual_tls"`
 
-	// Cert is the path to the TLS certificate file.
-	Cert string `config:"ENV" config_default:"" validate:"required_if=TLSMode tls,required_if=TLSMode mutual_tls,omitempty,filepath"`
+	// HTTPServerCert is the path to the TLS certificate file.
+	HTTPServerCert string `config:"ENV" config_default:"" validate:"required_if=HTTPServerTLSMode tls,required_if=HTTPServerTLSMode mutual_tls,omitempty,filepath"`
 
-	// Key is the path to the TLS private key file.
-	Key string `config:"ENV" config_default:"" validate:"required_if=TLSMode tls,required_if=TLSMode mutual_tls,omitempty,filepath"`
+	// HTTPServerKey is the path to the TLS private key file.
+	HTTPServerKey string `config:"ENV" config_default:"" validate:"required_if=HTTPServerTLSMode tls,required_if=HTTPServerTLSMode mutual_tls,omitempty,filepath"`
 
-	// ClientCACerts is a list of paths to client CA certificate files (used in mutual TLS).
-	ClientCACerts []string `config:"ENV" config_default:"[]" validate:"required_if=TLSMode mutual_tls,dive,required,filepath"`
+	// HTTPServerClientCACerts is a list of paths to client CA certificate files (used in mutual TLS).
+	HTTPServerClientCACerts []string `config:"ENV" config_default:"[]" validate:"required_if=HTTPServerTLSMode mutual_tls,dive,required,filepath"`
 
-	// MaxHeaderBytes sets the maximum size in bytes of request headers. It doesn't limit the request body size.
-	MaxHeaderBytes int `config:"ENV" config_default:"1048576" validate:"gte=4096,lte=1073741824"`
+	// HTTPServerMaxHeaderBytes sets the maximum size in bytes of request headers. It doesn't limit the request body size.
+	HTTPServerMaxHeaderBytes int `config:"ENV" config_default:"1048576" validate:"gte=4096,lte=1073741824"`
 
-	// KeepAlive controls whether HTTP keep-alives are enabled. By default, keep-alives are always enabled.
-	KeepAlive bool `config:"ENV" config_default:"true"`
+	// HTTPServerKeepAlive controls whether HTTP keep-alives are enabled. By default, keep-alives are always enabled.
+	HTTPServerKeepAlive bool `config:"ENV" config_default:"true"`
 }
 
 // configure applies the options to the default serverOptions values.
 func configure(opts ...Option) *serverOptions {
 	srvOpts := &serverOptions{
 		configProvider: func() (*Config, error) {
-			return config.ProcessAndValidate[Config](config.WithPrefix(ConfigPrefix))
+			return config.ProcessAndValidate[Config]()
 		},
 		listenerProvider: func(bindIp string, bindPort uint16) (*net.TCPListener, error) {
 			ip, err := netip.ParseAddr(bindIp)
