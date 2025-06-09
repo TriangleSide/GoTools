@@ -10,11 +10,11 @@ import (
 
 func TestRegistry(t *testing.T) {
 	t.Run("when a custom processor is re-registered it should panic", func(t *testing.T) {
-		config.MustRegisterProcessor("TWICE", func(fieldName string, _ *structs.FieldMetadata, _ config.Options) (string, bool, error) {
+		config.MustRegisterProcessor("TWICE", func(fieldName string, _ *structs.FieldMetadata) (string, bool, error) {
 			return "", true, nil
 		})
 		assert.PanicExact(t, func() {
-			config.MustRegisterProcessor("TWICE", func(fieldName string, _ *structs.FieldMetadata, _ config.Options) (string, bool, error) {
+			config.MustRegisterProcessor("TWICE", func(fieldName string, _ *structs.FieldMetadata) (string, bool, error) {
 				return "", true, nil
 			})
 		}, "Processor with name \"TWICE\" already registered.")

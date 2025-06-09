@@ -15,33 +15,10 @@ const (
 	DefaultTag = "config_default"
 )
 
-// Options is the configuration copied to the SourceFunc.
-type Options struct {
-	Prefix string
-}
-
-// Option configures how Process operates.
-type Option func(*Options)
-
-// WithPrefix sets the prefix to look for in the source values. For the ENV processor, given a struct field named
-// Value and the prefix TEST, the processor will look for TEST_VALUE.
-func WithPrefix(prefix string) Option {
-	return func(p *Options) {
-		p.Prefix = prefix
-	}
-}
-
 // Process sets struct field values using registered configuration sources. A field is processed only when it
 // specifies the `config` tag with a source type. If the source returns no value and a default is not provided
 // via the `config_default` tag, an error is returned.
-func Process[T any](opts ...Option) (*T, error) {
-	cfg := &Options{
-		Prefix: "",
-	}
-	for _, opt := range opts {
-		opt(cfg)
-	}
-
+func Process[T any]() (*T, error) {
 	fieldsMetadata := structs.Metadata[T]()
 	conf := new(T)
 
@@ -56,7 +33,7 @@ func Process[T any](opts ...Option) (*T, error) {
 			return nil, fmt.Errorf("processor %s not registered", processorType)
 		}
 
-		value, found, err := fetcher(fieldName, fieldMetadata, *cfg)
+		value, found, err := fetcher(fieldName, fieldMetadata)
 		if err != nil {
 			return nil, err
 		}
@@ -82,8 +59,8 @@ func Process[T any](opts ...Option) (*T, error) {
 }
 
 // ProcessAndValidate processes configuration and validates the resulting struct.
-func ProcessAndValidate[T any](opts ...Option) (*T, error) {
-	conf, err := Process[T](opts...)
+func ProcessAndValidate[T any]() (*T, error) {
+	conf, err := Process[T]()
 	if err != nil {
 		return nil, err
 	}
