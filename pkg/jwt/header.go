@@ -16,8 +16,8 @@ type Header struct {
 	KeyID     string `json:"kid,omitempty"`
 }
 
-// EncodeHeader serializes the Header and returns a base64 URL encoded string without padding.
-func EncodeHeader(h Header) (string, error) {
+// encodeHeader serializes the Header and returns a base64 URL encoded string without padding.
+func encodeHeader(h Header) (string, error) {
 	data, err := MarshalFunc(h)
 	if err != nil {
 		return "", fmt.Errorf("json marshal error (%w)", err)
@@ -25,8 +25,8 @@ func EncodeHeader(h Header) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(data), nil
 }
 
-// DecodeHeader decodes a base64 URL encoded header string into a Header struct.
-func DecodeHeader(encoded string) (*Header, error) {
+// decodeHeader decodes a base64 URL encoded header string into a Header struct.
+func decodeHeader(encoded string) (*Header, error) {
 	data, err := base64.RawURLEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode error (%w)", err)
