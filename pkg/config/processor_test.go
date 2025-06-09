@@ -45,22 +45,6 @@ func TestConfigProcessor(t *testing.T) {
 				assert.NotNil(t, conf)
 				assert.Equals(t, conf.Value, 2)
 			})
-
-			t.Run("it should use the default if a prefix is used", func(t *testing.T) {
-				conf, err := config.ProcessAndValidate[testStruct](config.WithPrefix("PREFIX"))
-				assert.NoError(t, err)
-				assert.NotNil(t, conf)
-				assert.Equals(t, conf.Value, DefaultValue)
-			})
-
-			t.Run("when an environment variable called TEST_VALUE is set with a value of 3 it should able to be set with a prefix", func(t *testing.T) {
-				const EnvNameWithPrefix = "TEST_VALUE"
-				t.Setenv(EnvNameWithPrefix, "3")
-				conf, err := config.ProcessAndValidate[testStruct](config.WithPrefix("TEST"))
-				assert.NoError(t, err)
-				assert.NotNil(t, conf)
-				assert.Equals(t, conf.Value, 3)
-			})
 		})
 
 		t.Run("when the validation rule fails it should fail to process", func(t *testing.T) {
@@ -139,7 +123,7 @@ func TestConfigProcessor(t *testing.T) {
 		}
 
 		var called bool
-		config.MustRegisterProcessor("CUSTOM", func(fieldName string, _ *structs.FieldMetadata, _ config.Options) (string, bool, error) {
+		config.MustRegisterProcessor("CUSTOM", func(fieldName string, _ *structs.FieldMetadata) (string, bool, error) {
 			called = true
 			return "custom", true, nil
 		})
@@ -158,7 +142,7 @@ func TestConfigProcessor(t *testing.T) {
 		}
 
 		var called bool
-		config.MustRegisterProcessor("OTHER", func(fieldName string, _ *structs.FieldMetadata, _ config.Options) (string, bool, error) {
+		config.MustRegisterProcessor("OTHER", func(fieldName string, _ *structs.FieldMetadata) (string, bool, error) {
 			called = true
 			return "OtherValue", true, nil
 		})
@@ -175,7 +159,7 @@ func TestConfigProcessor(t *testing.T) {
 	t.Run("when a custom processor returns not found and a default value is provided", func(t *testing.T) {
 		const procName = "NOT_FOUND_DEFAULT"
 
-		config.MustRegisterProcessor(procName, func(_ string, _ *structs.FieldMetadata, _ config.Options) (string, bool, error) {
+		config.MustRegisterProcessor(procName, func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
 			return "", false, nil
 		})
 
@@ -192,7 +176,7 @@ func TestConfigProcessor(t *testing.T) {
 	t.Run("when a custom processor returns not found and no default value is provided", func(t *testing.T) {
 		const procName = "NOT_FOUND_NO_DEFAULT"
 
-		config.MustRegisterProcessor(procName, func(_ string, _ *structs.FieldMetadata, _ config.Options) (string, bool, error) {
+		config.MustRegisterProcessor(procName, func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
 			return "", false, nil
 		})
 
@@ -210,7 +194,7 @@ func TestConfigProcessor(t *testing.T) {
 
 		customErr := errors.New("custom processor failed")
 
-		config.MustRegisterProcessor(procName, func(_ string, _ *structs.FieldMetadata, _ config.Options) (string, bool, error) {
+		config.MustRegisterProcessor(procName, func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
 			return "", false, customErr
 		})
 
