@@ -18,7 +18,7 @@ type Body struct {
 }
 
 func encodeBody(b Body) (string, error) {
-	data, err := MarshalFunc(b)
+	data, err := marshalFunc(b)
 	if err != nil {
 		return "", fmt.Errorf("json marshal error (%w)", err)
 	}

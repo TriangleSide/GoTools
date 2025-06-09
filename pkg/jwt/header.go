@@ -6,9 +6,6 @@ import (
 	"fmt"
 )
 
-// MarshalFunc is used for JSON marshaling and can be overwritten in tests.
-var MarshalFunc = json.Marshal
-
 // Header represents the header portion of a JSON Web Token.
 type Header struct {
 	Algorithm string `json:"alg"`
@@ -18,7 +15,7 @@ type Header struct {
 
 // encodeHeader serializes the Header and returns a base64 URL encoded string without padding.
 func encodeHeader(h Header) (string, error) {
-	data, err := MarshalFunc(h)
+	data, err := marshalFunc(h)
 	if err != nil {
 		return "", fmt.Errorf("json marshal error (%w)", err)
 	}
