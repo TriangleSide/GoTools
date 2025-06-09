@@ -8,34 +8,34 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
-func TestJWTHeader(t *testing.T) {
-	t.Run("it should encode and decode a header", func(t *testing.T) {
-		original := Header{Algorithm: "HS256", Type: "JWT", KeyID: "1"}
-		encoded, err := encodeHeader(original)
+func TestJWTBody(t *testing.T) {
+	t.Run("it should encode and decode a body", func(t *testing.T) {
+		original := Body{Issuer: "iss", Subject: "sub", Audience: "aud", ExpiresAt: 1, NotBefore: 2, IssuedAt: 3, TokenID: "id"}
+		encoded, err := encodeBody(original)
 		assert.NoError(t, err)
 		assert.NotEquals(t, encoded, "")
 
-		decoded, err := decodeHeader(encoded)
+		decoded, err := decodeBody(encoded)
 		assert.NoError(t, err)
 		assert.Equals(t, *decoded, original)
 	})
 
 	t.Run("when encoded string is invalid base64 it should return an error", func(t *testing.T) {
-		decoded, err := decodeHeader("!invalid-base64!")
+		decoded, err := decodeBody("!invalid-base64!")
 		assert.ErrorPart(t, err, "base64 decode error")
 		assert.Nil(t, decoded)
 	})
 
 	t.Run("when encoded string is not valid JSON it should return an error", func(t *testing.T) {
 		invalid := base64.RawURLEncoding.EncodeToString([]byte("not-json"))
-		decoded, err := decodeHeader(invalid)
+		decoded, err := decodeBody(invalid)
 		assert.ErrorPart(t, err, "json unmarshal error")
 		assert.Nil(t, decoded)
 	})
 
 	t.Run("when encoded string contains json with wrong types it should return an error", func(t *testing.T) {
-		invalid := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":123}`))
-		decoded, err := decodeHeader(invalid)
+		invalid := base64.RawURLEncoding.EncodeToString([]byte(`{"iss":123}`))
+		decoded, err := decodeBody(invalid)
 		assert.ErrorPart(t, err, "json unmarshal error")
 		assert.Nil(t, decoded)
 	})
@@ -45,7 +45,7 @@ func TestJWTHeader(t *testing.T) {
 		defer func() { MarshalFunc = originalMarshal }()
 
 		MarshalFunc = func(v any) ([]byte, error) { return nil, errors.New("marshal fail") }
-		encoded, err := encodeHeader(Header{})
+		encoded, err := encodeBody(Body{})
 		assert.ErrorPart(t, err, "json marshal error")
 		assert.Equals(t, encoded, "")
 	})
