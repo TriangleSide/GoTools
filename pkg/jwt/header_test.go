@@ -41,10 +41,14 @@ func TestJWTHeader(t *testing.T) {
 	})
 
 	t.Run("when json marshal fails it should return an error", func(t *testing.T) {
-		originalMarshal := MarshalFunc
-		defer func() { MarshalFunc = originalMarshal }()
+		originalMarshal := marshalFunc
+		defer func() {
+			marshalFunc = originalMarshal
+		}()
+		marshalFunc = func(v any) ([]byte, error) {
+			return nil, errors.New("marshal fail")
+		}
 
-		MarshalFunc = func(v any) ([]byte, error) { return nil, errors.New("marshal fail") }
 		encoded, err := encodeHeader(Header{})
 		assert.ErrorPart(t, err, "json marshal error")
 		assert.Equals(t, encoded, "")
