@@ -1,13 +1,5 @@
 package server
 
-import (
-	"fmt"
-	"net"
-	"net/netip"
-
-	"github.com/TriangleSide/GoTools/pkg/config"
-)
-
 // TLSMode represents the TLS mode of the HTTP server.
 type TLSMode string
 
@@ -63,28 +55,4 @@ type Config struct {
 
 	// HTTPServerKeepAlive controls whether HTTP keep-alives are enabled. By default, keep-alives are always enabled.
 	HTTPServerKeepAlive bool `config:"ENV" config_default:"true"`
-}
-
-// configure applies the options to the default serverOptions values.
-func configure(opts ...Option) *serverOptions {
-	srvOpts := &serverOptions{
-		configProvider: func() (*Config, error) {
-			return config.ProcessAndValidate[Config]()
-		},
-		listenerProvider: func(bindIp string, bindPort uint16) (*net.TCPListener, error) {
-			ip, err := netip.ParseAddr(bindIp)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse bind IP: %w", err)
-			}
-			addrPort := netip.AddrPortFrom(ip, bindPort)
-			tcpAddr := net.TCPAddrFromAddrPort(addrPort)
-			return net.ListenTCP(tcpAddr.Network(), tcpAddr)
-		},
-	}
-
-	for _, opt := range opts {
-		opt(srvOpts)
-	}
-
-	return srvOpts
 }

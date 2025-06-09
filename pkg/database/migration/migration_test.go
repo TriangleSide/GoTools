@@ -462,9 +462,9 @@ func TestMigrate(t *testing.T) {
 			},
 			options: []Option{
 				WithConfigProvider(func() (*Config, error) {
-					cfg, _ := config.Process[Config](config.WithPrefix(ConfigPrefix))
-					cfg.HeartbeatIntervalMilliseconds = 1
-					cfg.HeartbeatFailureRetryCount = 2
+					cfg, _ := config.Process[Config]()
+					cfg.MigrationHeartbeatIntervalMillis = 1
+					cfg.MigrationHeartbeatFailureRetryCount = 2
 					return cfg, nil
 				}),
 			},
@@ -509,9 +509,9 @@ func TestMigrate(t *testing.T) {
 			},
 			options: []Option{
 				WithConfigProvider(func() (*Config, error) {
-					cfg, _ := config.Process[Config](config.WithPrefix(ConfigPrefix))
-					cfg.HeartbeatIntervalMilliseconds = 1
-					cfg.HeartbeatFailureRetryCount = 2
+					cfg, _ := config.Process[Config]()
+					cfg.MigrationHeartbeatIntervalMillis = 1
+					cfg.MigrationHeartbeatFailureRetryCount = 2
 					return cfg, nil
 				}),
 			},
@@ -551,8 +551,8 @@ func TestMigrate(t *testing.T) {
 			},
 			options: []Option{
 				WithConfigProvider(func() (*Config, error) {
-					cfg, _ := config.Process[Config](config.WithPrefix(ConfigPrefix))
-					cfg.HeartbeatIntervalMilliseconds = 10
+					cfg, _ := config.Process[Config]()
+					cfg.MigrationHeartbeatIntervalMillis = 10
 					return cfg, nil
 				}),
 			},

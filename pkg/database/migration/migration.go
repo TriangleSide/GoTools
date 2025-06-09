@@ -70,7 +70,7 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 	var releaseMigrationLockErr error = nil
 	releaseMigrationLockWG := sync.WaitGroup{}
 
-	ctxDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.DeadlineMilliseconds))
+	ctxDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.MigrationDeadlineMillis))
 	ctx, cancel := context.WithDeadline(context.Background(), ctxDeadline)
 	defer func() {
 		cancel()
@@ -115,7 +115,7 @@ func ensureDataStores(ctx context.Context, manager Manager, cfg *Config) (return
 	}
 
 	defer func() {
-		releaseDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.UnlockDeadlineMilliseconds))
+		releaseDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.MigrationUnlockDeadlineMillis))
 		releaseCtx, releaseCancel := context.WithDeadline(context.Background(), releaseDeadline)
 		defer releaseCancel()
 		if releaseErr := manager.ReleaseDBLock(releaseCtx); releaseErr != nil {
@@ -134,7 +134,7 @@ func ensureDataStores(ctx context.Context, manager Manager, cfg *Config) (return
 // Once the context is canceled, it calls ReleaseMigrationLock.
 func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (returnErr error) {
 	defer func() {
-		releaseDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.UnlockDeadlineMilliseconds))
+		releaseDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.MigrationUnlockDeadlineMillis))
 		releaseCtx, releaseCancel := context.WithDeadline(context.Background(), releaseDeadline)
 		defer releaseCancel()
 		if releaseErr := manager.ReleaseMigrationLock(releaseCtx); releaseErr != nil {
@@ -142,7 +142,7 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 		}
 	}()
 
-	heartbeatInterval := time.Millisecond * time.Duration(cfg.HeartbeatIntervalMilliseconds)
+	heartbeatInterval := time.Millisecond * time.Duration(cfg.MigrationHeartbeatIntervalMillis)
 	heartbeatTicker := time.NewTicker(heartbeatInterval)
 	defer heartbeatTicker.Stop()
 
@@ -160,7 +160,7 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 				successiveHeartbeatErrCount = 0
 			}
 		}
-		if successiveHeartbeatErrCount > cfg.HeartbeatFailureRetryCount {
+		if successiveHeartbeatErrCount > cfg.MigrationHeartbeatFailureRetryCount {
 			return fmt.Errorf("heartbeat failed %d time(s) with latest error of (%w)", successiveHeartbeatErrCount, heartbeatErr)
 		}
 	}
