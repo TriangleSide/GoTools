@@ -23,6 +23,7 @@ func (f *failingHash) BlockSize() int                    { return 1 }
 
 func TestHash(t *testing.T) {
 	t.Parallel()
+
 	t.Run("it should hash and verify data", func(t *testing.T) {
 		t.Parallel()
 		hashed, err := hashData("payload", "secret", sha256.New)
