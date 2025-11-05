@@ -1,8 +1,10 @@
 package jwt
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/base64"
 	"errors"
 	"hash"
 	"testing"
@@ -24,58 +26,41 @@ func (f *failingHash) BlockSize() int                    { return 1 }
 func TestHash(t *testing.T) {
 	t.Parallel()
 
-	t.Run("it should hash and verify data", func(t *testing.T) {
+	t.Run("it should hash header and body data", func(t *testing.T) {
 		t.Parallel()
-		hashed, err := hashData("payload", "secret", sha256.New)
+		hashed, err := hashData("header", "body", "secret", sha256.New)
 		assert.NoError(t, err)
-		ok, err := verifyHash(hashed, "payload", "secret", sha256.New)
-		assert.NoError(t, err)
-		assert.True(t, ok)
-	})
 
-	t.Run("when hashes do not match it should return false", func(t *testing.T) {
-		t.Parallel()
-		hashed, err := hashData("payload", "secret", sha256.New)
+		mac := hmac.New(sha256.New, []byte("secret"))
+		_, err = mac.Write([]byte("header.body"))
 		assert.NoError(t, err)
-		ok, err := verifyHash(hashed+"extra", "payload", "secret", sha256.New)
-		assert.NoError(t, err)
-		assert.False(t, ok)
+		expected := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+		assert.Equals(t, hashed, expected)
 	})
 
 	t.Run("it should use a custom hash provider", func(t *testing.T) {
 		t.Parallel()
-		hashed, err := hashData("payload", "secret", sha512.New)
+		hashed, err := hashData("header", "body", "secret", sha512.New)
 		assert.NoError(t, err)
-		ok, err := verifyHash(hashed, "payload", "secret", sha512.New)
+
+		mac := hmac.New(sha512.New, []byte("secret"))
+		_, err = mac.Write([]byte("header.body"))
 		assert.NoError(t, err)
-		assert.True(t, ok)
+		expected := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+		assert.Equals(t, hashed, expected)
 	})
 
 	t.Run("when the provider is nil it should return an error", func(t *testing.T) {
 		t.Parallel()
-		h, err := hashData("payload", "secret", nil)
+		h, err := hashData("header", "body", "secret", nil)
 		assert.ErrorPart(t, err, "hash provider cannot be nil")
 		assert.Equals(t, h, "")
 	})
 
 	t.Run("when the hash provider returns an error on write it should return an error", func(t *testing.T) {
 		t.Parallel()
-		h, err := hashData("payload", "secret", func() hash.Hash { return &failingHash{} })
+		h, err := hashData("header", "body", "secret", func() hash.Hash { return &failingHash{} })
 		assert.ErrorPart(t, err, "failed to write data to hash")
 		assert.Equals(t, h, "")
-	})
-
-	t.Run("when verify uses a failing hash provider it should return an error", func(t *testing.T) {
-		t.Parallel()
-		ok, err := verifyHash("", "payload", "secret", func() hash.Hash { return &failingHash{} })
-		assert.ErrorPart(t, err, "failed to write data to hash")
-		assert.False(t, ok)
-	})
-
-	t.Run("when verify is called with a nil provider it should return an error", func(t *testing.T) {
-		t.Parallel()
-		ok, err := verifyHash("", "payload", "secret", nil)
-		assert.ErrorPart(t, err, "hash provider cannot be nil")
-		assert.False(t, ok)
 	})
 }
