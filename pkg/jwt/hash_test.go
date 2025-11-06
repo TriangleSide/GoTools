@@ -18,15 +18,15 @@ const (
 )
 
 // failingHash implements hash.Hash and always fails on Write.
-type failingHash struct {
-	v int
-}
+type failingHash struct{ _ byte }
 
-func (f *failingHash) Write(p []byte) (n int, err error) { return 0, errors.New("write fail") }
-func (f *failingHash) Sum(b []byte) []byte               { return []byte{} }
-func (f *failingHash) Reset()                            {}
-func (f *failingHash) Size() int                         { return 1 }
-func (f *failingHash) BlockSize() int                    { return 1 }
+func (f *failingHash) Write(p []byte) (n int, err error) {
+	return 0, errors.New("write fail")
+}
+func (f *failingHash) Sum(b []byte) []byte { return []byte{} }
+func (f *failingHash) Reset()              {}
+func (f *failingHash) Size() int           { return 1 }
+func (f *failingHash) BlockSize() int      { return 1 }
 
 func TestHash(t *testing.T) {
 	t.Parallel()
