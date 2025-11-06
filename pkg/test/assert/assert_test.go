@@ -36,6 +36,7 @@ func (tr *testRecorder) Fatal(args ...any) {
 }
 
 func newTestRecorder(t *testing.T) *testRecorder {
+	t.Helper()
 	return &testRecorder{
 		t:           t,
 		helperCount: 0,

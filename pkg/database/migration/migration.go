@@ -116,7 +116,7 @@ func ensureDataStores(ctx context.Context, manager Manager, cfg *Config) (return
 
 	defer func() {
 		releaseDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.MigrationUnlockDeadlineMillis))
-		releaseCtx, releaseCancel := context.WithDeadline(context.Background(), releaseDeadline)
+		releaseCtx, releaseCancel := context.WithDeadline(context.WithoutCancel(ctx), releaseDeadline)
 		defer releaseCancel()
 		if releaseErr := manager.ReleaseDBLock(releaseCtx); releaseErr != nil {
 			returnErr = errors.Join(returnErr, fmt.Errorf("failed to release the database lock (%w)", releaseErr))
@@ -135,7 +135,7 @@ func ensureDataStores(ctx context.Context, manager Manager, cfg *Config) (return
 func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (returnErr error) {
 	defer func() {
 		releaseDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.MigrationUnlockDeadlineMillis))
-		releaseCtx, releaseCancel := context.WithDeadline(context.Background(), releaseDeadline)
+		releaseCtx, releaseCancel := context.WithDeadline(context.WithoutCancel(ctx), releaseDeadline)
 		defer releaseCancel()
 		if releaseErr := manager.ReleaseMigrationLock(releaseCtx); releaseErr != nil {
 			returnErr = errors.Join(returnErr, fmt.Errorf("failed to release the migration lock (%w)", releaseErr))

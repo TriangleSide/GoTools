@@ -189,7 +189,7 @@ func TestReadOnlyMap(t *testing.T) {
 			builder.SetMap(iteratingMap)
 			roMap := builder.Build()
 			count := 0
-			for _, _ = range roMap.All() {
+			for range roMap.All() {
 				count++
 			}
 			assert.Equals(t, count, len(iteratingMap))
@@ -201,7 +201,7 @@ func TestReadOnlyMap(t *testing.T) {
 			builder.SetMap(iteratingMap)
 			roMap := builder.Build()
 			count := 0
-			for _, _ = range roMap.All() {
+			for range roMap.All() {
 				count++
 				break
 			}
@@ -228,7 +228,7 @@ func TestReadOnlyMap(t *testing.T) {
 		builder.SetMap(map[string]string{})
 		roMap := builder.Build()
 		count := 0
-		for _, _ = range roMap.All() {
+		for range roMap.All() {
 			count++
 		}
 		assert.Equals(t, count, 0)

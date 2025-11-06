@@ -3,14 +3,19 @@ package jwt
 import (
 	"crypto/hmac"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"hash"
+)
+
+var (
+	errHashProviderNil = errors.New("hash provider cannot be nil")
 )
 
 // hashData returns a base64 URL encoded HMAC string from the provided encoded header and body using the hash provider.
 func hashData(encodedHeader, encodedBody, secret string, provider func() hash.Hash) (string, error) {
 	if provider == nil {
-		return "", fmt.Errorf("hash provider cannot be nil")
+		return "", errHashProviderNil
 	}
 	mac := hmac.New(provider, []byte(secret))
 	if _, err := mac.Write([]byte(encodedHeader + "." + encodedBody)); err != nil {
@@ -22,9 +27,9 @@ func hashData(encodedHeader, encodedBody, secret string, provider func() hash.Ha
 // verifyHash compares the provided signature against the calculated hash for the encoded header and body using the supplied provider.
 func verifyHash(encodedHeader, encodedBody, encodedSignature, secret string, provider func() hash.Hash) (bool, error) {
 	if provider == nil {
-		return false, fmt.Errorf("hash provider cannot be nil")
+		return false, errHashProviderNil
 	}
-  
+
 	mac := hmac.New(provider, []byte(secret))
 	if _, err := mac.Write([]byte(encodedHeader + "." + encodedBody)); err != nil {
 		return false, fmt.Errorf("failed to write data to hash (%w)", err)

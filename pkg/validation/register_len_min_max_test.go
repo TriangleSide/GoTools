@@ -167,7 +167,6 @@ func TestStringLengthValidators(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(fmt.Sprintf("%s (%s=%s)", tc.name, tc.validator, tc.param), func(t *testing.T) {
 			t.Parallel()
 			err := validation.Var(tc.value, fmt.Sprintf("%s=%s", tc.validator, tc.param))
