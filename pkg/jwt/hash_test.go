@@ -12,6 +12,11 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
+const (
+	testEncodedHeader = "encoded-header"
+	testEncodedBody   = "encoded-body"
+)
+
 // failingHash implements hash.Hash and always fails on Write.
 type failingHash struct {
 	v int
@@ -28,8 +33,8 @@ func TestHash(t *testing.T) {
 
 	t.Run("it should hash header and body data", func(t *testing.T) {
 		t.Parallel()
-		header := "encoded-header"
-		body := "encoded-body"
+		header := testEncodedHeader
+		body := testEncodedBody
 
 		hashed, err := hashData(header, body, "secret", sha256.New)
 		assert.NoError(t, err)
@@ -43,8 +48,8 @@ func TestHash(t *testing.T) {
 
 	t.Run("it should use a custom hash provider", func(t *testing.T) {
 		t.Parallel()
-		header := "encoded-header"
-		body := "encoded-body"
+		header := testEncodedHeader
+		body := testEncodedBody
 
 		hashed, err := hashData(header, body, "secret", sha512.New)
 		assert.NoError(t, err)
@@ -72,8 +77,8 @@ func TestHash(t *testing.T) {
 
 	t.Run("it should verify matching hashes", func(t *testing.T) {
 		t.Parallel()
-		header := "encoded-header"
-		body := "encoded-body"
+		header := testEncodedHeader
+		body := testEncodedBody
 
 		mac := hmac.New(sha256.New, []byte("secret"))
 		_, err := mac.Write([]byte(header + "." + body))
@@ -87,8 +92,8 @@ func TestHash(t *testing.T) {
 
 	t.Run("it should return false when the signature does not match", func(t *testing.T) {
 		t.Parallel()
-		header := "encoded-header"
-		body := "encoded-body"
+		header := testEncodedHeader
+		body := testEncodedBody
 
 		mac := hmac.New(sha256.New, []byte("other-secret"))
 		_, err := mac.Write([]byte(header + "." + body))

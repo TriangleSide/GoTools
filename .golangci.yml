@@ -15,7 +15,6 @@ linters:
     - copyloopvar
     - dupl
     - durationcheck
-    - embeddedstructfieldcheck
     - err113
     - errcheck
     - errchkjson
@@ -33,7 +32,6 @@ linters:
     - ineffassign
     - misspell
     - mnd
-    - modernize
     - perfsprint
     - reassign
     - sqlclosecheck
