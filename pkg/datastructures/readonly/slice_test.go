@@ -118,7 +118,7 @@ func TestReadOnlySlice(t *testing.T) {
 		builder := readonly.NewSliceBuilder[string]()
 		roSlice := builder.Build()
 		count := 0
-		for _, _ = range roSlice.All() {
+		for range roSlice.All() {
 			count++
 		}
 		assert.Equals(t, count, 0)
