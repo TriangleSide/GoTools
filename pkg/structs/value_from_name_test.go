@@ -82,7 +82,7 @@ func TestStructValueFromName(t *testing.T) {
 		}
 		allMetadata := structs.Metadata[testStruct]()
 		assert.Equals(t, allMetadata.Size(), 4)
-		for fieldName, _ := range allMetadata.All() {
+		for fieldName := range allMetadata.All() {
 			_, err := structs.ValueFromName(instance, fieldName)
 			assert.NoError(t, err)
 		}
