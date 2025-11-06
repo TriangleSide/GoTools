@@ -18,7 +18,7 @@ type errJoinUnwrap interface {
 }
 
 // findRegistryMatch checks the error type to see if it matches a value in the registry.
-func findRegistryMatch(err error) (error, *registeredErrorResponse) {
+func findRegistryMatch(err error) (*registeredErrorResponse, error) {
 	if err == nil {
 		return nil, nil
 	}
@@ -33,10 +33,10 @@ func findRegistryMatch(err error) (error, *registeredErrorResponse) {
 	for _, workErr := range allErrs {
 		errType := reflect.TypeOf(workErr)
 		if registeredErrorNotCast, registeredErrorFound := registeredErrorResponses.Load(errType); registeredErrorFound {
-			return workErr, registeredErrorNotCast.(*registeredErrorResponse)
+			return registeredErrorNotCast.(*registeredErrorResponse), workErr
 		}
-		if matchErr, match := findRegistryMatch(errors.Unwrap(workErr)); match != nil {
-			return matchErr, match
+		if match, matchErr := findRegistryMatch(errors.Unwrap(workErr)); match != nil {
+			return match, matchErr
 		}
 	}
 
@@ -51,7 +51,7 @@ func Error(writer http.ResponseWriter, err error, opts ...Option) {
 
 	var statusCode int
 	var errResponse any
-	if matchErr, match := findRegistryMatch(err); match != nil {
+	if match, matchErr := findRegistryMatch(err); match != nil {
 		statusCode = match.Status
 		errResponse = match.Callback(matchErr)
 	} else {
