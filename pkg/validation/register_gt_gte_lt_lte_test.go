@@ -263,7 +263,6 @@ func TestComparisonValidations(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(fmt.Sprintf("%s (%s)", tc.Name, tc.Validation), func(t *testing.T) {
 			t.Parallel()
 			err := validation.Var(tc.Value, tc.Validation)
