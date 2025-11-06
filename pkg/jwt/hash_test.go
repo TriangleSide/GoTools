@@ -57,6 +57,30 @@ func TestHash(t *testing.T) {
 		assert.Equals(t, hashed, expected)
 	})
 
+	t.Run("when the secret is empty it should return an error", func(t *testing.T) {
+		t.Parallel()
+
+		h, err := hashData(testEncodedHeader, testEncodedBody, "", sha256.New)
+		assert.ErrorPart(t, err, "secret cannot be empty")
+		assert.Equals(t, h, "")
+	})
+
+	t.Run("when the header is empty it should return an error", func(t *testing.T) {
+		t.Parallel()
+
+		h, err := hashData("", testEncodedBody, t.Name(), sha256.New)
+		assert.ErrorPart(t, err, "encoded header cannot be empty")
+		assert.Equals(t, h, "")
+	})
+
+	t.Run("when the body is empty it should return an error", func(t *testing.T) {
+		t.Parallel()
+
+		h, err := hashData(testEncodedHeader, "", t.Name(), sha256.New)
+		assert.ErrorPart(t, err, "encoded body cannot be empty")
+		assert.Equals(t, h, "")
+	})
+
 	t.Run("when the provider is nil it should return an error", func(t *testing.T) {
 		t.Parallel()
 		secret := t.Name()
@@ -128,6 +152,30 @@ func TestHash(t *testing.T) {
 
 		valid, err := verifyHash(testEncodedHeader, testEncodedBody, "", secret, func() hash.Hash { return &failingHash{} })
 		assert.ErrorPart(t, err, "failed to write data to hash")
+		assert.False(t, valid)
+	})
+
+	t.Run("when the secret is empty it should return an error", func(t *testing.T) {
+		t.Parallel()
+
+		valid, err := verifyHash(testEncodedHeader, testEncodedBody, "", "", sha256.New)
+		assert.ErrorPart(t, err, "secret cannot be empty")
+		assert.False(t, valid)
+	})
+
+	t.Run("when the header is empty it should return an error", func(t *testing.T) {
+		t.Parallel()
+
+		valid, err := verifyHash("", testEncodedBody, "", t.Name(), sha256.New)
+		assert.ErrorPart(t, err, "encoded header cannot be empty")
+		assert.False(t, valid)
+	})
+
+	t.Run("when the body is empty it should return an error", func(t *testing.T) {
+		t.Parallel()
+
+		valid, err := verifyHash(testEncodedHeader, "", "", t.Name(), sha256.New)
+		assert.ErrorPart(t, err, "encoded body cannot be empty")
 		assert.False(t, valid)
 	})
 }

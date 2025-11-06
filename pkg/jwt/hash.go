@@ -9,13 +9,25 @@ import (
 )
 
 var (
-	errHashProviderNil = errors.New("hash provider cannot be nil")
+	errHashProviderNil    = errors.New("hash provider cannot be nil")
+	errSecretEmpty        = errors.New("secret cannot be empty")
+	errEncodedHeaderEmpty = errors.New("encoded header cannot be empty")
+	errEncodedBodyEmpty   = errors.New("encoded body cannot be empty")
 )
 
 // hashData returns a base64 URL encoded HMAC string from the provided encoded header and body using the hash provider.
 func hashData(encodedHeader, encodedBody, secret string, provider func() hash.Hash) (string, error) {
 	if provider == nil {
 		return "", errHashProviderNil
+	}
+	if encodedHeader == "" {
+		return "", errEncodedHeaderEmpty
+	}
+	if encodedBody == "" {
+		return "", errEncodedBodyEmpty
+	}
+	if secret == "" {
+		return "", errSecretEmpty
 	}
 	mac := hmac.New(provider, []byte(secret))
 	if _, err := mac.Write([]byte(encodedHeader + "." + encodedBody)); err != nil {
@@ -28,6 +40,15 @@ func hashData(encodedHeader, encodedBody, secret string, provider func() hash.Ha
 func verifyHash(encodedHeader, encodedBody, encodedSignature, secret string, provider func() hash.Hash) (bool, error) {
 	if provider == nil {
 		return false, errHashProviderNil
+	}
+	if encodedHeader == "" {
+		return false, errEncodedHeaderEmpty
+	}
+	if encodedBody == "" {
+		return false, errEncodedBodyEmpty
+	}
+	if secret == "" {
+		return false, errSecretEmpty
 	}
 
 	mac := hmac.New(provider, []byte(secret))
