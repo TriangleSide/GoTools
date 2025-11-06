@@ -215,7 +215,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 	t.Run("when decoding a struct with many different fields it should succeed", func(t *testing.T) {
 		t.Parallel()
 		type embeddedStruct struct {
-			HeaderEmbeddedField string `httpHeader:"HeaderEmbeddedField" json:"-" validate:"required"`
+			HeaderEmbeddedField string `httpHeader:"Header-Embedded-Field" json:"-" validate:"required"`
 		}
 
 		type internalStruct struct {
@@ -243,22 +243,22 @@ func TestDecodeHTTPParameters(t *testing.T) {
 			QueryPtrMapField    *map[string]string `urlQuery:"QueryPtrMapField" json:"-" validate:"required"`
 			QueryPtrListField   *[]string          `urlQuery:"QueryPtrListField" json:"-" validate:"required"`
 
-			HeaderStringField string            `httpHeader:"HeaderStringField" json:"-" validate:"required"`
-			HeaderIntField    int               `httpHeader:"HeaderIntField" json:"-" validate:"required"`
-			HeaderFloatField  float64           `httpHeader:"HeaderFloatField" json:"-" validate:"required"`
-			HeaderBoolField   bool              `httpHeader:"HeaderBoolField" json:"-" validate:"required"`
-			HeaderStructField internalStruct    `httpHeader:"HeaderStructField" json:"-" validate:"required"`
-			HeaderMapField    map[string]string `httpHeader:"HeaderMapField" json:"-" validate:"required"`
-			HeaderListField   []string          `httpHeader:"HeaderListField" json:"-" validate:"required"`
-			HeaderNotSet      string            `httpHeader:"HeaderNotSet" json:"-"`
+			HeaderStringField string            `httpHeader:"Header-String-Field" json:"-" validate:"required"`
+			HeaderIntField    int               `httpHeader:"Header-Int-Field" json:"-" validate:"required"`
+			HeaderFloatField  float64           `httpHeader:"Header-Float-Field" json:"-" validate:"required"`
+			HeaderBoolField   bool              `httpHeader:"Header-Bool-Field" json:"-" validate:"required"`
+			HeaderStructField internalStruct    `httpHeader:"Header-Struct-Field" json:"-" validate:"required"`
+			HeaderMapField    map[string]string `httpHeader:"Header-Map-Field" json:"-" validate:"required"`
+			HeaderListField   []string          `httpHeader:"Header-List-Field" json:"-" validate:"required"`
+			HeaderNotSet      string            `httpHeader:"Header-Not-Set" json:"-"`
 
-			HeaderPtrStringField *string            `httpHeader:"HeaderPtrStringField" json:"-" validate:"required"`
-			HeaderPtrIntField    *int               `httpHeader:"HeaderPtrIntField" json:"-" validate:"required"`
-			HeaderPtrFloatField  *float64           `httpHeader:"HeaderPtrFloatField" json:"-" validate:"required"`
-			HeaderPtrBoolField   *bool              `httpHeader:"HeaderPtrBoolField" json:"-" validate:"required"`
-			HeaderPtrStructField *internalStruct    `httpHeader:"HeaderPtrStructField" json:"-" validate:"required"`
-			HeaderPtrMapField    *map[string]string `httpHeader:"HeaderPtrMapField" json:"-" validate:"required"`
-			HeaderPtrListField   *[]string          `httpHeader:"HeaderPtrListField" json:"-" validate:"required"`
+			HeaderPtrStringField *string            `httpHeader:"Header-Ptr-String-Field" json:"-" validate:"required"`
+			HeaderPtrIntField    *int               `httpHeader:"Header-Ptr-Int-Field" json:"-" validate:"required"`
+			HeaderPtrFloatField  *float64           `httpHeader:"Header-Ptr-Float-Field" json:"-" validate:"required"`
+			HeaderPtrBoolField   *bool              `httpHeader:"Header-Ptr-Bool-Field" json:"-" validate:"required"`
+			HeaderPtrStructField *internalStruct    `httpHeader:"Header-Ptr-Struct-Field" json:"-" validate:"required"`
+			HeaderPtrMapField    *map[string]string `httpHeader:"Header-Ptr-Map-Field" json:"-" validate:"required"`
+			HeaderPtrListField   *[]string          `httpHeader:"Header-Ptr-List-Field" json:"-" validate:"required"`
 
 			PathStringField string `urlPath:"PathStringField" json:"-" validate:"required"`
 			PathNotSet      string `urlPath:"PathNotSet" json:"-"`
@@ -338,22 +338,22 @@ func TestDecodeHTTPParameters(t *testing.T) {
 		request, err := http.NewRequest(http.MethodPost, "http://"+listener.Addr().String()+clientPath+queryParams, bytes.NewBufferString(jsonBody))
 		assert.NoError(t, err)
 		request.Header.Set("Content-Type", "application/json")
-		request.Header.Set("HeaderDoesNotExistInTheStruct", "value")
-		request.Header.Set("HeaderEmbeddedField", "value")
-		request.Header.Set("HeaderStringField", "value")
-		request.Header.Set("HeaderIntField", "123")
-		request.Header.Set("HeaderFloatField", "1.23")
-		request.Header.Set("HeaderBoolField", "1")
-		request.Header.Set("HeaderStructField", `{"SubField1": "subValue1", "SubField2": 2}`)
-		request.Header.Set("HeaderMapField", `{"key": "value"}`)
-		request.Header.Set("HeaderListField", `["item1","item2"]`)
-		request.Header.Set("HeaderPtrStringField", "value")
-		request.Header.Set("HeaderPtrIntField", "123")
-		request.Header.Set("HeaderPtrFloatField", "1.23")
-		request.Header.Set("HeaderPtrBoolField", "true")
-		request.Header.Set("HeaderPtrStructField", `{"SubField1": "subValue1", "SubField2": 2}`)
-		request.Header.Set("HeaderPtrMapField", `{"key": "value"}`)
-		request.Header.Set("HeaderPtrListField", `["item1","item2"]`)
+		request.Header.Set("Header-Does-Not-Exist-In-The-Struct", "value")
+		request.Header.Set("Header-Embedded-Field", "value")
+		request.Header.Set("Header-String-Field", "value")
+		request.Header.Set("Header-Int-Field", "123")
+		request.Header.Set("Header-Float-Field", "1.23")
+		request.Header.Set("Header-Bool-Field", "1")
+		request.Header.Set("Header-Struct-Field", `{"SubField1": "subValue1", "SubField2": 2}`)
+		request.Header.Set("Header-Map-Field", `{"key": "value"}`)
+		request.Header.Set("Header-List-Field", `["item1","item2"]`)
+		request.Header.Set("Header-Ptr-String-Field", "value")
+		request.Header.Set("Header-Ptr-Int-Field", "123")
+		request.Header.Set("Header-Ptr-Float-Field", "1.23")
+		request.Header.Set("Header-Ptr-Bool-Field", "true")
+		request.Header.Set("Header-Ptr-Struct-Field", `{"SubField1": "subValue1", "SubField2": 2}`)
+		request.Header.Set("Header-Ptr-Map-Field", `{"key": "value"}`)
+		request.Header.Set("Header-Ptr-List-Field", `["item1","item2"]`)
 
 		client := &http.Client{}
 		response, err := client.Do(request)
