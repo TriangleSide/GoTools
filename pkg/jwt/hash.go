@@ -12,7 +12,6 @@ func hashData(encodedHeader, encodedBody, secret string, provider func() hash.Ha
 	if provider == nil {
 		return "", fmt.Errorf("hash provider cannot be nil")
 	}
-
 	mac := hmac.New(provider, []byte(secret))
 	if _, err := mac.Write([]byte(encodedHeader + "." + encodedBody)); err != nil {
 		return "", fmt.Errorf("failed to write data to hash (%w)", err)
@@ -25,7 +24,7 @@ func verifyHash(encodedHeader, encodedBody, encodedSignature, secret string, pro
 	if provider == nil {
 		return false, fmt.Errorf("hash provider cannot be nil")
 	}
-
+  
 	mac := hmac.New(provider, []byte(secret))
 	if _, err := mac.Write([]byte(encodedHeader + "." + encodedBody)); err != nil {
 		return false, fmt.Errorf("failed to write data to hash (%w)", err)
