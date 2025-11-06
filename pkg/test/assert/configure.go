@@ -28,7 +28,7 @@ type Option func(t *testContext)
 // Continue marks the test as having failed but continues execution.
 func Continue() Option {
 	return func(t *testContext) {
-		t.failFunc = t.Testing.Error
+		t.failFunc = t.Error
 	}
 }
 
