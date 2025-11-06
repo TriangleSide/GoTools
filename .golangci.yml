@@ -1,36 +1,55 @@
-linters:
+version: "2"
+formatters:
   enable:
+    - gofmt
+    - goimports
+linters:
+  default: none
+  enable:
+    - asciicheck
     - bidichk
     - bodyclose
+    - canonicalheader
+    - containedctx
     - contextcheck
+    - copyloopvar
     - dupl
     - durationcheck
+    - embeddedstructfieldcheck
+    - err113
     - errcheck
     - errchkjson
     - errorlint
+    - errorlint
+    - exhaustive
+    - exhaustruct
     - goconst
     - godot
-    - gofmt
-    - goimports
+    - godox
     - gosec
-    - gosimple
     - govet
+    - iface
     - importas
     - ineffassign
     - misspell
     - mnd
+    - modernize
     - perfsprint
     - reassign
     - sqlclosecheck
     - staticcheck
+    - testpackage
+    - thelper
+    - tparallel
     - unparam
     - unused
-    - whitespace
+    - usestdlibvars
     - usetesting
-issues:
-  exclude-rules:
-    - path: '(.+)_test\.go'
-      linters:
-        - gosec
-        - bodyclose
-        - dupl
+    - whitespace
+  exclusions:
+    rules:
+      - path: '_test\.go'
+        linters:
+          - gosec
+          - bodyclose
+          - dupl
