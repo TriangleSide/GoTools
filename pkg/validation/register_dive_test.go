@@ -126,7 +126,7 @@ func TestDiveValidatorWithValidations(t *testing.T) {
 			},
 			{
 				Name:             "slice with one invalid type",
-				Value:            []interface{}{1, "test"},
+				Value:            []any{1, "test"},
 				Validation:       "dive,gt=0",
 				ExpectedErrorMsg: "gt validation not supported for kind string",
 			},

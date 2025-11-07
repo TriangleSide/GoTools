@@ -47,7 +47,7 @@ func MustRegister(registration *Registration) {
 func orderedRegistrations() []*Registration {
 	ordered := make([]*Registration, 0)
 
-	registry.Range(func(key, value interface{}) bool {
+	registry.Range(func(key, value any) bool {
 		registration, castOk := value.(*Registration)
 		if !castOk {
 			panic(fmt.Sprintf("Registration with order %d was not a *Registration type.", key))

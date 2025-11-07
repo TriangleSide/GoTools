@@ -9,6 +9,8 @@ import (
 )
 
 func TestOneOfValidator(t *testing.T) {
+	t.Parallel()
+
 	type testCase struct {
 		name          string
 		value         any

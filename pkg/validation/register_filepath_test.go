@@ -11,15 +11,17 @@ import (
 )
 
 func TestFilepathValidator(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		value         any
-		setup         func(t *testing.T) interface{}
+		setup         func(t *testing.T) any
 		expectedError string
 	}{
 		{
 			name: "when value is a string with existing file it should succeed",
-			setup: func(t *testing.T) interface{} {
+			setup: func(t *testing.T) any {
 				t.Helper()
 				tempDir := t.TempDir()
 				tempFile := filepath.Join(tempDir, "testfile")
@@ -47,7 +49,7 @@ func TestFilepathValidator(t *testing.T) {
 		},
 		{
 			name: "when value is a pointer to string with existing file it should succeed",
-			setup: func(t *testing.T) interface{} {
+			setup: func(t *testing.T) any {
 				tempDir := t.TempDir()
 				tempFile := filepath.Join(tempDir, "testfile")
 				f, err := os.Create(tempFile)
@@ -64,24 +66,24 @@ func TestFilepathValidator(t *testing.T) {
 		},
 		{
 			name: "when value is an interface with string value and existing file it should succeed",
-			setup: func(t *testing.T) interface{} {
+			setup: func(t *testing.T) any {
 				tempDir := t.TempDir()
 				tempFile := filepath.Join(tempDir, "testfile")
 				f, err := os.Create(tempFile)
 				assert.NoError(t, err)
 				assert.NoError(t, f.Close())
-				return interface{}(tempFile)
+				return any(tempFile)
 			},
 			expectedError: "",
 		},
 		{
 			name:          "when value is an interface with string value and non-existing file it should return an error",
-			value:         interface{}("/non/existing/path/that/does/not/exist"),
+			value:         any("/non/existing/path/that/does/not/exist"),
 			expectedError: "file '/non/existing/path/that/does/not/exist' is not accessible",
 		},
 		{
 			name:          "when value is a nil interface it should fail",
-			value:         interface{}(nil),
+			value:         any(nil),
 			expectedError: "the value is nil",
 		},
 	}
@@ -90,7 +92,7 @@ func TestFilepathValidator(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			var value interface{}
+			var value any
 			if tc.setup != nil {
 				value = tc.setup(t)
 			} else {

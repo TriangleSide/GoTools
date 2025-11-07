@@ -9,6 +9,8 @@ import (
 )
 
 func TestOmitemptyValidator(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		value         any

@@ -22,7 +22,7 @@ func cacheMustHaveKeyAndValue[Key comparable, Value any](t *testing.T, testCache
 
 func syncMapLen(syncMap *sync.Map) int {
 	count := 0
-	syncMap.Range(func(k, v interface{}) bool {
+	syncMap.Range(func(k, v any) bool {
 		count++
 		return true
 	})
@@ -35,7 +35,7 @@ func TestCache(t *testing.T) {
 	t.Run("should be able to clear the cache repeatedly", func(t *testing.T) {
 		t.Parallel()
 		testCache := New[string, string]()
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			testCache.Clear()
 		}
 		assert.Equals(t, syncMapLen(&testCache.keyToItem), 0)
@@ -45,7 +45,7 @@ func TestCache(t *testing.T) {
 		t.Parallel()
 		const key = "key"
 		testCache := New[string, string]()
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			testCache.Remove(key)
 		}
 		assert.Equals(t, syncMapLen(&testCache.keyToItem), 0)
@@ -192,11 +192,11 @@ func TestCache(t *testing.T) {
 		const loopCount = 10000
 		wg := sync.WaitGroup{}
 		startChan := make(chan struct{})
-		for i := 0; i < threadCount; i++ {
+		for i := range threadCount {
 			wg.Add(1)
 			go func() {
 				<-startChan
-				for k := 0; k < loopCount; k++ {
+				for k := range loopCount {
 					key := fmt.Sprintf("key-%d-%d", i, k)
 					value := fmt.Sprintf("value-%d-%d", i, k)
 					testCache.Set(key, value, ptr.Of(time.Minute))
@@ -231,11 +231,11 @@ func TestCache(t *testing.T) {
 		const loopCount = 10000
 		wg := sync.WaitGroup{}
 		startChan := make(chan struct{})
-		for i := 0; i < threadCount; i++ {
+		for range threadCount {
 			wg.Add(1)
 			go func() {
 				<-startChan
-				for k := 0; k < loopCount; k++ {
+				for range loopCount {
 					const key = "key"
 					const value = "value"
 					testCache.Set(key, value, ptr.Of(time.Millisecond))
@@ -259,11 +259,11 @@ func TestCache(t *testing.T) {
 		const loopCount = 10000
 		wg := sync.WaitGroup{}
 		startChan := make(chan struct{})
-		for i := 0; i < threadCount; i++ {
+		for range threadCount {
 			wg.Add(1)
 			go func() {
 				<-startChan
-				for k := 0; k < loopCount; k++ {
+				for range loopCount {
 					key := "key" + strconv.Itoa(rand.IntN(threadCount))
 					value := "value" + strconv.Itoa(rand.IntN(threadCount))
 					_, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
@@ -288,7 +288,7 @@ func TestCache(t *testing.T) {
 
 		firstWaitChan := make(chan struct{})
 
-		for i := 0; i < threadCount; i++ {
+		for range threadCount {
 			wg.Add(1)
 			go func() {
 				<-firstWaitChan

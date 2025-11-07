@@ -44,7 +44,7 @@ func TestRegistry(t *testing.T) {
 	t.Run("when orderedRegistrations is called the registration should be in order", func(t *testing.T) {
 		t.Parallel()
 		const count = 32
-		for i := 0; i < count; i++ {
+		for range count {
 			registrationOrder := Order(order.Add(1))
 			MustRegister(&Registration{
 				Order:   registrationOrder,
