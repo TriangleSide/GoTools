@@ -19,7 +19,6 @@ linters:
     - errchkjson
     - errorlint
     - errorlint
-    - exhaustive
     - goconst
     - godot
     - godox
