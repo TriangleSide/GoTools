@@ -50,6 +50,7 @@ func TestFilepathValidator(t *testing.T) {
 		{
 			name: "when value is a pointer to string with existing file it should succeed",
 			setup: func(t *testing.T) any {
+				t.Helper()
 				tempDir := t.TempDir()
 				tempFile := filepath.Join(tempDir, "testfile")
 				f, err := os.Create(tempFile)
@@ -67,6 +68,7 @@ func TestFilepathValidator(t *testing.T) {
 		{
 			name: "when value is an interface with string value and existing file it should succeed",
 			setup: func(t *testing.T) any {
+				t.Helper()
 				tempDir := t.TempDir()
 				tempFile := filepath.Join(tempDir, "testfile")
 				f, err := os.Create(tempFile)
