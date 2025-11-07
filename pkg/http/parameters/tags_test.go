@@ -45,12 +45,12 @@ func TestTags(t *testing.T) {
 		t.Parallel()
 
 		type testStruct struct {
-			QueryField1  string `urlQuery:"Query1" json:"-" otherTag1:"value"`
-			QueryField2  string `urlQuery:"Query2" json:"-" otherTag1:"value"`
-			HeaderField1 string `httpHeader:"Header1" json:"-" otherTag2:"value1"`
-			HeaderField2 string `httpHeader:"Header2" json:"-" otherTag2:"value2"`
-			PathField1   string `urlPath:"Path1" json:"-" otherTag3:""`
-			PathField2   string `urlPath:"Path2" json:"-" otherTag4:"!@#$%^&*()"`
+			QueryField1  string `json:"-"               otherTag1:"value"      urlQuery:"Query1"`
+			QueryField2  string `json:"-"               otherTag1:"value"      urlQuery:"Query2"`
+			HeaderField1 string `httpHeader:"Header1"   json:"-"               otherTag2:"value1"`
+			HeaderField2 string `httpHeader:"Header2"   json:"-"               otherTag2:"value2"`
+			PathField1   string `json:"-"               otherTag3:""           urlPath:"Path1"`
+			PathField2   string `json:"-"               otherTag4:"!@#$%^&*()" urlPath:"Path2"`
 			JSONField1   string `json:"JSON1,omitempty"`
 			JSONField2   string `json:"JSON2,omitempty"`
 		}
@@ -80,8 +80,8 @@ func TestTags(t *testing.T) {
 	t.Run("it should fail when validating a struct that has two fields with the same tag", func(t *testing.T) {
 		t.Parallel()
 		type testStruct struct {
-			Field1 string `urlQuery:"QueryField" json:"-"`
-			Field2 int    `urlQuery:"QueryField" json:"-"`
+			Field1 string `json:"-" urlQuery:"QueryField"`
+			Field2 int    `json:"-" urlQuery:"QueryField"`
 		}
 		tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()
 		assert.Error(t, err)
@@ -91,8 +91,8 @@ func TestTags(t *testing.T) {
 	t.Run("it should fail when validating a struct that has two fields with the same tag in different cases", func(t *testing.T) {
 		t.Parallel()
 		type testStruct struct {
-			Field1 string `urlQuery:"QueryField" json:"-"`
-			Field2 int    `urlQuery:"qUeRyfIeLd" json:"-"`
+			Field1 string `json:"-" urlQuery:"QueryField"`
+			Field2 int    `json:"-" urlQuery:"qUeRyfIeLd"`
 		}
 		tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()
 		assert.Error(t, err)
@@ -102,7 +102,7 @@ func TestTags(t *testing.T) {
 	t.Run("it should fail when validating a struct that has overlapping tags", func(t *testing.T) {
 		t.Parallel()
 		type testStruct struct {
-			Field string `urlQuery:"QueryField" httpHeader:"HeaderField" json:"-"`
+			Field string `httpHeader:"HeaderField" json:"-" urlQuery:"QueryField"`
 		}
 		tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()
 		assert.Error(t, err)
@@ -132,7 +132,7 @@ func TestTags(t *testing.T) {
 	t.Run("it should fail when validating a struct that has a tag that is empty", func(t *testing.T) {
 		t.Parallel()
 		type testStruct struct {
-			Field string `urlPath:"" json:"-"`
+			Field string `json:"-" urlPath:""`
 		}
 		tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()
 		assert.Error(t, err)

@@ -150,7 +150,7 @@ func TestValidation(t *testing.T) {
 	t.Run("when the validate tag is empty it should fail", func(t *testing.T) {
 		t.Parallel()
 		type testStruct struct {
-			Value string `validate:" 	"`
+                       Value string `validate:"        "` //nolint:tagalign // spaces are intentional to exercise empty instructions
 		}
 		assert.ErrorPart(t, Struct(&testStruct{
 			Value: "one",

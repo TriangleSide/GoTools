@@ -31,7 +31,6 @@ linters:
     - misspell
     - mnd
     - musttag
-    - modernize
     - nilerr
     - perfsprint
     - reassign

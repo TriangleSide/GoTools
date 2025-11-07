@@ -676,7 +676,7 @@ func TestServer(t *testing.T) {
 				Method: http.MethodPost,
 				Handler: func(writer http.ResponseWriter, request *http.Request) {
 					type requestParams struct {
-						Id   string `json:"-" urlPath:"id" validate:"required"`
+						Id   string `json:"-"    urlPath:"id"        validate:"required"`
 						Data string `json:"data" validate:"required"`
 					}
 					type response struct {
