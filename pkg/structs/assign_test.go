@@ -111,7 +111,7 @@ func TestAssign(t *testing.T) {
 			fieldName string
 			strValue  string
 			value     func(values *testStruct) any
-			expected  interface{}
+			expected  any
 		}{
 			{"EmbeddedValue", "embedded", func(ts *testStruct) any { return ts.EmbeddedValue }, "embedded"},
 			{"DeepEmbeddedValue", "deepEmbedded", func(ts *testStruct) any { return *ts.DeepEmbeddedValue }, "deepEmbedded"},

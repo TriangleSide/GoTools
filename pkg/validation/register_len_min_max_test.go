@@ -10,6 +10,8 @@ import (
 )
 
 func TestStringLengthValidators(t *testing.T) {
+	t.Parallel()
+
 	type testCase struct {
 		name          string
 		validator     string

@@ -48,9 +48,7 @@ func AddFields(ctx *context.Context, fieldsToAdd map[string]any) Logger {
 		newFields = make(map[string]any, len(fields)+len(fieldsToAdd))
 		maps.Copy(newFields, fields)
 	}
-	for k, v := range fieldsToAdd {
-		newFields[k] = v
-	}
+	maps.Copy(newFields, fieldsToAdd)
 	*ctx = context.WithValue(*ctx, contextKey, newFields)
 	return &entry{
 		fields: newFields,
