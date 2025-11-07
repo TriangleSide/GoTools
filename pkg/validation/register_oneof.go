@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -34,10 +35,8 @@ func init() {
 			valueStr = fmt.Sprintf("%v", value)
 		}
 
-		for _, allowed := range allowedValues {
-			if valueStr == allowed {
-				return nil
-			}
+		if slices.Contains(allowedValues, valueStr) {
+			return nil
 		}
 
 		return result.WithError(NewViolation(params, errors.New("the value is not one of the allowed values")))

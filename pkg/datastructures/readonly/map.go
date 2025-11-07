@@ -2,6 +2,7 @@ package readonly
 
 import (
 	"iter"
+	"maps"
 	"sync/atomic"
 )
 
@@ -96,9 +97,7 @@ func (b *MapBuilder[Key, Value]) SetMap(otherMap map[Key]Value) *MapBuilder[Key,
 	if b.built.Load() {
 		panic("Build has already been called on this MapBuilder.")
 	}
-	for key, value := range otherMap {
-		b.internalMap[key] = value
-	}
+	maps.Copy(b.internalMap, otherMap)
 	return b
 }
 

@@ -140,7 +140,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		assert.Equals(t, response.StatusCode, http.StatusOK)
 		assert.Error(t, writeError)
 
-		body := make(map[string]interface{})
+		body := make(map[string]any)
 		err = json.NewDecoder(response.Body).Decode(&body)
 		assert.Error(t, err)
 		assert.NoError(t, response.Body.Close())
@@ -175,7 +175,7 @@ func TestJSONStreamResponder(t *testing.T) {
 		assert.Equals(t, response.StatusCode, http.StatusOK)
 		assert.NoError(t, writeError)
 
-		body := make(map[string]interface{})
+		body := make(map[string]any)
 		err = json.NewDecoder(response.Body).Decode(&body)
 		assert.ErrorPart(t, err, "EOF")
 		assert.NoError(t, response.Body.Close())

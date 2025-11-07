@@ -243,17 +243,17 @@ func TestReadOnlyMap(t *testing.T) {
 		waitToStart := make(chan struct{})
 
 		builder := readonly.NewMapBuilder[int, int]()
-		for i := 0; i < entryCount; i++ {
+		for i := range entryCount {
 			builder.Set(readonly.MapEntry[int, int]{Key: i, Value: i * 10})
 		}
 		roMap := builder.Build()
 
-		for i := 0; i < goRoutineCount; i++ {
+		for range goRoutineCount {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitToStart
-				for k := 0; k < entryCount; k++ {
+				for k := range entryCount {
 					expected := k * 10
 					verifyMapKeyAndValue(t, roMap, k, expected)
 				}

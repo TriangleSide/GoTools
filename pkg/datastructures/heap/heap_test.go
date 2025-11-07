@@ -94,34 +94,34 @@ func TestHeap(t *testing.T) {
 		const dupCount = 100
 
 		maxHeap := heap.New(func(a, b int) bool { return a > b })
-		for i := 0; i < dupCount; i++ {
+		for range dupCount {
 			maxHeap.Push(10)
 			maxHeap.Push(5)
 			maxHeap.Push(20)
 		}
-		for i := 0; i < dupCount; i++ {
+		for range dupCount {
 			assert.Equals(t, 20, maxHeap.Pop())
 		}
-		for i := 0; i < dupCount; i++ {
+		for range dupCount {
 			assert.Equals(t, 10, maxHeap.Pop())
 		}
-		for i := 0; i < dupCount; i++ {
+		for range dupCount {
 			assert.Equals(t, 5, maxHeap.Pop())
 		}
 
 		minHeap := heap.New(func(a, b int) bool { return a < b })
-		for i := 0; i < dupCount; i++ {
+		for range dupCount {
 			minHeap.Push(10)
 			minHeap.Push(5)
 			minHeap.Push(20)
 		}
-		for i := 0; i < dupCount; i++ {
+		for range dupCount {
 			assert.Equals(t, 5, minHeap.Pop())
 		}
-		for i := 0; i < dupCount; i++ {
+		for range dupCount {
 			assert.Equals(t, 10, minHeap.Pop())
 		}
-		for i := 0; i < dupCount; i++ {
+		for range dupCount {
 			assert.Equals(t, 20, minHeap.Pop())
 		}
 	})
@@ -153,7 +153,7 @@ func TestHeap(t *testing.T) {
 		minHeap := heap.New(func(a, b int) bool { return a < b })
 		valueToCount := make(map[int]int, count)
 
-		for i := 0; i < count; i++ {
+		for range count {
 			randomValue := rand.IntN(count / 10)
 			minHeap.Push(randomValue)
 			valueToCount[randomValue] = valueToCount[randomValue] + 1
@@ -173,7 +173,7 @@ func TestHeap(t *testing.T) {
 		}
 
 		lastValue := -1
-		for i := 0; i < count; i++ {
+		for range count {
 			valueRemoved := minHeap.Pop()
 			assert.True(t, valueRemoved >= lastValue)
 
@@ -202,12 +202,12 @@ func TestHeap(t *testing.T) {
 		wg := sync.WaitGroup{}
 		waitToStart := make(chan struct{})
 
-		for i := 0; i < routineCount; i++ {
+		for range routineCount {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitToStart
-				for k := 0; k < countPerRoutine; k++ {
+				for range countPerRoutine {
 					randomValue := rand.IntN(countPerRoutine / 10)
 					maxHeap.Push(randomValue)
 					randomValue = rand.IntN(countPerRoutine / 10)
@@ -221,7 +221,7 @@ func TestHeap(t *testing.T) {
 		wg.Wait()
 
 		lastValue := math.MaxInt
-		for i := 0; i < countPerRoutine*routineCount; i++ {
+		for range countPerRoutine * routineCount {
 			value := maxHeap.Pop()
 			assert.True(t, value <= lastValue)
 			lastValue = value

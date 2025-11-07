@@ -13,22 +13,26 @@ func TestStructMetadata(t *testing.T) {
 	t.Parallel()
 
 	t.Run("when the type is not a struct it should panic", func(t *testing.T) {
+		t.Parallel()
 		assert.PanicPart(t, func() {
 			_ = structs.Metadata[int]()
 		}, "Type must be a struct or a pointer to a struct")
 	})
 
 	t.Run("when the type is a pointer to a struct it return the structs meta", func(t *testing.T) {
+		t.Parallel()
 		metadata := structs.Metadata[*struct{ Value int }]()
 		assert.Equals(t, metadata.Size(), 1)
 	})
 
 	t.Run("when the struct is empty it should return an empty map", func(t *testing.T) {
+		t.Parallel()
 		metadata := structs.Metadata[struct{}]()
 		assert.Equals(t, metadata.Size(), 0)
 	})
 
 	t.Run("when a struct has a string field called Value and no tag it should return the field name and its type without metadata", func(t *testing.T) {
+		t.Parallel()
 		type testStruct struct {
 			Value string
 		}
@@ -42,6 +46,7 @@ func TestStructMetadata(t *testing.T) {
 	})
 
 	t.Run("when a struct has a string field called Value and a tag it should return the field name and its type with the tag metadata", func(t *testing.T) {
+		t.Parallel()
 		type testStruct struct {
 			Value int `key:"Value"`
 		}
@@ -55,6 +60,7 @@ func TestStructMetadata(t *testing.T) {
 	})
 
 	t.Run("when a struct has a string field called Value and tags with multiple fields it should return the field name and its type with the tags metadata", func(t *testing.T) {
+		t.Parallel()
 		type testStruct struct {
 			Value float32 `key1:"Value1" key2:"Value2"`
 		}
@@ -69,6 +75,7 @@ func TestStructMetadata(t *testing.T) {
 	})
 
 	t.Run("when a struct has multiple fields with tags, it should return their field names and type with their tags metadata", func(t *testing.T) {
+		t.Parallel()
 		type testStruct struct {
 			Value1 string `key2:"Value3" key4:"Value5"`
 			Value6 string `key7:"Value8" key9:"Value10"`
@@ -90,6 +97,8 @@ func TestStructMetadata(t *testing.T) {
 	})
 
 	t.Run("when a struct has nested anonymous structs with fields and tags it should include the anonymous structs fields", func(t *testing.T) {
+		t.Parallel()
+
 		type deepStruct struct {
 			DeepField string `key:"Deep"`
 		}
@@ -141,6 +150,8 @@ func TestStructMetadata(t *testing.T) {
 	})
 
 	t.Run("when a struct and a nested struct both have fields with the same name it should panic", func(t *testing.T) {
+		t.Parallel()
+
 		type embeddedStruct struct {
 			Field string
 		}
@@ -156,6 +167,8 @@ func TestStructMetadata(t *testing.T) {
 	})
 
 	t.Run("when StructMedata is called concurrently is should have no errors", func(t *testing.T) {
+		t.Parallel()
+
 		type testStruct struct {
 			Value float32 `key1:"Value1" key2:"Value2"`
 		}
