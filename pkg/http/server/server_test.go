@@ -420,6 +420,7 @@ func TestServer(t *testing.T) {
 		caCertPool.AppendCertsFromPEM(serverCertPEM)
 
 		certPathsConfigProvider := func(t *testing.T) *server.Config {
+			t.Helper()
 			cfg, configErr := config.ProcessAndValidate[server.Config]()
 			assert.NoError(t, configErr)
 			cfg.HTTPServerKey = serverPrivateKeyPath
