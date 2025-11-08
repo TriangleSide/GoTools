@@ -1,7 +1,6 @@
 package ptr_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/ptr"
@@ -15,7 +14,8 @@ func TestPtr(t *testing.T) {
 		t.Parallel()
 		ptrVal := ptr.Of[uint](123)
 		assert.NotNil(t, ptrVal)
-		assert.Equals(t, reflect.TypeOf(ptrVal).Elem().Kind(), reflect.Uint)
+		_, ok := any(ptrVal).(*uint)
+		assert.True(t, ok)
 		assert.Equals(t, *ptrVal, uint(123))
 	})
 
@@ -23,7 +23,8 @@ func TestPtr(t *testing.T) {
 		t.Parallel()
 		ptrVal := ptr.Of[float32](123.45)
 		assert.NotNil(t, ptrVal)
-		assert.Equals(t, reflect.TypeOf(ptrVal).Elem().Kind(), reflect.Float32)
+		_, ok := any(ptrVal).(*float32)
+		assert.True(t, ok)
 		assert.Equals(t, *ptrVal, float32(123.45))
 	})
 
@@ -34,7 +35,8 @@ func TestPtr(t *testing.T) {
 		}
 		ptrVal := ptr.Of[testStruct](testStruct{Value: 123})
 		assert.NotNil(t, ptrVal)
-		assert.Equals(t, reflect.TypeOf(ptrVal).Elem().Kind(), reflect.Struct)
+		_, ok := any(ptrVal).(*testStruct)
+		assert.True(t, ok)
 		assert.Equals(t, *ptrVal, testStruct{Value: 123})
 	})
 }

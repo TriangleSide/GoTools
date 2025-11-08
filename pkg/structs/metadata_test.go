@@ -178,12 +178,12 @@ func TestStructMetadata(t *testing.T) {
 		wg := sync.WaitGroup{}
 		waitChan := make(chan struct{})
 
-		for i := 0; i < threadCount; i++ {
+		for range threadCount {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitChan
-				for k := 0; k < loopCount; k++ {
+				for range loopCount {
 					metadata := structs.Metadata[testStruct]()
 					assert.Equals(t, metadata.Size(), 1)
 					valueField := metadata.Get("Value")
