@@ -1,7 +1,7 @@
 GOMODCACHE ?= $(HOME)/go/pkg/mod
 GOCACHE ?= $(HOME)/.cache/go-build
 
-GO_DOCKER_VERSION := 1.23
+GO_DOCKER_VERSION := 1.25
 GOLANGCI_LINT_VERSION := v2.6.1
 
 DOCKER_RUN := docker run --rm -v $(PWD):/app -w /app --network host
