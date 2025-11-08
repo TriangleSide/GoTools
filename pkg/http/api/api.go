@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
@@ -22,10 +23,11 @@ func init() {
 	validation.MustRegisterValidator(pathValidationTag, func(params *validation.CallbackParameters) *validation.CallbackResult {
 		result := validation.NewCallbackResult()
 
-		value, err := validation.DereferenceAndNilCheck(params.Value)
-		if err != nil {
-			return result.WithError(validation.NewViolation(params, err))
+		value := reflection.Dereference(params.Value)
+		if reflection.IsNil(value) {
+			return result.WithError(validation.NewViolation(params, errors.New("the value is nil")))
 		}
+
 		if value.Kind() != reflect.String {
 			return result.WithError(validation.NewViolation(params, errors.New("the value must be a string")))
 		}

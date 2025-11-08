@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 	"github.com/TriangleSide/GoTools/pkg/structs"
 )
 
@@ -128,8 +129,8 @@ func validateRecursively(depth int, val reflect.Value, violations *Violations) e
 		return errors.New("cycle found in the validation")
 	}
 
-	val, err := DereferenceAndNilCheck(val)
-	if err != nil {
+	val = reflection.Dereference(val)
+	if reflection.IsNil(val) {
 		return nil
 	}
 
@@ -174,7 +175,7 @@ func Struct[T any](val T) error {
 
 // validateStruct is a helper for the Struct and validateRecursively functions.
 func validateStruct[T any](val T, depth int) error {
-	reflectValue, err := DereferenceAndNilCheck(reflect.ValueOf(val))
+	reflectValue, err := dereferenceAndNilCheck(reflect.ValueOf(val))
 	if err != nil {
 		return err
 	}

@@ -33,7 +33,7 @@ func registerStringLengthValidation(name Validator, compareFunc func(length, tar
 			return result.WithError(errors.New("the length parameter can't be negative"))
 		}
 
-		value, err := DereferenceAndNilCheck(params.Value)
+		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
 			return result.WithError(NewViolation(params, err))
 		}
