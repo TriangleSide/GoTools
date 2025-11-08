@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/http/headers"
 	"github.com/TriangleSide/GoTools/pkg/http/parameters"
@@ -125,7 +126,12 @@ func TestDecodeHTTPParameters(t *testing.T) {
 				Field int `json:"-" urlPath:"urlTestPath"`
 			}](request)
 		})
-		server := &http.Server{Handler: mux}
+		server := &http.Server{
+			Handler:           mux,
+			ReadHeaderTimeout: time.Second * 5,
+			ReadTimeout:       time.Second * 5,
+			WriteTimeout:      time.Second * 5,
+		}
 		defer func() {
 			err := server.Close()
 			assert.NoError(t, err, assert.Continue())
@@ -291,7 +297,12 @@ func TestDecodeHTTPParameters(t *testing.T) {
 			params, _ = parameters.Decode[parameterFields](request)
 		})
 
-		server := &http.Server{Handler: mux}
+		server := &http.Server{
+			Handler:           mux,
+			ReadHeaderTimeout: time.Second * 5,
+			ReadTimeout:       time.Second * 5,
+			WriteTimeout:      time.Second * 5,
+		}
 		defer func() {
 			err := server.Close()
 			assert.NoError(t, err, assert.Continue())
