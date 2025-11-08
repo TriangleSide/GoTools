@@ -13,7 +13,7 @@ func TestRequiredValidator(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		value         interface{}
+		value         any
 		validation    string
 		expectedError string
 	}{
@@ -109,19 +109,19 @@ func TestRequiredValidator(t *testing.T) {
 		},
 		{
 			name:          "when the value is an interface holding zero value it should fail",
-			value:         interface{}(""),
+			value:         any(""),
 			validation:    "required",
 			expectedError: "the value is the zero-value",
 		},
 		{
 			name:          "when the value is an interface holding non-zero value it should pass",
-			value:         interface{}("non-empty"),
+			value:         any("non-empty"),
 			validation:    "required",
 			expectedError: "",
 		},
 		{
 			name:          "when the an interface is nil it should fail",
-			value:         interface{}(nil),
+			value:         any(nil),
 			validation:    "required",
 			expectedError: "value is nil",
 		},

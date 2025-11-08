@@ -222,7 +222,7 @@ func TestServer(t *testing.T) {
 			assert.NoError(t, srv.Run())
 		}()
 		<-waitUntilReady
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			assert.NoError(t, srv.Shutdown(context.Background()))
 		}
 	})
@@ -739,48 +739,48 @@ func TestServer(t *testing.T) {
 		}
 
 		// Error endpoint.
-		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+		for range totalGoRoutinesPerOperation {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitToStart
-				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+				for range totalRequestsPerGoRoutine {
 					performRequest(t, http.MethodGet, "http://"+serverAddress+"/error", nil, http.StatusInternalServerError)
 				}
 			}()
 		}
 
 		// Status endpoint good.
-		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+		for range totalGoRoutinesPerOperation {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitToStart
-				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+				for range totalRequestsPerGoRoutine {
 					performRequest(t, http.MethodGet, "http://"+serverAddress+"/status?value=test", nil, http.StatusOK)
 				}
 			}()
 		}
 
 		// Status endpoint bad decode.
-		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+		for range totalGoRoutinesPerOperation {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitToStart
-				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+				for range totalRequestsPerGoRoutine {
 					performRequest(t, http.MethodGet, "http://"+serverAddress+"/status", nil, http.StatusBadRequest)
 				}
 			}()
 		}
 
 		// JSON endpoint good.
-		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+		for range totalGoRoutinesPerOperation {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitToStart
-				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+				for range totalRequestsPerGoRoutine {
 					bodyData := bytes.NewBuffer([]byte(`{"data":"value"}`))
 					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusOK)
 				}
@@ -788,12 +788,12 @@ func TestServer(t *testing.T) {
 		}
 
 		// JSON endpoint invalid.
-		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+		for range totalGoRoutinesPerOperation {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitToStart
-				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+				for range totalRequestsPerGoRoutine {
 					bodyData := bytes.NewBuffer([]byte(`{"data":""}`))
 					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusBadRequest)
 				}
@@ -801,12 +801,12 @@ func TestServer(t *testing.T) {
 		}
 
 		// JSONStream endpoint good.
-		for routineI := 0; routineI < totalGoRoutinesPerOperation; routineI++ {
+		for range totalGoRoutinesPerOperation {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitToStart
-				for i := 0; i < totalRequestsPerGoRoutine; i++ {
+				for range totalRequestsPerGoRoutine {
 					performRequest(t, http.MethodGet, "http://"+serverAddress+"/jsonstream", nil, http.StatusOK)
 				}
 			}()

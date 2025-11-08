@@ -60,12 +60,12 @@ func TestOneOfValidator(t *testing.T) {
 		},
 		{
 			name:       "when the value is an interface matching an allowed value it should pass",
-			value:      interface{}("cherry"),
+			value:      any("cherry"),
 			validation: "oneof=apple banana cherry",
 		},
 		{
 			name:          "when the value is an interface not matching any allowed value it should fail",
-			value:         interface{}("pear"),
+			value:         any("pear"),
 			validation:    "oneof=apple banana cherry",
 			expectedError: "value is not one of the allowed values",
 		},
