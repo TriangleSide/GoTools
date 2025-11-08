@@ -579,6 +579,9 @@ func TestServer(t *testing.T) {
 			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddr, nil)
 			assert.NoError(t, err)
 			response, err := httpClient.Do(request)
+			if response != nil {
+				assert.Nil(t, response.Body.Close())
+			}
 			assert.ErrorPart(t, err, "unknown authority")
 			assert.Nil(t, response)
 		})
@@ -637,6 +640,9 @@ func TestServer(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, request)
 			response, err := httpClient.Do(request)
+			if response != nil {
+				assert.Nil(t, response.Body.Close())
+			}
 			assert.ErrorPart(t, err, "tls: certificate required")
 			assert.Nil(t, response)
 		})
@@ -679,6 +685,9 @@ func TestServer(t *testing.T) {
 			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddress, nil)
 			assert.NoError(t, err)
 			response, err := httpClient.Do(request)
+			if response != nil {
+				assert.Nil(t, response.Body.Close())
+			}
 			assert.ErrorPart(t, err, "tls: certificate required")
 			assert.Nil(t, response)
 		})
