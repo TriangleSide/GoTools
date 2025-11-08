@@ -50,5 +50,3 @@ linters:
       - path: '_test\.go'
         linters:
           - gosec
-          - bodyclose
-          - dupl
