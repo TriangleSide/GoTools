@@ -1,9 +1,10 @@
 package cache
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
-	"math/rand/v2"
+	"math/big"
 	"strconv"
 	"sync"
 	"testing"
@@ -27,6 +28,13 @@ func syncMapLen(syncMap *sync.Map) int {
 		return true
 	})
 	return count
+}
+
+func getRandomInt(t *testing.T, max int) int {
+	t.Helper()
+	randomValueBig, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	assert.Nil(t, err)
+	return int(randomValueBig.Int64())
 }
 
 func TestCache(t *testing.T) {
@@ -264,8 +272,8 @@ func TestCache(t *testing.T) {
 			go func() {
 				<-startChan
 				for range loopCount {
-					key := "key" + strconv.Itoa(rand.IntN(threadCount))
-					value := "value" + strconv.Itoa(rand.IntN(threadCount))
+					key := "key" + strconv.Itoa(getRandomInt(t, threadCount))
+					value := "value" + strconv.Itoa(getRandomInt(t, threadCount))
 					_, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
 						return value, ptr.Of(time.Millisecond), nil
 					})

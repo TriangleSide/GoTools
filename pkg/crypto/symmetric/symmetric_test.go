@@ -4,7 +4,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
-	mathrand "math/rand"
+	"math/big"
 	"strconv"
 	"testing"
 
@@ -12,12 +12,19 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
+func getRandomInt(t *testing.T) int {
+	t.Helper()
+	randomValueBig, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	assert.Nil(t, err)
+	return int(randomValueBig.Int64())
+}
+
 func TestSymmetricEncryption(t *testing.T) {
 	t.Parallel()
 
 	newEncryptor := func(t *testing.T) symmetric.Encryptor {
 		t.Helper()
-		encryptor, err := symmetric.New("encryptionKey" + strconv.Itoa(mathrand.Int()))
+		encryptor, err := symmetric.New("encryptionKey" + strconv.Itoa(getRandomInt(t)))
 		assert.NoError(t, err)
 		assert.NotNil(t, encryptor)
 		return encryptor
@@ -25,7 +32,7 @@ func TestSymmetricEncryption(t *testing.T) {
 
 	t.Run("when the cipher provider returns an error it should return an error on creation", func(t *testing.T) {
 		t.Parallel()
-		encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(mathrand.Int()), symmetric.WithBlockCypherProvider(func(key []byte) (cipher.Block, error) {
+		encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(getRandomInt(t)), symmetric.WithBlockCypherProvider(func(key []byte) (cipher.Block, error) {
 			return nil, errors.New("block cipher provider error")
 		}))
 		assert.ErrorPart(t, err, "failed to create the block cipher (block cipher provider error)")

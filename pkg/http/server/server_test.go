@@ -364,7 +364,7 @@ func TestServer(t *testing.T) {
 		caCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
 
 		clientCACertPath := filepath.Join(tempDir, "ca_cert.pem")
-		assert.NoError(t, os.WriteFile(clientCACertPath, caCertPEM, 0644))
+		assert.NoError(t, os.WriteFile(clientCACertPath, caCertPEM, 0600))
 		clientCaCertPaths := []string{clientCACertPath}
 
 		serverPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -391,7 +391,7 @@ func TestServer(t *testing.T) {
 		assert.NoError(t, os.WriteFile(serverPrivateKeyPath, serverPrivateKeyPEM, 0600))
 
 		serverCertificatePath := filepath.Join(tempDir, "server_cert.pem")
-		assert.NoError(t, os.WriteFile(serverCertificatePath, serverCertPEM, 0644))
+		assert.NoError(t, os.WriteFile(serverCertificatePath, serverCertPEM, 0600))
 
 		clientPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		assert.NoError(t, err)
@@ -416,7 +416,7 @@ func TestServer(t *testing.T) {
 		assert.NoError(t, os.WriteFile(clientPrivateKeyPath, clientPrivateKeyPEM, 0600))
 
 		clientCertificatePath := filepath.Join(tempDir, "client_cert.pem")
-		assert.NoError(t, os.WriteFile(clientCertificatePath, clientCertPEM, 0644))
+		assert.NoError(t, os.WriteFile(clientCertificatePath, clientCertPEM, 0600))
 
 		clientCertificateKeyPair, err := tls.LoadX509KeyPair(clientCertificatePath, clientPrivateKeyPath)
 		assert.NoError(t, err)
@@ -519,7 +519,7 @@ func TestServer(t *testing.T) {
 		t.Run("when the server certificate is invalid it should fail to be created", func(t *testing.T) {
 			t.Parallel()
 			invalidCertPath := filepath.Join(tempDir, "invalid_cert.pem")
-			assert.NoError(t, os.WriteFile(invalidCertPath, []byte("invalid data"), 0644))
+			assert.NoError(t, os.WriteFile(invalidCertPath, []byte("invalid data"), 0600))
 			for _, mode := range []server.TLSMode{server.TLSModeTLS, server.TLSModeMutualTLS} {
 				srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 					cfg := certPathsConfigProvider(t)
@@ -535,7 +535,7 @@ func TestServer(t *testing.T) {
 		t.Run("when the server key is invalid it should fail to be created", func(t *testing.T) {
 			t.Parallel()
 			invalidKeyPath := filepath.Join(tempDir, "invalid_key.pem")
-			assert.NoError(t, os.WriteFile(invalidKeyPath, []byte("invalid data"), 0644))
+			assert.NoError(t, os.WriteFile(invalidKeyPath, []byte("invalid data"), 0600))
 			for _, mode := range []server.TLSMode{server.TLSModeTLS, server.TLSModeMutualTLS} {
 				srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 					cfg := certPathsConfigProvider(t)
@@ -551,7 +551,7 @@ func TestServer(t *testing.T) {
 		t.Run("when the client CA is invalid it should fail to be created", func(t *testing.T) {
 			t.Parallel()
 			invalidCertPath := filepath.Join(tempDir, "invalid_ca.pem")
-			assert.NoError(t, os.WriteFile(invalidCertPath, []byte("invalid data"), 0644))
+			assert.NoError(t, os.WriteFile(invalidCertPath, []byte("invalid data"), 0600))
 			srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 				cfg := certPathsConfigProvider(t)
 				cfg.HTTPServerTLSMode = server.TLSModeMutualTLS
