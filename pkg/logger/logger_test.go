@@ -150,12 +150,12 @@ func TestLoggerConcurrency(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	waitChan := make(chan struct{})
 
-	for i := 0; i < threadCount; i++ {
+	for range threadCount {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			<-waitChan
-			for k := 0; k < opsPerThread; k++ {
+			for range opsPerThread {
 				logger.SetOutput(&testWriter{})
 				logger.SetFormatter(logger.DefaultFormatter)
 				for _, level := range []logger.LogLevel{logger.LevelError, logger.LevelWarn, logger.LevelInfo, logger.LevelDebug, logger.LevelTrace} {

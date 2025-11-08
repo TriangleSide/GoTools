@@ -123,13 +123,13 @@ func TestStringLengthValidators(t *testing.T) {
 			name:      "when using validator with an interface containing a string it should pass",
 			validator: "len",
 			param:     "5",
-			value:     interface{}("hello"),
+			value:     any("hello"),
 		},
 		{
 			name:          "when using validator with an interface containing a non-string it should return an error",
 			validator:     "len",
 			param:         "5",
-			value:         interface{}(12345),
+			value:         any(12345),
 			expectedError: "value must be a string for the len validator",
 		},
 		{

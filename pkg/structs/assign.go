@@ -52,7 +52,7 @@ func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) e
 	fieldPtr := reflect.New(fieldType)
 
 	// Switch on how to set the value.
-	if reflect.PointerTo(fieldType).Implements(reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()) {
+	if reflect.PointerTo(fieldType).Implements(reflect.TypeFor[encoding.TextUnmarshaler]()) {
 		// If the field type implements encoding.TextUnmarshaler, the interface is used parse the value.
 		unmarshaler := fieldPtr.Interface().(encoding.TextUnmarshaler)
 		if err := unmarshaler.UnmarshalText([]byte(stringEncodedValue)); err != nil {

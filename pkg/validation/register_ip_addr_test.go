@@ -53,22 +53,22 @@ func TestIPAddrValidator(t *testing.T) {
 		},
 		{
 			name:          "when value is an interface wrapping a string with valid IP, it should succeed",
-			value:         interface{}("127.0.0.1"),
+			value:         any("127.0.0.1"),
 			expectedError: "",
 		},
 		{
 			name:          "when value is an interface wrapping a string with invalid IP, it should return an error",
-			value:         interface{}("invalid_ip"),
+			value:         any("invalid_ip"),
 			expectedError: "value 'invalid_ip' could not be parsed as an IP address",
 		},
 		{
 			name:          "when value is an interface wrapping a nil pointer, it should fail",
-			value:         interface{}((*string)(nil)),
+			value:         any((*string)(nil)),
 			expectedError: "found nil while dereferencing",
 		},
 		{
 			name:          "when value is an interface wrapping a non-string value, it should return an error",
-			value:         interface{}(12345),
+			value:         any(12345),
 			expectedError: "the value must be a string",
 		},
 		{

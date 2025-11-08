@@ -55,7 +55,7 @@ func TestTags(t *testing.T) {
 			JSONField2   string `json:"JSON2,omitempty"`
 		}
 
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()
 			assert.NoError(t, err)
 

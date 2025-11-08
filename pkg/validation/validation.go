@@ -55,7 +55,7 @@ func forEachValidatorAndInstruction(validateTagContents string, callback func(na
 	}
 	namesToInstructions := strings.Split(validateTagContents, ValidatorsSep)
 
-	for i := 0; i < len(namesToInstructions); i++ {
+	for i := range namesToInstructions {
 		validatorName, validatorInstructions, parseErr := parseValidatorNameAndInstruction(namesToInstructions[i])
 		if parseErr != nil {
 			return parseErr

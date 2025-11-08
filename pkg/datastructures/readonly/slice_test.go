@@ -133,17 +133,17 @@ func TestReadOnlySlice(t *testing.T) {
 		waitToStart := make(chan struct{})
 
 		builder := readonly.NewSliceBuilder[int]()
-		for i := 0; i < entryCount; i++ {
+		for i := range entryCount {
 			builder.Append(i)
 		}
 		roSlice := builder.Build()
 
-		for i := 0; i < goRoutineCount; i++ {
+		for range goRoutineCount {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				<-waitToStart
-				for k := 0; k < entryCount; k++ {
+				for k := range entryCount {
 					verifySliceValue(t, roSlice, k, k)
 				}
 			}()
