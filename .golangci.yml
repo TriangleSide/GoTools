@@ -45,8 +45,3 @@ linters:
     - usestdlibvars
     - usetesting
     - whitespace
-  exclusions:
-    rules:
-      - path: '_test\.go'
-        linters:
-          - gosec

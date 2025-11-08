@@ -1,14 +1,22 @@
 package heap_test
 
 import (
+	"crypto/rand"
 	"math"
-	"math/rand/v2"
+	"math/big"
 	"sync"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/datastructures/heap"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
+
+func getRandomInt(t *testing.T, max int) int {
+	t.Helper()
+	randomValueBig, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	assert.Nil(t, err)
+	return int(randomValueBig.Int64())
+}
 
 func TestHeap(t *testing.T) {
 	t.Parallel()
@@ -154,11 +162,11 @@ func TestHeap(t *testing.T) {
 		valueToCount := make(map[int]int, count)
 
 		for range count {
-			randomValue := rand.IntN(count / 10)
+			randomValue := getRandomInt(t, count/10)
 			minHeap.Push(randomValue)
 			valueToCount[randomValue] = valueToCount[randomValue] + 1
 
-			randomValue = rand.IntN(count / 10)
+			randomValue = getRandomInt(t, count/10)
 			minHeap.Push(randomValue)
 			valueToCount[randomValue] = valueToCount[randomValue] + 1
 
@@ -208,9 +216,9 @@ func TestHeap(t *testing.T) {
 				defer wg.Done()
 				<-waitToStart
 				for range countPerRoutine {
-					randomValue := rand.IntN(countPerRoutine / 10)
+					randomValue := getRandomInt(t, countPerRoutine/10)
 					maxHeap.Push(randomValue)
-					randomValue = rand.IntN(countPerRoutine / 10)
+					randomValue = getRandomInt(t, countPerRoutine/10)
 					maxHeap.Push(randomValue)
 					maxHeap.Pop()
 				}
