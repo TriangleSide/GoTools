@@ -30,7 +30,7 @@ func newJSONResponderTestServer[TRequest, TResponse any](t *testing.T, handler f
 func postJSON(t *testing.T, url, body string) *http.Response {
 	t.Helper()
 
-	response, err := http.Post(url, headers.ContentTypeApplicationJson, strings.NewReader(body))
+	response, err := http.Post(url, headers.ContentTypeApplicationJson, strings.NewReader(body)) // nolint:gosec
 	assert.NoError(t, err)
 
 	return response
