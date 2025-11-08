@@ -31,7 +31,7 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 			return result.WithError(fmt.Errorf("invalid parameters '%s' for %s: %w", params.Parameters, name, err))
 		}
 
-		value, err := DereferenceAndNilCheck(params.Value)
+		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
 			return result.WithError(NewViolation(params, err))
 		}

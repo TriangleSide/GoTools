@@ -61,6 +61,7 @@ func TestServer(t *testing.T) {
 	t.Parallel()
 
 	getDefaultConfig := func(t *testing.T) *server.Config {
+		t.Helper()
 		defaults := &server.Config{
 			HTTPServerBindIP:                  "::1",
 			HTTPServerBindPort:                0,

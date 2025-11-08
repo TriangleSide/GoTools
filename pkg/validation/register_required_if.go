@@ -36,7 +36,7 @@ func init() {
 		}
 
 		// If the value to check is nil, it can never match, therefore the value is not required.
-		requiredFieldValue, err = DereferenceAndNilCheck(requiredFieldValue)
+		requiredFieldValue, err = dereferenceAndNilCheck(requiredFieldValue)
 		if err != nil {
 			return nil
 		}
