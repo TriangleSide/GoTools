@@ -45,7 +45,7 @@ func TestFilepathValidator(t *testing.T) {
 		{
 			name:          "when value is a nil pointer, it should fail",
 			value:         (*string)(nil),
-			expectedError: "found nil while dereferencing",
+			expectedError: "value is nil",
 		},
 		{
 			name: "when value is a pointer to string with existing file it should succeed",

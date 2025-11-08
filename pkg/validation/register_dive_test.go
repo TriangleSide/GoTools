@@ -80,7 +80,7 @@ func TestDiveValidatorWithValidations(t *testing.T) {
 				Name:             "slice of pointer to int with nil value",
 				Value:            []*int{ptr.Of(1), nil},
 				Validation:       "dive,required",
-				ExpectedErrorMsg: "found nil while dereferencing",
+				ExpectedErrorMsg: "value is nil",
 			},
 			{
 				Name:             "slice of strings with empty string",

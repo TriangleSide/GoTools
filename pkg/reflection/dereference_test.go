@@ -15,8 +15,7 @@ func TestDereference(t *testing.T) {
 	t.Run("when nil is passed to Dereference it should do nothing", func(t *testing.T) {
 		t.Parallel()
 		invalidValue := reflect.ValueOf(nil)
-		dereferenced, err := reflection.Dereference(invalidValue)
-		assert.NoError(t, err)
+		dereferenced := reflection.Dereference(invalidValue)
 		assert.Equals(t, invalidValue, dereferenced)
 	})
 
@@ -24,8 +23,7 @@ func TestDereference(t *testing.T) {
 		t.Parallel()
 		intValue := reflect.ValueOf(0)
 		assert.Equals(t, intValue.Kind(), reflect.Int)
-		dereferenced, err := reflection.Dereference(intValue)
-		assert.NoError(t, err)
+		dereferenced := reflection.Dereference(intValue)
 		assert.Equals(t, intValue, dereferenced)
 		assert.Equals(t, dereferenced.Kind(), reflect.Int)
 	})
@@ -35,8 +33,7 @@ func TestDereference(t *testing.T) {
 		var nilPtr *int = nil
 		value := reflect.ValueOf(nilPtr)
 		assert.Equals(t, value.Kind(), reflect.Ptr)
-		dereferenced, err := reflection.Dereference(value)
-		assert.ErrorExact(t, err, "found nil while dereferencing")
+		dereferenced := reflection.Dereference(value)
 		assert.False(t, dereferenced.IsValid())
 	})
 
@@ -45,8 +42,7 @@ func TestDereference(t *testing.T) {
 		var nilMap map[string]string = nil
 		value := reflect.ValueOf(nilMap)
 		assert.Equals(t, value.Kind(), reflect.Map)
-		dereferenced, err := reflection.Dereference(value)
-		assert.NoError(t, err)
+		dereferenced := reflection.Dereference(value)
 		assert.Equals(t, dereferenced.Kind(), reflect.Map)
 	})
 
@@ -54,8 +50,7 @@ func TestDereference(t *testing.T) {
 		t.Parallel()
 		value := reflect.ValueOf(ptr.Of(ptr.Of(ptr.Of(1))))
 		assert.Equals(t, value.Kind(), reflect.Ptr)
-		dereferenced, err := reflection.Dereference(value)
-		assert.NoError(t, err)
+		dereferenced := reflection.Dereference(value)
 		assert.Equals(t, dereferenced.Kind(), reflect.Int)
 		assert.Equals(t, dereferenced.Int(), int64(1))
 	})

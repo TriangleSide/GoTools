@@ -167,7 +167,7 @@ func TestRequiredIfValidator(t *testing.T) {
 			Status: "active",
 			Field:  nil,
 		})
-		assert.ErrorPart(t, err, "found nil while dereferencing")
+		assert.ErrorPart(t, err, "value is nil")
 	})
 
 	t.Run("when the field under validation is a pointer and set it should pass", func(t *testing.T) {

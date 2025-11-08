@@ -22,7 +22,7 @@ func init() {
 		}
 		allowedValues := strings.Fields(params.Parameters)
 
-		value, err := DereferenceAndNilCheck(params.Value)
+		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
 			return result.WithError(NewViolation(params, err))
 		}

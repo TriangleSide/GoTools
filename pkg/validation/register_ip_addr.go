@@ -16,7 +16,7 @@ func init() {
 	MustRegisterValidator(IPAddrValidatorName, func(params *CallbackParameters) *CallbackResult {
 		result := NewCallbackResult()
 
-		value, err := DereferenceAndNilCheck(params.Value)
+		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
 			return result.WithError(NewViolation(params, err))
 		}

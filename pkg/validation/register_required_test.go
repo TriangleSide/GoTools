@@ -81,7 +81,7 @@ func TestRequiredValidator(t *testing.T) {
 			name:          "when the value is a nil pointer it should fail",
 			value:         (*int)(nil),
 			validation:    "required",
-			expectedError: "found nil while dereferencing",
+			expectedError: "value is nil",
 		},
 		{
 			name:          "when the value is a pointer to zero value it should fail",
@@ -141,7 +141,7 @@ func TestRequiredValidator(t *testing.T) {
 			name:          "when using 'dive' on a slice with nil pointers it should fail",
 			value:         []*int{ptr.Of(1), nil, ptr.Of(3)},
 			validation:    "dive,required",
-			expectedError: "found nil while dereferencing",
+			expectedError: "value is nil",
 		},
 		{
 			name:          "when the value is boolean true it should pass",

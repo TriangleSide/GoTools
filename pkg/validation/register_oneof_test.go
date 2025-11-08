@@ -148,7 +148,7 @@ func TestOneOfValidator(t *testing.T) {
 				ptr.Of("cherry"),
 			},
 			validation:    "dive,oneof=apple banana cherry",
-			expectedError: "found nil while dereferencing",
+			expectedError: "value is nil",
 		},
 		{
 			name: "when using 'dive' with pointers and an element does not match it should fail",
