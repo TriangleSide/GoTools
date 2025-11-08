@@ -211,5 +211,6 @@ func TestJSONStreamResponder(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equals(t, response.StatusCode, http.StatusOK)
 		assert.ErrorPart(t, writeError, "simulated write failure")
+		assert.NoError(t, response.Body.Close())
 	})
 }

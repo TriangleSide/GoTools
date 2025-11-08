@@ -126,6 +126,7 @@ func TestJSONResponder(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equals(t, response.StatusCode, http.StatusInternalServerError)
 		assert.NoError(t, writeError)
+		assert.NoError(t, response.Body.Close())
 	})
 
 	t.Run("when the writer returns an error it should call the write error callback", func(t *testing.T) {
@@ -147,9 +148,10 @@ func TestJSONResponder(t *testing.T) {
 		}))
 		defer server.Close()
 
-		_, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":123}`))
+		response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":123}`))
 		assert.NoError(t, err)
 		assert.True(t, ew.WriteFailed)
 		assert.ErrorPart(t, writeError, "simulated write failure")
+		assert.NoError(t, response.Body.Close())
 	})
 }
