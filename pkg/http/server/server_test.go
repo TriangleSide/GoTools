@@ -20,13 +20,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/config"
 	"github.com/TriangleSide/GoTools/pkg/http/api"
 	"github.com/TriangleSide/GoTools/pkg/http/headers"
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
 	"github.com/TriangleSide/GoTools/pkg/http/responders"
 	"github.com/TriangleSide/GoTools/pkg/http/server"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 type testHandler struct {
@@ -58,9 +58,27 @@ func init() {
 }
 
 func TestServer(t *testing.T) {
-	t.Setenv("HTTP_SERVER_KEEP_ALIVE", "false")
-	t.Setenv("HTTP_SERVER_TLS_MODE", string(server.TLSModeOff))
-	http.DefaultTransport.(*http.Transport).DisableKeepAlives = true
+	t.Parallel()
+
+	getDefaultConfig := func(t *testing.T) *server.Config {
+		defaults := &server.Config{
+			HTTPServerBindIP:                  "::1",
+			HTTPServerBindPort:                0,
+			HTTPServerReadTimeoutMillis:       120000,
+			HTTPServerWriteTimeoutMillis:      120000,
+			HTTPServerIdleTimeoutMillis:       0,
+			HTTPServerHeaderReadTimeoutMillis: 0,
+			HTTPServerTLSMode:                 server.TLSModeOff,
+			HTTPServerCert:                    "",
+			HTTPServerKey:                     "",
+			HTTPServerClientCACerts:           []string{},
+			HTTPServerMaxHeaderBytes:          1048576,
+			HTTPServerKeepAlive:               false,
+		}
+		err := validation.Struct(defaults)
+		assert.Nil(t, err)
+		return defaults
+	}
 
 	handler := &testHandler{
 		Path:       "/",
@@ -118,7 +136,7 @@ func TestServer(t *testing.T) {
 		assert.NoError(t, response.Body.Close())
 	}
 
-	t.Run("when a server is instantiated it should fail if there's an error when parsing the environment variables", func(t *testing.T) {
+	t.Run("when a server is instantiated it should fail if there's an error with the config", func(t *testing.T) {
 		t.Parallel()
 		srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 			return nil, errors.New("config error")
@@ -130,8 +148,7 @@ func TestServer(t *testing.T) {
 	t.Run("when a server is started it should fail if the TLS mode is invalid", func(t *testing.T) {
 		t.Parallel()
 		srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
-			cfg, err := config.ProcessAndValidate[server.Config]()
-			assert.NoError(t, err)
+			cfg := getDefaultConfig(t)
 			cfg.HTTPServerTLSMode = "invalid_mode"
 			return cfg, nil
 		}))
@@ -142,8 +159,7 @@ func TestServer(t *testing.T) {
 	t.Run("when a server is run it should fail if when the address is incorrectly formatted", func(t *testing.T) {
 		t.Parallel()
 		srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
-			cfg, err := config.ProcessAndValidate[server.Config]()
-			assert.NoError(t, err)
+			cfg := getDefaultConfig(t)
 			cfg.HTTPServerBindIP = "not_an_ip"
 			return cfg, nil
 		}))
@@ -156,8 +172,7 @@ func TestServer(t *testing.T) {
 	t.Run("when a server is started it should fail if the keys are missing when the TLS mode is TLS", func(t *testing.T) {
 		t.Parallel()
 		srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
-			cfg, err := config.ProcessAndValidate[server.Config]()
-			assert.NoError(t, err)
+			cfg := getDefaultConfig(t)
 			cfg.HTTPServerTLSMode = server.TLSModeTLS
 			cfg.HTTPServerKey = ""
 			cfg.HTTPServerCert = ""
@@ -167,7 +182,7 @@ func TestServer(t *testing.T) {
 		assert.Nil(t, srv)
 	})
 
-	t.Run("when the server bind port is already take it should fail when starting", func(t *testing.T) {
+	t.Run("when the server bind port is already taken it should fail when starting", func(t *testing.T) {
 		t.Parallel()
 		const ip = "::1"
 		listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP(ip), Port: 0})
@@ -179,8 +194,7 @@ func TestServer(t *testing.T) {
 		assert.True(t, ok)
 		listenerPort := addr.AddrPort().Port()
 		srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
-			cfg, err := config.ProcessAndValidate[server.Config]()
-			assert.NoError(t, err)
+			cfg := getDefaultConfig(t)
 			cfg.HTTPServerBindIP = ip
 			cfg.HTTPServerBindPort = listenerPort
 			return cfg, nil
@@ -196,6 +210,8 @@ func TestServer(t *testing.T) {
 		waitUntilReady := make(chan bool)
 		srv, err := server.New(server.WithBoundCallback(func(*net.TCPAddr) {
 			close(waitUntilReady)
+		}), server.WithConfigProvider(func() (*server.Config, error) {
+			return getDefaultConfig(t), nil
 		}))
 		assert.NoError(t, err)
 		assert.NotNil(t, srv)
@@ -208,6 +224,9 @@ func TestServer(t *testing.T) {
 		assert.PanicPart(t, func() {
 			_ = srv.Run()
 		}, "HTTP server can only be run once per instance")
+
+		shutdownErr := srv.Shutdown(context.Background())
+		assert.NoError(t, shutdownErr)
 	})
 
 	t.Run("when a server is started it should be able to be shutdown multiple times", func(t *testing.T) {
@@ -215,6 +234,8 @@ func TestServer(t *testing.T) {
 		waitUntilReady := make(chan bool)
 		srv, err := server.New(server.WithBoundCallback(func(*net.TCPAddr) {
 			close(waitUntilReady)
+		}), server.WithConfigProvider(func() (*server.Config, error) {
+			return getDefaultConfig(t), nil
 		}))
 		assert.NoError(t, err)
 		assert.NotNil(t, srv)
@@ -235,6 +256,8 @@ func TestServer(t *testing.T) {
 			return listener, err
 		}), server.WithBoundCallback(func(*net.TCPAddr) {
 			close(waitUntilReady)
+		}), server.WithConfigProvider(func() (*server.Config, error) {
+			return getDefaultConfig(t), nil
 		}))
 		assert.NoError(t, err)
 		assert.NotNil(t, srv)
@@ -251,7 +274,9 @@ func TestServer(t *testing.T) {
 	t.Run("when common middleware is added to the server it should execute in order", func(t *testing.T) {
 		t.Parallel()
 		seq := make([]string, 0)
-		serverAddr := startServer(t, server.WithCommonMiddleware(
+		serverAddr := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
+			return getDefaultConfig(t), nil
+		}), server.WithCommonMiddleware(
 			func(next http.HandlerFunc) http.HandlerFunc {
 				return func(writer http.ResponseWriter, request *http.Request) {
 					seq = append(seq, "0")
@@ -300,7 +325,9 @@ func TestServer(t *testing.T) {
 
 	t.Run("when a server is started without TLS an HTTP client should be able to make requests", func(t *testing.T) {
 		t.Parallel()
-		serverAddr := startServer(t)
+		serverAddr := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
+			return getDefaultConfig(t), nil
+		}))
 		httpClient := &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
@@ -421,13 +448,20 @@ func TestServer(t *testing.T) {
 
 		certPathsConfigProvider := func(t *testing.T) *server.Config {
 			t.Helper()
-			cfg, configErr := config.ProcessAndValidate[server.Config]()
-			assert.NoError(t, configErr)
+			cfg := getDefaultConfig(t)
 			cfg.HTTPServerKey = serverPrivateKeyPath
 			cfg.HTTPServerCert = serverCertificatePath
 			cfg.HTTPServerClientCACerts = clientCaCertPaths
+			cfg.HTTPServerKeepAlive = false
 			return cfg
 		}
+
+		t.Run("when the server uses the default config it should fail because the cert paths are missing", func(t *testing.T) {
+			t.Parallel()
+			srv, err := server.New()
+			assert.ErrorPart(t, err, "validation failed on field 'HTTPServerKey'")
+			assert.Nil(t, srv)
+		})
 
 		t.Run("when the server certificate is missing it should fail to create the server", func(t *testing.T) {
 			t.Parallel()
@@ -652,7 +686,9 @@ func TestServer(t *testing.T) {
 	t.Run("when the server handles concurrent requests there should be no error", func(t *testing.T) {
 		t.Parallel()
 
-		serverAddress := startServer(t, server.WithEndpointHandlers(
+		serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
+			return getDefaultConfig(t), nil
+		}), server.WithEndpointHandlers(
 			&testHandler{
 				Path:   "/status",
 				Method: http.MethodGet,
