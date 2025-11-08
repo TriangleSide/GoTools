@@ -573,6 +573,7 @@ func TestServer(t *testing.T) {
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: false,
+						MinVersion:         tls.VersionTLS13,
 					},
 				},
 			}
@@ -598,6 +599,7 @@ func TestServer(t *testing.T) {
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: false,
 						RootCAs:            caCertPool,
+						MinVersion:         tls.VersionTLS13,
 					},
 				},
 			}
@@ -614,7 +616,8 @@ func TestServer(t *testing.T) {
 			httpClient := &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
+						InsecureSkipVerify: true, // nolint:gosec
+						MinVersion:         tls.VersionTLS13,
 					},
 				},
 			}
@@ -633,6 +636,7 @@ func TestServer(t *testing.T) {
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: false,
 						RootCAs:            caCertPool,
+						MinVersion:         tls.VersionTLS13,
 					},
 				},
 			}
@@ -660,6 +664,7 @@ func TestServer(t *testing.T) {
 						InsecureSkipVerify: false,
 						RootCAs:            caCertPool,
 						Certificates:       []tls.Certificate{clientCertificateKeyPair},
+						MinVersion:         tls.VersionTLS13,
 					},
 				},
 			}
@@ -679,6 +684,7 @@ func TestServer(t *testing.T) {
 						InsecureSkipVerify: false,
 						RootCAs:            caCertPool,
 						Certificates:       []tls.Certificate{invalidClientCert},
+						MinVersion:         tls.VersionTLS13,
 					},
 				},
 			}
