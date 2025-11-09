@@ -168,9 +168,8 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 	}
 }
 
-// listMigrationsToRun compares the registered migrations to the persisted statutes.
-// It returns the list of migrations that need to be run.
-func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([]*Registration, error) {
+// fetchPersistedStatuses retrieves the persisted statuses.
+func fetchPersistedStatuses(ctx context.Context, manager Manager) (map[Order]Status, error) {
 	persistedStatuses, err := manager.ListStatuses(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list the persisted statuses (%w)", err)
@@ -185,15 +184,34 @@ func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([
 		}
 		orderToPersistedStatus[persistedStatus.Order] = persistedStatus.Status
 	}
+	return orderToPersistedStatus, nil
+}
+
+// listMigrationsToRun compares the registered migrations to the persisted statutes.
+// It returns the list of migrations that need to be run.
+func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([]*Registration, error) {
+	orderToPersistedStatus, err := fetchPersistedStatuses(ctx, manager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch the the persisted statuses (%w)", err)
+	}
 
 	latestCompletedMigration := Order(-1)
 	migrationsToRun := make([]*Registration, 0)
 
 	for _, registeredMigration := range reg.OrderedRegistrations() {
+		migrationStatus, migrationStatusFound := orderToPersistedStatus[registeredMigration.Order]
+
 		if !registeredMigration.Enabled {
+			if _, ok := orderToPersistedStatus[registeredMigration.Order]; ok {
+				logger.Warnf("Migration with order %d is disabled but previously run with status %s. Skipping.",
+					registeredMigration.Order, orderToPersistedStatus[registeredMigration.Order])
+				delete(orderToPersistedStatus, registeredMigration.Order)
+			} else {
+				logger.Debugf("Migration with order %d is disabled and not previously run. Skipping.", registeredMigration.Order)
+			}
 			continue
 		}
-		migrationStatus, migrationStatusFound := orderToPersistedStatus[registeredMigration.Order]
+
 		if migrationStatusFound {
 			delete(orderToPersistedStatus, registeredMigration.Order)
 			if migrationStatus == Completed {
