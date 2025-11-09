@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"sync"
 
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
@@ -26,35 +25,36 @@ type Registration struct {
 	Enabled bool
 }
 
-var (
-	// registry is a map of Order to *Registration.
-	registry = sync.Map{}
-)
+// Registry stores migration registrations keyed by their order.
+type Registry struct {
+	registrations map[Order]*Registration
+}
 
-// MustRegister stores a migration registration in the registry.
-func MustRegister(registration *Registration) {
-	if err := validation.Struct(registration); err != nil {
-		panic(fmt.Sprintf("Validation failed for registration (%s).", err.Error()))
-	}
-	_, alreadyRegistered := registry.LoadOrStore(registration.Order, registration)
-	if alreadyRegistered {
-		panic(fmt.Sprintf("Registration with order %d already exists.", registration.Order))
+// NewRegistry returns a new empty migration registry.
+func NewRegistry() *Registry {
+	return &Registry{
+		registrations: make(map[Order]*Registration),
 	}
 }
 
-// orderedRegistrations returns an ordered list of the registrations in the registry.
-// The registrations are sorted by their Order.
-func orderedRegistrations() []*Registration {
-	ordered := make([]*Registration, 0)
+// MustRegister stores a migration registration in the registry.
+func (r *Registry) MustRegister(registration *Registration) {
+	if err := validation.Struct(registration); err != nil {
+		panic(fmt.Sprintf("Validation failed for registration (%s).", err.Error()))
+	}
+	if _, ok := r.registrations[registration.Order]; ok {
+		panic(fmt.Sprintf("Registration with order %d already exists.", registration.Order))
+	}
+	r.registrations[registration.Order] = registration
+}
 
-	registry.Range(func(key, value any) bool {
-		registration, castOk := value.(*Registration)
-		if !castOk {
-			panic(fmt.Sprintf("Registration with order %d was not a *Registration type.", key))
-		}
+// OrderedRegistrations returns an ordered list of the registrations in the registry.
+// The registrations are sorted by their Order.
+func (r *Registry) OrderedRegistrations() []*Registration {
+	ordered := make([]*Registration, 0)
+	for _, registration := range r.registrations {
 		ordered = append(ordered, registration)
-		return true
-	})
+	}
 
 	sort.Slice(ordered, func(a, b int) bool {
 		return ordered[a].Order < ordered[b].Order

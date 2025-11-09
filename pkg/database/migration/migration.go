@@ -66,6 +66,10 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 	if err != nil {
 		return fmt.Errorf("failed to get the migration configuration (%w)", err)
 	}
+	reg := migrateCfg.registry
+	if reg == nil {
+		return errors.New("migration registry is nil")
+	}
 
 	var releaseMigrationLockErr error = nil
 	releaseMigrationLockWG := sync.WaitGroup{}
@@ -88,16 +92,14 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 		return fmt.Errorf("failed to acquire the migration lock (%w)", err)
 	}
 
-	releaseMigrationLockWG.Add(1)
-	go func() {
-		defer releaseMigrationLockWG.Done()
+	releaseMigrationLockWG.Go(func() {
 		if releaseMigrationLockErr = heartbeatAndRelease(ctx, manager, cfg); releaseMigrationLockErr != nil {
 			cancel()
 		}
-	}()
+	})
 
 	var migrationsToRun []*Registration
-	if migrationsToRun, err = listMigrationsToRun(ctx, manager); err != nil {
+	if migrationsToRun, err = listMigrationsToRun(ctx, manager, reg); err != nil {
 		return fmt.Errorf("failed to list the migrations to run (%w)", err)
 	}
 
@@ -168,7 +170,7 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 
 // listMigrationsToRun compares the registered migrations to the persisted statutes.
 // It returns the list of migrations that need to be run.
-func listMigrationsToRun(ctx context.Context, manager Manager) ([]*Registration, error) {
+func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([]*Registration, error) {
 	persistedStatuses, err := manager.ListStatuses(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list the persisted statuses (%w)", err)
@@ -187,7 +189,7 @@ func listMigrationsToRun(ctx context.Context, manager Manager) ([]*Registration,
 	latestCompletedMigration := Order(-1)
 	migrationsToRun := make([]*Registration, 0)
 
-	for _, registeredMigration := range orderedRegistrations() {
+	for _, registeredMigration := range reg.OrderedRegistrations() {
 		if !registeredMigration.Enabled {
 			continue
 		}

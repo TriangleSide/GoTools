@@ -1,4 +1,4 @@
-package migration
+package migration_test
 
 import (
 	"context"
@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/config"
+	"github.com/TriangleSide/GoTools/pkg/database/migration"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 type managerRecorder struct {
 	Operations          []string
-	PersistedMigrations []PersistedStatus
+	PersistedMigrations []migration.PersistedStatus
 
 	Heartbeat            chan struct{}
 	HeartbeatCount       int
@@ -74,7 +75,7 @@ func (r *managerRecorder) MigrationLockHeartbeat(ctx context.Context) error {
 	return r.MigrationLockHeartbeatError
 }
 
-func (r *managerRecorder) ListStatuses(ctx context.Context) ([]PersistedStatus, error) {
+func (r *managerRecorder) ListStatuses(ctx context.Context) ([]migration.PersistedStatus, error) {
 	r.Operations = append(r.Operations, "ListStatuses()")
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
@@ -82,7 +83,7 @@ func (r *managerRecorder) ListStatuses(ctx context.Context) ([]PersistedStatus, 
 	return r.PersistedMigrations, r.ListStatusesError
 }
 
-func (r *managerRecorder) PersistStatus(ctx context.Context, order Order, status Status) error {
+func (r *managerRecorder) PersistStatus(ctx context.Context, order migration.Order, status migration.Status) error {
 	r.Operations = append(r.Operations, fmt.Sprintf("PersistStatus(order=%d, status=%s)", order, status))
 	if ctx.Err() != nil {
 		return ctx.Err()
@@ -103,8 +104,10 @@ func (r *managerRecorder) ReleaseMigrationLock(ctx context.Context) error {
 }
 
 func TestMigrate(t *testing.T) {
-	standardRegisteredMigration := func(manager *managerRecorder, order Order) *Registration {
-		return &Registration{
+	t.Parallel()
+
+	standardRegisteredMigration := func(manager *managerRecorder, order migration.Order) *migration.Registration {
+		return &migration.Registration{
 			Order: order,
 			Migrate: func(ctx context.Context) error {
 				manager.Operations = append(manager.Operations, fmt.Sprintf("Migration%d.Migrate()", order))
@@ -117,20 +120,20 @@ func TestMigrate(t *testing.T) {
 	tests := []struct {
 		name          string
 		manager       *managerRecorder
-		setupRegistry func(manager *managerRecorder)
+		setupRegistry func(reg *migration.Registry, manager *managerRecorder)
 		expectedErrs  []string
 		expectedOps   []string
-		options       []Option
+		options       []migration.Option
 		asserts       func(t *testing.T, manager *managerRecorder)
 	}{
 		{
 			name:          "when configProvider fails it should return an error",
 			manager:       &managerRecorder{},
-			setupRegistry: func(manager *managerRecorder) {},
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {},
 			expectedErrs:  []string{"failed to get the migration configuration"},
 			expectedOps:   nil,
-			options: []Option{
-				WithConfigProvider(func() (*Config, error) {
+			options: []migration.Option{
+				migration.WithConfigProvider(func() (*migration.Config, error) {
 					return nil, errors.New("configProvider error")
 				}),
 			},
@@ -138,10 +141,10 @@ func TestMigrate(t *testing.T) {
 		{
 			name:    "when everything works as expected it should run migrations successfully",
 			manager: &managerRecorder{},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
-				MustRegister(standardRegisteredMigration(manager, Order(2)))
-				MustRegister(&Registration{
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(2)))
+				reg.MustRegister(&migration.Registration{
 					Order: 3,
 					Migrate: func(ctx context.Context) error {
 						manager.Operations = append(manager.Operations, "Migration3.Migrate()")
@@ -176,7 +179,7 @@ func TestMigrate(t *testing.T) {
 			manager: &managerRecorder{
 				AcquireDBLockError: errors.New("AcquireDBLock error"),
 			},
-			setupRegistry: func(manager *managerRecorder) {},
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {},
 			expectedErrs:  []string{"failed to acquire the database lock (AcquireDBLock error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
@@ -191,7 +194,7 @@ func TestMigrate(t *testing.T) {
 			manager: &managerRecorder{
 				EnsureDataStoresError: errors.New("EnsureDataStores error"),
 			},
-			setupRegistry: func(manager *managerRecorder) {},
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {},
 			expectedErrs:  []string{"failed to ensure the data stores are created (EnsureDataStores error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
@@ -209,7 +212,7 @@ func TestMigrate(t *testing.T) {
 				EnsureDataStoresError: errors.New("EnsureDataStores error"),
 				ReleaseDBLockError:    errors.New("ReleaseDBLockError error"),
 			},
-			setupRegistry: func(manager *managerRecorder) {},
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {},
 			expectedErrs: []string{
 				"failed to ensure the data stores are created (EnsureDataStores error)",
 				"failed to release the database lock (ReleaseDBLockError error)",
@@ -229,8 +232,8 @@ func TestMigrate(t *testing.T) {
 			manager: &managerRecorder{
 				ReleaseDBLockError: errors.New("ReleaseDBLock error"),
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 			},
 			expectedErrs: []string{"failed to release the database lock (ReleaseDBLock error)"},
 			expectedOps: []string{
@@ -248,7 +251,7 @@ func TestMigrate(t *testing.T) {
 			manager: &managerRecorder{
 				MigrationLockError: errors.New("AcquireMigrationLock error"),
 			},
-			setupRegistry: func(manager *managerRecorder) {},
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {},
 			expectedErrs:  []string{"failed to acquire the migration lock (AcquireMigrationLock error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
@@ -266,7 +269,7 @@ func TestMigrate(t *testing.T) {
 			manager: &managerRecorder{
 				ListStatusesError: errors.New("ListStatuses error"),
 			},
-			setupRegistry: func(manager *managerRecorder) {},
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {},
 			expectedErrs:  []string{"failed to list the persisted statuses (ListStatuses error)"},
 			expectedOps: []string{
 				"AcquireDBLock()",
@@ -283,12 +286,12 @@ func TestMigrate(t *testing.T) {
 		{
 			name: "when persisted migrations have invalid status it should return an error",
 			manager: &managerRecorder{
-				PersistedMigrations: []PersistedStatus{
+				PersistedMigrations: []migration.PersistedStatus{
 					{Order: 1, Status: "INVALID"},
 				},
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 			},
 			expectedErrs: []string{"the value is not one of the allowed values"},
 			expectedOps: []string{
@@ -306,12 +309,12 @@ func TestMigrate(t *testing.T) {
 		{
 			name: "when there are failed migrations it should try them again",
 			manager: &managerRecorder{
-				PersistedMigrations: []PersistedStatus{
-					{Order: 1, Status: Failed},
+				PersistedMigrations: []migration.PersistedStatus{
+					{Order: 1, Status: migration.Failed},
 				},
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 			},
 			expectedErrs: nil,
 			expectedOps: []string{
@@ -333,8 +336,8 @@ func TestMigrate(t *testing.T) {
 		{
 			name:    "when registered.Migrate fails it should return an error",
 			manager: &managerRecorder{},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(&Registration{
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(&migration.Registration{
 					Order: 1,
 					Migrate: func(ctx context.Context) error {
 						manager.Operations = append(manager.Operations, "Migration1.Migrate()")
@@ -363,10 +366,10 @@ func TestMigrate(t *testing.T) {
 		{
 			name: "when setting the status to PENDING fails it should return an error",
 			manager: &managerRecorder{
-				FailOnStatus: string(Pending),
+				FailOnStatus: string(migration.Pending),
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 			},
 			expectedErrs: []string{"failed to persist the status PENDING for the migration order 1 (fail on PENDING)"},
 			expectedOps: []string{
@@ -385,11 +388,11 @@ func TestMigrate(t *testing.T) {
 		{
 			name: "when there are persisted migrations not in the registry it return an error",
 			manager: &managerRecorder{
-				PersistedMigrations: []PersistedStatus{
-					{Order: 1, Status: Completed},
+				PersistedMigrations: []migration.PersistedStatus{
+					{Order: 1, Status: migration.Completed},
 				},
 			},
-			setupRegistry: func(manager *managerRecorder) {},
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {},
 			expectedErrs:  []string{"found persisted migration(s) that are not in the registry"},
 			expectedOps: []string{
 				"AcquireDBLock()",
@@ -408,8 +411,8 @@ func TestMigrate(t *testing.T) {
 			manager: &managerRecorder{
 				ReleaseMigrationLockError: errors.New("ReleaseMigrationLock error"),
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 			},
 			expectedErrs: []string{"failed to release the migration lock (ReleaseMigrationLock error)"},
 			expectedOps: []string{
@@ -433,8 +436,8 @@ func TestMigrate(t *testing.T) {
 			manager: &managerRecorder{
 				MigrationLockHeartbeatError: errors.New("heartbeat error"),
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(&Registration{
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(&migration.Registration{
 					Order: 1,
 					Migrate: func(ctx context.Context) error {
 						<-ctx.Done()
@@ -460,9 +463,9 @@ func TestMigrate(t *testing.T) {
 				"Migration1.Migrate()",
 				"PersistStatus(order=1, status=FAILED)",
 			},
-			options: []Option{
-				WithConfigProvider(func() (*Config, error) {
-					cfg, _ := config.Process[Config]()
+			options: []migration.Option{
+				migration.WithConfigProvider(func() (*migration.Config, error) {
+					cfg, _ := config.Process[migration.Config]()
 					cfg.MigrationHeartbeatIntervalMillis = 1
 					cfg.MigrationHeartbeatFailureRetryCount = 2
 					return cfg, nil
@@ -480,8 +483,8 @@ func TestMigrate(t *testing.T) {
 				MigrationLockHeartbeatError: errors.New("heartbeat error"),
 				ReleaseMigrationLockError:   errors.New("ReleaseMigrationLockError error"),
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(&Registration{
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(&migration.Registration{
 					Order: 1,
 					Migrate: func(ctx context.Context) error {
 						<-ctx.Done()
@@ -507,9 +510,9 @@ func TestMigrate(t *testing.T) {
 				"Migration1.Migrate()",
 				"PersistStatus(order=1, status=FAILED)",
 			},
-			options: []Option{
-				WithConfigProvider(func() (*Config, error) {
-					cfg, _ := config.Process[Config]()
+			options: []migration.Option{
+				migration.WithConfigProvider(func() (*migration.Config, error) {
+					cfg, _ := config.Process[migration.Config]()
 					cfg.MigrationHeartbeatIntervalMillis = 1
 					cfg.MigrationHeartbeatFailureRetryCount = 2
 					return cfg, nil
@@ -526,8 +529,8 @@ func TestMigrate(t *testing.T) {
 			manager: &managerRecorder{
 				Heartbeat: make(chan struct{}),
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(&Registration{
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(&migration.Registration{
 					Order: 1,
 					Migrate: func(ctx context.Context) error {
 						<-manager.Heartbeat
@@ -549,9 +552,9 @@ func TestMigrate(t *testing.T) {
 				"Migration1.Migrate()",
 				"PersistStatus(order=1, status=COMPLETED)",
 			},
-			options: []Option{
-				WithConfigProvider(func() (*Config, error) {
-					cfg, _ := config.Process[Config]()
+			options: []migration.Option{
+				migration.WithConfigProvider(func() (*migration.Config, error) {
+					cfg, _ := config.Process[migration.Config]()
 					cfg.MigrationHeartbeatIntervalMillis = 10
 					return cfg, nil
 				}),
@@ -564,13 +567,13 @@ func TestMigrate(t *testing.T) {
 		{
 			name: "when there are two migration statuses with the same order it should return an error",
 			manager: &managerRecorder{
-				PersistedMigrations: []PersistedStatus{
-					{Order: 1, Status: Completed},
-					{Order: 1, Status: Completed},
+				PersistedMigrations: []migration.PersistedStatus{
+					{Order: 1, Status: migration.Completed},
+					{Order: 1, Status: migration.Completed},
 				},
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 			},
 			expectedErrs: []string{"found two persisted statuses with order 1"},
 			expectedOps: []string{
@@ -588,12 +591,12 @@ func TestMigrate(t *testing.T) {
 		{
 			name: "when a migration with a completed status is encountered it should skip the migration",
 			manager: &managerRecorder{
-				PersistedMigrations: []PersistedStatus{
-					{Order: 1, Status: Completed},
+				PersistedMigrations: []migration.PersistedStatus{
+					{Order: 1, Status: migration.Completed},
 				},
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 			},
 			expectedErrs: nil,
 			expectedOps: []string{
@@ -611,10 +614,10 @@ func TestMigrate(t *testing.T) {
 		{
 			name: "when PersistStatus fails when setting status to STARTED it should return an error",
 			manager: &managerRecorder{
-				FailOnStatus: string(Started),
+				FailOnStatus: string(migration.Started),
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 			},
 			expectedErrs: []string{"failed to persist the status STARTED for the migration order 1 (fail on STARTED)"},
 			expectedOps: []string{
@@ -634,10 +637,10 @@ func TestMigrate(t *testing.T) {
 		{
 			name: "when PersistStatus fails when setting status to COMPLETED it should return an error",
 			manager: &managerRecorder{
-				FailOnStatus: string(Completed),
+				FailOnStatus: string(migration.Completed),
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 			},
 			expectedErrs: []string{"failed to persist the status COMPLETED for the migration order 1 (fail on COMPLETED)"},
 			expectedOps: []string{
@@ -659,13 +662,13 @@ func TestMigrate(t *testing.T) {
 		{
 			name: "when a persisted status is out of sequence with the registered migrations it should return an error",
 			manager: &managerRecorder{
-				PersistedMigrations: []PersistedStatus{
-					{Order: 2, Status: Completed},
+				PersistedMigrations: []migration.PersistedStatus{
+					{Order: 2, Status: migration.Completed},
 				},
 			},
-			setupRegistry: func(manager *managerRecorder) {
-				MustRegister(standardRegisteredMigration(manager, Order(1)))
-				MustRegister(standardRegisteredMigration(manager, Order(2)))
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
+				reg.MustRegister(standardRegisteredMigration(manager, migration.Order(2)))
 			},
 			expectedErrs: []string{"cannot run migrations out of order (found 1 but latest completed is 2)"},
 			expectedOps: []string{
@@ -684,11 +687,14 @@ func TestMigrate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			registry.Clear()
+			t.Parallel()
+			reg := migration.NewRegistry()
 			if tt.setupRegistry != nil {
-				tt.setupRegistry(tt.manager)
+				tt.setupRegistry(reg, tt.manager)
 			}
-			err := Migrate(tt.manager, tt.options...)
+			opts := append([]migration.Option{}, tt.options...)
+			opts = append(opts, migration.WithRegistry(reg))
+			err := migration.Migrate(tt.manager, opts...)
 			if len(tt.expectedErrs) > 0 {
 				for _, expectedErr := range tt.expectedErrs {
 					assert.ErrorPart(t, err, expectedErr)
@@ -704,15 +710,24 @@ func TestMigrate(t *testing.T) {
 	}
 }
 
+func TestNilRegistryMigrate(t *testing.T) {
+	t.Parallel()
+	manager := &managerRecorder{}
+	err := migration.Migrate(manager, migration.WithRegistry(nil))
+	assert.ErrorPart(t, err, "registry is nil")
+	err = migration.Migrate(manager)
+	assert.ErrorPart(t, err, "registry is nil")
+}
+
 func TestPersistStatus(t *testing.T) {
 	t.Parallel()
 
-	assert.NoError(t, validation.Struct(PersistedStatus{Order: 0, Status: Pending}))
-	assert.NoError(t, validation.Struct(PersistedStatus{Order: 1, Status: Started}))
-	assert.NoError(t, validation.Struct(PersistedStatus{Order: 2, Status: Failed}))
-	assert.NoError(t, validation.Struct(PersistedStatus{Order: 3, Status: Completed}))
+	assert.NoError(t, validation.Struct(migration.PersistedStatus{Order: 0, Status: migration.Pending}))
+	assert.NoError(t, validation.Struct(migration.PersistedStatus{Order: 1, Status: migration.Started}))
+	assert.NoError(t, validation.Struct(migration.PersistedStatus{Order: 2, Status: migration.Failed}))
+	assert.NoError(t, validation.Struct(migration.PersistedStatus{Order: 3, Status: migration.Completed}))
 
-	assert.Error(t, validation.Struct(PersistedStatus{Order: 4, Status: ""}))
-	assert.Error(t, validation.Struct(PersistedStatus{Order: 5, Status: "UNKNOWN"}))
-	assert.Error(t, validation.Struct(PersistedStatus{Order: -1, Status: Pending}))
+	assert.Error(t, validation.Struct(migration.PersistedStatus{Order: 4, Status: ""}))
+	assert.Error(t, validation.Struct(migration.PersistedStatus{Order: 5, Status: "UNKNOWN"}))
+	assert.Error(t, validation.Struct(migration.PersistedStatus{Order: -1, Status: migration.Pending}))
 }
