@@ -407,6 +407,36 @@ func TestMigrate(t *testing.T) {
 			},
 		},
 		{
+			name: "when a persisted migration exists but registration is disabled it should skip the migration",
+			manager: &managerRecorder{
+				PersistedMigrations: []migration.PersistedStatus{
+					{Order: 1, Status: migration.Completed},
+				},
+			},
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(&migration.Registration{
+					Order: 1,
+					Migrate: func(ctx context.Context) error {
+						manager.Operations = append(manager.Operations, "Migration1.Migrate()")
+						return ctx.Err()
+					},
+					Enabled: false,
+				})
+			},
+			expectedErrs: nil,
+			expectedOps: []string{
+				"AcquireDBLock()",
+				"EnsureDataStores()",
+				"ReleaseDBLock()",
+				"AcquireMigrationLock()",
+				"ListStatuses()",
+			},
+			asserts: func(t *testing.T, manager *managerRecorder) {
+				t.Helper()
+				assert.Equals(t, manager.MigrationUnlockCount, 1)
+			},
+		},
+		{
 			name: "when ReleaseMigrationLock fails it should return an error",
 			manager: &managerRecorder{
 				ReleaseMigrationLockError: errors.New("ReleaseMigrationLock error"),
