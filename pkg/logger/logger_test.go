@@ -151,9 +151,7 @@ func TestLoggerConcurrency(t *testing.T) {
 	waitChan := make(chan struct{})
 
 	for range threadCount {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			<-waitChan
 			for range opsPerThread {
 				logger.SetOutput(&testWriter{})
@@ -179,7 +177,7 @@ func TestLoggerConcurrency(t *testing.T) {
 					logEntry.TraceFn(func() []any { return []any{"test"} })
 				}
 			}
-		}()
+		})
 	}
 
 	close(waitChan)

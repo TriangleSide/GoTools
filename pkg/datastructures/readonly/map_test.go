@@ -249,15 +249,13 @@ func TestReadOnlyMap(t *testing.T) {
 		roMap := builder.Build()
 
 		for range goRoutineCount {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitToStart
 				for k := range entryCount {
 					expected := k * 10
 					verifyMapKeyAndValue(t, roMap, k, expected)
 				}
-			}()
+			})
 		}
 
 		close(waitToStart)

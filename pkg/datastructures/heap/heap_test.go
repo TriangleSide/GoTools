@@ -211,9 +211,7 @@ func TestHeap(t *testing.T) {
 		waitToStart := make(chan struct{})
 
 		for range routineCount {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitToStart
 				for range countPerRoutine {
 					randomValue := getRandomInt(t, countPerRoutine/10)
@@ -222,7 +220,7 @@ func TestHeap(t *testing.T) {
 					maxHeap.Push(randomValue)
 					maxHeap.Pop()
 				}
-			}()
+			})
 		}
 
 		close(waitToStart)

@@ -139,14 +139,12 @@ func TestReadOnlySlice(t *testing.T) {
 		roSlice := builder.Build()
 
 		for range goRoutineCount {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitToStart
 				for k := range entryCount {
 					verifySliceValue(t, roSlice, k, k)
 				}
-			}()
+			})
 		}
 
 		close(waitToStart)
