@@ -179,9 +179,7 @@ func TestStructMetadata(t *testing.T) {
 		waitChan := make(chan struct{})
 
 		for range threadCount {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitChan
 				for range loopCount {
 					metadata := structs.Metadata[testStruct]()
@@ -193,7 +191,7 @@ func TestStructMetadata(t *testing.T) {
 					assert.Equals(t, valueField.Tags().Get("key2"), "Value2")
 					assert.Equals(t, valueField.Anonymous().Size(), 0)
 				}
-			}()
+			})
 		}
 
 		close(waitChan)
