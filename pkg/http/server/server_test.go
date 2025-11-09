@@ -792,76 +792,64 @@ func TestServer(t *testing.T) {
 
 		// Error endpoint.
 		for range totalGoRoutinesPerOperation {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitToStart
 				for range totalRequestsPerGoRoutine {
 					performRequest(t, http.MethodGet, "http://"+serverAddress+"/error", nil, http.StatusInternalServerError)
 				}
-			}()
+			})
 		}
 
 		// Status endpoint good.
 		for range totalGoRoutinesPerOperation {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitToStart
 				for range totalRequestsPerGoRoutine {
 					performRequest(t, http.MethodGet, "http://"+serverAddress+"/status?value=test", nil, http.StatusOK)
 				}
-			}()
+			})
 		}
 
 		// Status endpoint bad decode.
 		for range totalGoRoutinesPerOperation {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitToStart
 				for range totalRequestsPerGoRoutine {
 					performRequest(t, http.MethodGet, "http://"+serverAddress+"/status", nil, http.StatusBadRequest)
 				}
-			}()
+			})
 		}
 
 		// JSON endpoint good.
 		for range totalGoRoutinesPerOperation {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitToStart
 				for range totalRequestsPerGoRoutine {
 					bodyData := bytes.NewBuffer([]byte(`{"data":"value"}`))
 					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusOK)
 				}
-			}()
+			})
 		}
 
 		// JSON endpoint invalid.
 		for range totalGoRoutinesPerOperation {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitToStart
 				for range totalRequestsPerGoRoutine {
 					bodyData := bytes.NewBuffer([]byte(`{"data":""}`))
 					performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusBadRequest)
 				}
-			}()
+			})
 		}
 
 		// JSONStream endpoint good.
 		for range totalGoRoutinesPerOperation {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				<-waitToStart
 				for range totalRequestsPerGoRoutine {
 					performRequest(t, http.MethodGet, "http://"+serverAddress+"/jsonstream", nil, http.StatusOK)
 				}
-			}()
+			})
 		}
 
 		close(waitToStart)

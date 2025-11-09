@@ -201,8 +201,7 @@ func TestCache(t *testing.T) {
 		wg := sync.WaitGroup{}
 		startChan := make(chan struct{})
 		for i := range threadCount {
-			wg.Add(1)
-			go func() {
+			wg.Go(func() {
 				<-startChan
 				for k := range loopCount {
 					key := fmt.Sprintf("key-%d-%d", i, k)
@@ -224,8 +223,7 @@ func TestCache(t *testing.T) {
 					assert.Equals(t, gottenValue, other, assert.Continue())
 					testCache.Remove(key)
 				}
-				wg.Done()
-			}()
+			})
 		}
 		close(startChan)
 		wg.Wait()
@@ -240,8 +238,7 @@ func TestCache(t *testing.T) {
 		wg := sync.WaitGroup{}
 		startChan := make(chan struct{})
 		for range threadCount {
-			wg.Add(1)
-			go func() {
+			wg.Go(func() {
 				<-startChan
 				for range loopCount {
 					const key = "key"
@@ -253,8 +250,7 @@ func TestCache(t *testing.T) {
 					}
 					testCache.Remove(key)
 				}
-				wg.Done()
-			}()
+			})
 		}
 		close(startChan)
 		wg.Wait()
@@ -268,8 +264,7 @@ func TestCache(t *testing.T) {
 		wg := sync.WaitGroup{}
 		startChan := make(chan struct{})
 		for range threadCount {
-			wg.Add(1)
-			go func() {
+			wg.Go(func() {
 				<-startChan
 				for range loopCount {
 					key := "key" + strconv.Itoa(getRandomInt(t, threadCount))
@@ -279,8 +274,7 @@ func TestCache(t *testing.T) {
 					})
 					assert.NoError(t, err, assert.Continue())
 				}
-				wg.Done()
-			}()
+			})
 		}
 		close(startChan)
 		wg.Wait()
@@ -297,20 +291,17 @@ func TestCache(t *testing.T) {
 		firstWaitChan := make(chan struct{})
 
 		for range threadCount {
-			wg.Add(1)
-			go func() {
+			wg.Go(func() {
 				<-firstWaitChan
 				returnedValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
 					return "other", ptr.Of(time.Hour), nil
 				})
 				assert.NoError(t, err, assert.Continue())
 				assert.Equals(t, returnedValue, "first", assert.Continue())
-				wg.Done()
-			}()
+			})
 		}
 
-		wg.Add(1)
-		go func() {
+		wg.Go(func() {
 			returnedValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
 				close(firstWaitChan)
 				time.Sleep(time.Second)
@@ -318,8 +309,7 @@ func TestCache(t *testing.T) {
 			})
 			assert.NoError(t, err, assert.Continue())
 			assert.Equals(t, returnedValue, "first", assert.Continue())
-			wg.Done()
-		}()
+		})
 
 		wg.Wait()
 	})

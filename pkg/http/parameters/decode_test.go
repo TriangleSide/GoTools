@@ -275,7 +275,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 			JSONIntField    int               `json:"JSONIntField,omitempty"    validate:"required"`
 			JSONFloatField  float64           `json:"JSONFloatField,omitempty"  validate:"required"`
 			JSONBoolField   bool              `json:"JSONBoolField,omitempty"   validate:"required"`
-			JSONStructField internalStruct    `json:"JSONStructField,omitempty" validate:"required"`
+			JSONStructField internalStruct    `json:"JSONStructField"           validate:"required"`
 			JSONMapField    map[string]string `json:"JSONMapField,omitempty"    validate:"required"`
 			JSONListField   []string          `json:"JSONListField,omitempty"   validate:"required"`
 			JSONNotSet      string            `json:"JSONNotSet,omitempty"`

@@ -240,7 +240,9 @@ func TestValidation(t *testing.T) {
 
 	t.Run("when the callback result is not correctly filled it should return an error", func(t *testing.T) {
 		t.Parallel()
-		validation.MustRegisterValidator("test_not_filled", func(parameters *validation.CallbackParameters) *validation.CallbackResult { return validation.NewCallbackResult() })
+		validation.MustRegisterValidator("test_not_filled", func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+			return validation.NewCallbackResult()
+		})
 		type testStruct struct {
 			Value string `validate:"test_not_filled"`
 		}
