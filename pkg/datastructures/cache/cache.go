@@ -109,11 +109,32 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, fn GetOrSetFn[Key, Value]) (Value,
 }
 
 // Remove removes a key and its value from the cache if present.
-func (c *Cache[Key, Value]) Remove(key Key) {
-	c.keyToItem.Delete(key)
+func (c *Cache[Key, Value]) Remove(key Key) (Value, bool) {
+	itemValueUncast, loaded := c.keyToItem.LoadAndDelete(key)
+	if !loaded {
+		var zeroValue Value
+		return zeroValue, false
+	}
+	itemValue := itemValueUncast.(*item[Value])
+	if itemValue.expiry != nil && time.Now().After(*itemValue.expiry) {
+		var zeroValue Value
+		return zeroValue, false
+	}
+	return itemValue.value, true
 }
 
 // Clear removes all the values in the cache.
 func (c *Cache[Key, Value]) Clear() {
 	c.keyToItem.Clear()
+}
+
+// Count returns the number of items in the cache. This should be used carefully as it iterates
+// through all the items in the cache.
+func (c *Cache[Key, Value]) Count() int {
+	count := 0
+	c.keyToItem.Range(func(key, value any) bool {
+		count++
+		return true
+	})
+	return count
 }
