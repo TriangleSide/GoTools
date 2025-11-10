@@ -109,7 +109,7 @@ func (h *Heap[T]) Push(value T) {
 
 	index := len(h.tree) - 1
 	for index > 0 {
-		parentIndex := (index - 1) / 2
+		parentIndex := (index - 1) / 2 // nolint:mnd
 		if h.hasPriority(h.tree[index], h.tree[parentIndex]) {
 			h.tree[index], h.tree[parentIndex] = h.tree[parentIndex], h.tree[index]
 		}
@@ -129,7 +129,7 @@ func (h *Heap[T]) Pop() T {
 
 	index := 0
 	for {
-		leftIndex := (index * 2) + 1
+		leftIndex := (index * 2) + 1 // nolint:mnd
 		var swapLeft bool
 		if leftIndex < len(h.tree) {
 			swapLeft = h.hasPriority(h.tree[leftIndex], h.tree[index])
@@ -137,7 +137,7 @@ func (h *Heap[T]) Pop() T {
 			break
 		}
 
-		rightIndex := (index * 2) + 2
+		rightIndex := (index * 2) + 2 // nolint:mnd
 		var swapRight bool
 		if rightIndex < len(h.tree) {
 			swapRight = h.hasPriority(h.tree[rightIndex], h.tree[index])
