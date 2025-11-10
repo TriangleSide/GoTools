@@ -20,10 +20,7 @@ func AddField(ctx *context.Context, key string, value any) Logger {
 	if fieldsNotCast == nil {
 		newFields = make(map[string]any, 1)
 	} else {
-		fields, fieldsCastOk := fieldsNotCast.(map[string]any)
-		if !fieldsCastOk {
-			panic("The entry context fields are not the correct type.")
-		}
+		fields := fieldsNotCast.(map[string]any)
 		newFields = make(map[string]any, len(fields)+1)
 		maps.Copy(newFields, fields)
 	}
@@ -41,10 +38,7 @@ func AddFields(ctx *context.Context, fieldsToAdd map[string]any) Logger {
 	if fieldsNotCast == nil {
 		newFields = make(map[string]any, len(fieldsToAdd))
 	} else {
-		fields, fieldsCastOk := fieldsNotCast.(map[string]any)
-		if !fieldsCastOk {
-			panic("The entry context fields are not the correct type.")
-		}
+		fields := fieldsNotCast.(map[string]any)
 		newFields = make(map[string]any, len(fields)+len(fieldsToAdd))
 		maps.Copy(newFields, fields)
 	}
@@ -64,10 +58,7 @@ func FromCtx(ctx context.Context) Logger {
 			fields: nil,
 		}
 	}
-	fields, fieldsCastOk := fieldsNotCast.(map[string]any)
-	if !fieldsCastOk {
-		panic("The entry context fields are not the correct type.")
-	}
+	fields := fieldsNotCast.(map[string]any)
 	return &entry{
 		fields: fields,
 	}
