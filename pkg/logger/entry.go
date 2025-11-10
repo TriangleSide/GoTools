@@ -29,18 +29,6 @@ func (l *entry) PanicFn(fn LogFn) {
 	appLogger.Panicln(formatLog(l.fields, fmt.Sprint(fn()...)))
 }
 
-func (l *entry) Fatal(args ...any) {
-	appLogger.Fatalln(formatLog(l.fields, fmt.Sprint(args...)))
-}
-
-func (l *entry) Fatalf(format string, args ...any) {
-	appLogger.Fatalln(formatLog(l.fields, fmt.Sprintf(format, args...)))
-}
-
-func (l *entry) FatalFn(fn LogFn) {
-	appLogger.Fatalln(formatLog(l.fields, fmt.Sprint(fn()...)))
-}
-
 func (l *entry) Error(args ...any) {
 	lock.RLock()
 	defer lock.RUnlock()

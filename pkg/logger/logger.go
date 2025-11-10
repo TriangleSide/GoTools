@@ -13,9 +13,6 @@ type Logger interface {
 	Panic(args ...any)
 	Panicf(format string, args ...any)
 	PanicFn(fn LogFn)
-	Fatal(args ...any)
-	Fatalf(format string, args ...any)
-	FatalFn(fn LogFn)
 	Error(args ...any)
 	Errorf(format string, args ...any)
 	ErrorFn(fn LogFn)
@@ -43,18 +40,6 @@ func Panicf(format string, args ...any) {
 
 func PanicFn(fn LogFn) {
 	appEntry.PanicFn(fn)
-}
-
-func Fatal(args ...any) {
-	appEntry.Fatal(args...)
-}
-
-func Fatalf(format string, args ...any) {
-	appEntry.Fatalf(format, args...)
-}
-
-func FatalFn(fn LogFn) {
-	appEntry.FatalFn(fn)
 }
 
 func Error(args ...any) {

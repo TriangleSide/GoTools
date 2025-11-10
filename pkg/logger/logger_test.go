@@ -3,9 +3,7 @@ package logger_test
 import (
 	"bytes"
 	"context"
-	"errors"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"testing"
@@ -92,48 +90,6 @@ func TestLogger(t *testing.T) {
 			logger.TraceFn(func() []any { return []any{"T"} })
 			assert.Equals(t, strings.ReplaceAll(output.String(), "\n", ""), tc.expected)
 		}
-	})
-}
-
-func testFatalScenario(t *testing.T, uniqueEnvName string, testName string, fatalCallback func()) {
-	t.Helper()
-	t.Parallel()
-
-	if os.Getenv(uniqueEnvName) == "1" {
-		fatalCallback()
-		os.Exit(0) // Shouldn't reach here.
-	}
-
-	cmd := exec.Command(os.Args[0], "-test.run="+testName)
-	cmd.Env = append(os.Environ(), uniqueEnvName+"=1")
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	cmd.Stderr = &output
-	err := cmd.Run()
-	t.Logf("Captured output: '%s'.", output.String())
-	var exitError *exec.ExitError
-	if err == nil || (errors.As(err, &exitError) && exitError.ExitCode() != 1) {
-		t.Fatalf("Process ran with err '%v' but want exit status 1.", err)
-	}
-}
-
-func TestFatal(t *testing.T) {
-	testFatalScenario(t, "TEST_FATAL", "TestFatal", func() {
-		logger.Fatal("Should call os.Exit(1).")
-	})
-}
-
-func TestFatalf(t *testing.T) {
-	testFatalScenario(t, "TEST_FATALF", "TestFatalf", func() {
-		logger.Fatalf("Should call %s.", "os.Exit(1)")
-	})
-}
-
-func TestFatalFn(t *testing.T) {
-	testFatalScenario(t, "TEST_FATAL_FN", "TestFatalFn", func() {
-		logger.FatalFn(func() []any {
-			return []any{"Should call os.Exit(1)."}
-		})
 	})
 }
 

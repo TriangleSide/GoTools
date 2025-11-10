@@ -1,4 +1,4 @@
-package validation
+package validation_test
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 func TestErrors(t *testing.T) {
@@ -13,7 +14,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("when Error is called on a struct Violation it should a formatted message", func(t *testing.T) {
 		t.Parallel()
-		violation := NewViolation(&CallbackParameters{
+		violation := validation.NewViolation(&validation.CallbackParameters{
 			Validator:          "test",
 			IsStructValidation: true,
 			StructValue: reflect.ValueOf(struct {
