@@ -2,7 +2,7 @@ package validation
 
 import (
 	"fmt"
-	io "io/fs"
+	fs "io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -32,7 +32,7 @@ func init() {
 			return result.WithError(NewViolation(params, fmt.Errorf("the path '%s' is not absolute", strValue)))
 		}
 
-		if fsPath := absolutePathToFSPath(strValue); fsPath != "" && !io.ValidPath(fsPath) {
+		if fsPath := absolutePathToFSPath(strValue); fsPath != "" && !fs.ValidPath(fsPath) {
 			return result.WithError(NewViolation(params, fmt.Errorf("the path '%s' is not valid", strValue)))
 		}
 
