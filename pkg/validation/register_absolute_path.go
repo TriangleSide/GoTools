@@ -1,12 +1,12 @@
 package validation
 
 import (
-"fmt"
-"io/fs"
-"os"
-"path/filepath"
-"reflect"
-"strings"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
 )
 
 const (
