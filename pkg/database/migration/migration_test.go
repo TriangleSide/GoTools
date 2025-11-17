@@ -17,6 +17,7 @@ type managerRecorder struct {
 	PersistedMigrations []migration.PersistedStatus
 
 	Heartbeat            chan struct{}
+	HeartbeatErrors      []error
 	HeartbeatCount       int
 	MigrationUnlockCount int
 	FailOnStatus         string
@@ -71,6 +72,12 @@ func (r *managerRecorder) MigrationLockHeartbeat(ctx context.Context) error {
 	}
 	if ctx.Err() != nil {
 		return ctx.Err()
+	}
+	if len(r.HeartbeatErrors) > 0 {
+		index := r.HeartbeatCount - 1
+		if index < len(r.HeartbeatErrors) {
+			return r.HeartbeatErrors[index]
+		}
 	}
 	return r.MigrationLockHeartbeatError
 }
@@ -592,6 +599,78 @@ func TestMigrate(t *testing.T) {
 			asserts: func(t *testing.T, manager *managerRecorder) {
 				t.Helper()
 				assert.True(t, manager.HeartbeatCount > 0)
+			},
+		},
+		{
+			name: "when MigrationLockHeartbeat recovers after an error it should reset the successive failures",
+			manager: &managerRecorder{
+				Heartbeat:       make(chan struct{}),
+				HeartbeatErrors: []error{errors.New("heartbeat error"), nil, errors.New("heartbeat error")},
+			},
+			setupRegistry: func(reg *migration.Registry, manager *managerRecorder) {
+				reg.MustRegister(&migration.Registration{
+					Order: 1,
+					Migrate: func(ctx context.Context) error {
+						heartbeatDone := make(chan struct{})
+						go func() {
+							count := 0
+							doneClosed := false
+							closeDone := func() {
+								if !doneClosed {
+									close(heartbeatDone)
+									doneClosed = true
+								}
+							}
+							for {
+								select {
+								case <-ctx.Done():
+									closeDone()
+									return
+								case <-manager.Heartbeat:
+									if count < 3 {
+										count++
+										if count == 3 {
+											closeDone()
+										}
+									}
+								}
+							}
+						}()
+						select {
+						case <-heartbeatDone:
+						case <-ctx.Done():
+							return ctx.Err()
+						}
+						manager.Operations = append(manager.Operations, "Migration1.Migrate()")
+						return ctx.Err()
+					},
+					Enabled: true,
+				})
+			},
+			expectedErrs: nil,
+			expectedOps: []string{
+				"AcquireDBLock()",
+				"EnsureDataStores()",
+				"ReleaseDBLock()",
+				"AcquireMigrationLock()",
+				"ListStatuses()",
+				"PersistStatus(order=1, status=PENDING)",
+				"PersistStatus(order=1, status=STARTED)",
+				"Migration1.Migrate()",
+				"PersistStatus(order=1, status=COMPLETED)",
+			},
+			options: []migration.Option{
+				migration.WithConfigProvider(func() (*migration.Config, error) {
+					cfg, _ := config.Process[migration.Config]()
+					cfg.MigrationHeartbeatIntervalMillis = 1
+					cfg.MigrationHeartbeatFailureRetryCount = 1
+					return cfg, nil
+				}),
+			},
+			asserts: func(t *testing.T, manager *managerRecorder) {
+				t.Helper()
+				assert.True(t, manager.HeartbeatCount >= 3)
+				assert.Equals(t, manager.MigrationUnlockCount, 1)
 			},
 		},
 		{
