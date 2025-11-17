@@ -11,8 +11,8 @@
 - Use `errors.New("...")` for errors that do not require formatting.
 
 ## Testing
-- Run tests with: `go test ./pkg/... -count=1 -race=1`
-- Run linting with: `golangci-lint run ./pkg/...` and fix lints related to modified code.
+- Run tests with: `make test`
+- Run linting with: `make lint` and fix lints related to modified code.
 - Write unit tests for every exported function.
 - Every test file should use the <package>_test package name.
 - Achieve 100% coverage for all changes.

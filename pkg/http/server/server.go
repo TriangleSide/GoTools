@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -159,12 +160,13 @@ func (server *Server) Shutdown(ctx context.Context) error {
 func loadMutualTLSClientCAs(clientCaCertPaths []string) (*x509.CertPool, error) {
 	clientCAs := x509.NewCertPool()
 	for _, caCertPath := range clientCaCertPaths {
-		caCert, err := os.ReadFile(caCertPath)
+		cleanPath := filepath.Clean(caCertPath)
+		caCert, err := os.ReadFile(cleanPath)
 		if err != nil {
-			return nil, fmt.Errorf("could not read client CA certificate on path %s (%w)", caCertPath, err)
+			return nil, fmt.Errorf("could not read client CA certificate on path %s (%w)", cleanPath, err)
 		}
 		if ok := clientCAs.AppendCertsFromPEM(caCert); !ok {
-			return nil, fmt.Errorf("failed to append client CA certificate (%s)", caCertPath)
+			return nil, fmt.Errorf("failed to append client CA certificate (%s)", cleanPath)
 		}
 	}
 	return clientCAs, nil
