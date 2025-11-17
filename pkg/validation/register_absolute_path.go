@@ -47,10 +47,5 @@ func init() {
 // absolutePathToFSPath normalizes an absolute path to the format expected by io.ValidPath.
 func absolutePathToFSPath(path string) string {
 	normalized := filepath.ToSlash(path)
-	volume := filepath.VolumeName(normalized)
-	if volume != "" {
-		normalized = strings.TrimPrefix(normalized, volume)
-	}
-
 	return strings.TrimLeft(normalized, "/")
 }
