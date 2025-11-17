@@ -41,7 +41,7 @@ type Encryptor interface {
 
 // aesEncryptor holds the data needed to do AES symmetric encryption.
 type aesEncryptor struct {
-	aesBlock       cipher.Block
+	aead           cipher.AEAD
 	randomDataFunc func(buffer []byte) error
 }
 
@@ -69,40 +69,43 @@ func New(key string, opts ...Option) (Encryptor, error) {
 		return nil, fmt.Errorf("failed to create the block cipher (%w)", err)
 	}
 
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure AEAD mode (%w)", err)
+	}
+
 	return &aesEncryptor{
-		aesBlock:       block,
+		aead:           aead,
 		randomDataFunc: cfg.randomDataFunc,
 	}, nil
 }
 
-// Encrypt takes a slice of data and returns an encrypted version of that data using the AES algorithm.
-// It returns a ciphertext slice of data and an error if any occurs during the encryption process.
+// Encrypt takes a slice of data and returns an encrypted version using AES-GCM with a unique nonce.
+// It returns the nonce-prefixed ciphertext and an error if any occurs during the encryption process.
 func (encryptor *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
-	ciphertext := make([]byte, aes.BlockSize+len(data))
-
-	iv := ciphertext[:aes.BlockSize]
-	if err := encryptor.randomDataFunc(iv); err != nil {
-		return nil, fmt.Errorf("failed to generate initialization vector (%w)", err)
+	nonce := make([]byte, encryptor.aead.NonceSize())
+	if err := encryptor.randomDataFunc(nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce (%w)", err)
 	}
 
-	cfb := cipher.NewCFBEncrypter(encryptor.aesBlock, iv)
-	cfb.XORKeyStream(ciphertext[aes.BlockSize:], data)
-
-	return ciphertext, nil
+	return encryptor.aead.Seal(nonce, nonce, data, nil), nil
 }
 
-// Decrypt performs symmetric decryption on a slice of data using the AES algorithm.
-// It returns a plain-text slice of data and an error if any occurs during the decryption process.
+// Decrypt performs AES-GCM decryption on a nonce-prefixed ciphertext.
+// It returns the recovered plaintext and an error if any occurs during the decryption process.
 func (encryptor *aesEncryptor) Decrypt(encryptedData []byte) ([]byte, error) {
-	if len(encryptedData) < aes.BlockSize {
-		return nil, fmt.Errorf("cipher-text of len %d is shorter than the minimum length of %d", len(encryptedData), aes.BlockSize)
+	nonceSize := encryptor.aead.NonceSize()
+	if len(encryptedData) < nonceSize {
+		return nil, fmt.Errorf("cipher-text of len %d is shorter than the minimum length of %d", len(encryptedData), nonceSize)
 	}
 
-	iv := encryptedData[:aes.BlockSize]
-	encryptedData = encryptedData[aes.BlockSize:]
+	nonce := encryptedData[:nonceSize]
+	ciphertext := encryptedData[nonceSize:]
 
-	cfb := cipher.NewCFBDecrypter(encryptor.aesBlock, iv)
-	cfb.XORKeyStream(encryptedData, encryptedData)
+	plaintext, err := encryptor.aead.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt cipher-text (%w)", err)
+	}
 
-	return encryptedData, nil
+	return plaintext, nil
 }
