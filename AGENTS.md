@@ -5,6 +5,7 @@
 
 ## Development
 - Every function, struct, variable in a package block, and every const at package level must have a terse one or two line comment describing its purpose.
+- Ensure existing comments remain accurate after making changes.
 - Code must be compatible with Linux or macOS only.
 - No external dependencies beyond the Go standard library.
 - Wrap errors with contextual information using `fmt.Errorf("... (%w)", err)`.
