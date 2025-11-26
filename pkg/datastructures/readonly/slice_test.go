@@ -52,7 +52,7 @@ func TestReadOnlySlice(t *testing.T) {
 		verifySliceValue(t, roSlice, 0, value)
 	})
 
-	t.Run("when values are appended multiple times, it should contain all of them in order", func(t *testing.T) {
+	t.Run("when values are appended multiple times it should contain all of them in order", func(t *testing.T) {
 		t.Parallel()
 		builder := readonly.NewSliceBuilder[string]()
 		builder.Append("value1")
@@ -62,7 +62,7 @@ func TestReadOnlySlice(t *testing.T) {
 		verifySliceValue(t, roSlice, 1, "value2")
 	})
 
-	t.Run("when a struct is added to a read-only slice, it should be retrievable", func(t *testing.T) {
+	t.Run("when a struct is added to a read-only slice it should be retrievable", func(t *testing.T) {
 		t.Parallel()
 		type testStruct struct {
 			Value int
@@ -74,7 +74,7 @@ func TestReadOnlySlice(t *testing.T) {
 		assert.Equals(t, gotten.Value, 1)
 	})
 
-	t.Run("when adding no values to the SliceBuilder, it should create an empty slice", func(t *testing.T) {
+	t.Run("when adding no values to the SliceBuilder it should create an empty slice", func(t *testing.T) {
 		t.Parallel()
 		builder := readonly.NewSliceBuilder[string]()
 		roSlice := builder.Build()
