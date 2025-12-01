@@ -583,7 +583,7 @@ func TestServer(t *testing.T) {
 			if response != nil {
 				assert.Nil(t, response.Body.Close())
 			}
-			assert.ErrorPart(t, err, "unknown authority")
+			assert.ErrorPart(t, err, "certificate")
 			assert.Nil(t, response)
 		})
 

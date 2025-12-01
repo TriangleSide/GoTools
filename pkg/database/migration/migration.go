@@ -202,9 +202,9 @@ func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([
 		migrationStatus, migrationStatusFound := orderToPersistedStatus[registeredMigration.Order]
 
 		if !registeredMigration.Enabled {
-			if _, ok := orderToPersistedStatus[registeredMigration.Order]; ok {
+			if migrationStatusFound {
 				logger.Warnf("Migration with order %d is disabled but previously run with status %s. Skipping.",
-					registeredMigration.Order, orderToPersistedStatus[registeredMigration.Order])
+					registeredMigration.Order, migrationStatus)
 				delete(orderToPersistedStatus, registeredMigration.Order)
 			} else {
 				logger.Debugf("Migration with order %d is disabled and not previously run. Skipping.", registeredMigration.Order)
