@@ -252,7 +252,7 @@ func runMigrations(ctx context.Context, migrationsToRun []*Registration, manager
 	}
 
 	for _, migrationToRun := range migrationsToRun {
-		logEntry := logger.AddField(&ctx, "order", migrationToRun.Order)
+		ctx, logEntry := logger.AddField(ctx, "order", migrationToRun.Order)
 		logEntry.Debug("Starting migration.")
 		startTime := time.Now()
 		if err := manager.PersistStatus(ctx, migrationToRun.Order, Started); err != nil {
