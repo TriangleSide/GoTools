@@ -42,8 +42,7 @@ func TestLoggerContext(t *testing.T) {
 
 	t.Run("when adding a field to a context it should be included in the formatter", func(t *testing.T) {
 		output, fieldsMap := setAndRecordOutput(t)
-		ctx := context.Background()
-		testLogger := logger.AddField(&ctx, "key", "value")
+		_, testLogger := logger.AddField(context.Background(), "key", "value")
 		testLogger.Error("msg")
 		assert.Equals(t, len(fieldsMap), 1)
 		value, ok := fieldsMap["key"]
@@ -54,8 +53,7 @@ func TestLoggerContext(t *testing.T) {
 
 	t.Run("when adding multiple fields to a context it should be retrievable", func(t *testing.T) {
 		output, fieldsMap := setAndRecordOutput(t)
-		ctx := context.Background()
-		testLogger := logger.AddFields(&ctx, map[string]any{"key1": "value1", "key2": 2})
+		_, testLogger := logger.AddFields(context.Background(), map[string]any{"key1": "value1", "key2": 2})
 		testLogger.Error("msg")
 		assert.Equals(t, len(fieldsMap), 2)
 		value1, ok1 := fieldsMap["key1"]
@@ -70,8 +68,8 @@ func TestLoggerContext(t *testing.T) {
 	t.Run("when adding a field to a context with existing fields it should add correctly", func(t *testing.T) {
 		output, fieldsMap := setAndRecordOutput(t)
 		ctx := context.Background()
-		logger.AddFields(&ctx, map[string]any{"key1": "value1"})
-		logger.AddField(&ctx, "key2", 2)
+		ctx, _ = logger.AddFields(ctx, map[string]any{"key1": "value1"})
+		ctx, _ = logger.AddField(ctx, "key2", 2)
 		testLogger := logger.FromCtx(ctx)
 		testLogger.Error("msg")
 		assert.Equals(t, len(fieldsMap), 2)
@@ -87,8 +85,8 @@ func TestLoggerContext(t *testing.T) {
 	t.Run("when adding a field to a context with the same key it should overwrite the value", func(t *testing.T) {
 		output, fieldsMap := setAndRecordOutput(t)
 		ctx := context.Background()
-		logger.AddField(&ctx, "key", "value")
-		logger.AddField(&ctx, "key", "new_value")
+		ctx, _ = logger.AddField(ctx, "key", "value")
+		ctx, _ = logger.AddField(ctx, "key", "new_value")
 		testLogger := logger.FromCtx(ctx)
 		testLogger.Error("msg")
 		assert.Equals(t, len(fieldsMap), 1)
@@ -101,8 +99,8 @@ func TestLoggerContext(t *testing.T) {
 	t.Run("when adding fields to a context with overlapping keys it should overwrite the values", func(t *testing.T) {
 		output, fieldsMap := setAndRecordOutput(t)
 		ctx := context.Background()
-		logger.AddFields(&ctx, map[string]any{"key1": "value1", "key2": "value2"})
-		logger.AddFields(&ctx, map[string]any{"key2": "new_value2", "key3": "value3"})
+		ctx, _ = logger.AddFields(ctx, map[string]any{"key1": "value1", "key2": "value2"})
+		ctx, _ = logger.AddFields(ctx, map[string]any{"key2": "new_value2", "key3": "value3"})
 		testLogger := logger.FromCtx(ctx)
 		testLogger.Error("msg")
 		assert.Equals(t, len(fieldsMap), 3)

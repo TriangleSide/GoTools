@@ -114,8 +114,7 @@ func TestLoggerConcurrency(t *testing.T) {
 				logger.SetFormatter(logger.DefaultFormatter)
 				for _, level := range []logger.LogLevel{logger.LevelError, logger.LevelWarn, logger.LevelInfo, logger.LevelDebug, logger.LevelTrace} {
 					logger.SetLevel(level)
-					ctx := context.Background()
-					logEntry := logger.AddField(&ctx, "test", "test")
+					_, logEntry := logger.AddField(context.Background(), "test", "test")
 					logEntry.Error("test")
 					logEntry.Errorf("test %s", "test")
 					logEntry.ErrorFn(func() []any { return []any{"test"} })

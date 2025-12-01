@@ -13,7 +13,7 @@ const (
 )
 
 // envSource fetches configuration values from environment variables. The variable name is derived from the
-// struct field name converted to SNAKE_CASE. If a prefix is provided, it is prepended followed by an underscore.
+// struct field name converted to SNAKE_CASE.
 func envSource(fieldName string, _ *structs.FieldMetadata) (string, bool, error) {
 	formattedEnvName := stringcase.CamelToSnake(fieldName)
 	envValue, hasEnvValue := os.LookupEnv(formattedEnvName)
