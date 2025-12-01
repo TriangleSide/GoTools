@@ -51,7 +51,7 @@ func (r *Registry) MustRegister(registration *Registration) {
 // OrderedRegistrations returns an ordered list of the registrations in the registry.
 // The registrations are sorted by their Order.
 func (r *Registry) OrderedRegistrations() []*Registration {
-	ordered := make([]*Registration, 0)
+	ordered := make([]*Registration, 0, len(r.registrations))
 	for _, registration := range r.registrations {
 		ordered = append(ordered, registration)
 	}
