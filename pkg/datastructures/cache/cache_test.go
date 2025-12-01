@@ -262,7 +262,7 @@ func TestCache(t *testing.T) {
 		wg.Wait()
 	})
 
-	t.Run("it should be able to handle concurrency with Get, Set, and Remove", func(t *testing.T) {
+	t.Run("it should be able to handle concurrency with Get or Set or Remove", func(t *testing.T) {
 		t.Parallel()
 		testCache := cache.New[string, string]()
 		const threadCount = 4

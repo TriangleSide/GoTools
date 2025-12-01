@@ -19,7 +19,7 @@ func TestConfigProcessor(t *testing.T) {
 		assert.Nil(t, conf)
 	})
 
-	t.Run("when a struct has an int field called Value with a default of 1, a validation rule of gte=0, and is required", func(t *testing.T) {
+	t.Run("when a struct has an int field called Value with a default of 1 and a validation rule of gte=0 and is required", func(t *testing.T) {
 		const (
 			EnvName      = "VALUE"
 			DefaultValue = 1
@@ -71,7 +71,7 @@ func TestConfigProcessor(t *testing.T) {
 		})
 	})
 
-	t.Run("when a struct has a field called Value with no default, validation, or required tag it should return a struct with unmodified fields", func(t *testing.T) {
+	t.Run("when a struct has a field called Value with no default or validation or required tag it should return a struct with unmodified fields", func(t *testing.T) {
 		type testStruct struct {
 			Value *int
 		}
@@ -81,7 +81,7 @@ func TestConfigProcessor(t *testing.T) {
 		assert.Nil(t, conf.Value)
 	})
 
-	t.Run("when a struct has a field called Value with no config tags, but it has a required validation it should return and error", func(t *testing.T) {
+	t.Run("when a struct has a field called Value with no config tags but it has a required validation it should return and error", func(t *testing.T) {
 		type testStruct struct {
 			Value *int `validate:"required"`
 		}
