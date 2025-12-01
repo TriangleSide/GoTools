@@ -2,13 +2,14 @@ package config
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/TriangleSide/GoTools/pkg/structs"
 )
 
 var (
-	// processors is a map of ProcessorTag value to how the values are fetched.
-	processors = map[string]SourceFunc{}
+	// processors is a map of ProcessorTag to SourceFunc.
+	processors = sync.Map{}
 )
 
 // SourceFunc fetches a configuration value for a field. It should return the value and whether it was found.
@@ -19,8 +20,8 @@ func MustRegisterProcessor(name string, fn SourceFunc) {
 	if fn == nil {
 		panic(fmt.Sprintf("Must register a non-nil SourceFunc for the %s configuration processor.", name))
 	}
-	if _, exists := processors[name]; exists {
+	_, found := processors.LoadOrStore(name, fn)
+	if found {
 		panic(fmt.Sprintf("Processor with name %q already registered.", name))
 	}
-	processors[name] = fn
 }

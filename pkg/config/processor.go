@@ -28,10 +28,11 @@ func Process[T any]() (*T, error) {
 			continue
 		}
 
-		fetcher, ok := processors[processorType]
+		fetcherNotCast, ok := processors.Load(processorType)
 		if !ok {
 			return nil, fmt.Errorf("processor %s not registered", processorType)
 		}
+		fetcher := fetcherNotCast.(SourceFunc)
 
 		value, found, err := fetcher(fieldName, fieldMetadata)
 		if err != nil {
