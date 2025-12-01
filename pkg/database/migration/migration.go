@@ -34,7 +34,7 @@ type Manager interface {
 	AcquireDBLock(context.Context) error
 
 	// EnsureDataStores must ensure the migration data stores (collections, tables, ...) are created.
-	// There should be two data stores, one for the migration lock, and one migration statuses.
+	// There should be two data stores, one for the migration lock, and one for migration statuses.
 	EnsureDataStores(context.Context) error
 
 	// ReleaseDBLock must release the DB lock acquired by AcquireDBLock.
@@ -51,7 +51,7 @@ type Manager interface {
 	// ListStatuses returns data previously stored with PersistStatus.
 	ListStatuses(context.Context) ([]PersistedStatus, error)
 
-	// PersistStatus stores or override the status of a migration.
+	// PersistStatus stores or overrides the status of a migration.
 	// Order must be unique in the data store.
 	PersistStatus(context.Context, Order, Status) error
 
@@ -187,12 +187,12 @@ func fetchPersistedStatuses(ctx context.Context, manager Manager) (map[Order]Sta
 	return orderToPersistedStatus, nil
 }
 
-// listMigrationsToRun compares the registered migrations to the persisted statutes.
+// listMigrationsToRun compares the registered migrations to the persisted statuses.
 // It returns the list of migrations that need to be run.
 func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([]*Registration, error) {
 	orderToPersistedStatus, err := fetchPersistedStatuses(ctx, manager)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch the the persisted statuses (%w)", err)
+		return nil, fmt.Errorf("failed to fetch the persisted statuses (%w)", err)
 	}
 
 	latestCompletedMigration := Order(-1)
