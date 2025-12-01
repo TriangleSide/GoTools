@@ -190,6 +190,8 @@ func fetchPersistedStatuses(ctx context.Context, manager Manager) (map[Order]Sta
 // listMigrationsToRun compares the registered migrations to the persisted statuses.
 // It returns the list of migrations that need to be run.
 func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([]*Registration, error) {
+	log := logger.FromCtx(ctx)
+
 	orderToPersistedStatus, err := fetchPersistedStatuses(ctx, manager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch the persisted statuses (%w)", err)
@@ -203,11 +205,11 @@ func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([
 
 		if !registeredMigration.Enabled {
 			if migrationStatusFound {
-				logger.Warnf("Migration with order %d is disabled but previously run with status %s. Skipping.",
+				log.Warnf("Migration with order %d is disabled but previously run with status %s. Skipping.",
 					registeredMigration.Order, migrationStatus)
 				delete(orderToPersistedStatus, registeredMigration.Order)
 			} else {
-				logger.Debugf("Migration with order %d is disabled and not previously run. Skipping.", registeredMigration.Order)
+				log.Debugf("Migration with order %d is disabled and not previously run. Skipping.", registeredMigration.Order)
 			}
 			continue
 		}
@@ -215,16 +217,16 @@ func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([
 		if migrationStatusFound {
 			delete(orderToPersistedStatus, registeredMigration.Order)
 			if migrationStatus == Completed {
-				logger.Debugf("Registration with order %d already completed. Skipping.", registeredMigration.Order)
+				log.Debugf("Registration with order %d already completed. Skipping.", registeredMigration.Order)
 				if registeredMigration.Order > latestCompletedMigration {
 					latestCompletedMigration = registeredMigration.Order
 				}
 			} else {
-				logger.Debugf("Will attempt to run the migration with order %d and status %s again.", registeredMigration.Order, migrationStatus)
+				log.Debugf("Will attempt to run the migration with order %d and status %s again.", registeredMigration.Order, migrationStatus)
 				migrationsToRun = append(migrationsToRun, registeredMigration)
 			}
 		} else {
-			logger.Debugf("New migration with order %d found.", registeredMigration.Order)
+			log.Debugf("New migration with order %d found.", registeredMigration.Order)
 			migrationsToRun = append(migrationsToRun, registeredMigration)
 		}
 	}
@@ -252,8 +254,8 @@ func runMigrations(ctx context.Context, migrationsToRun []*Registration, manager
 	}
 
 	for _, migrationToRun := range migrationsToRun {
-		migrationCtx, logEntry := logger.AddField(ctx, "order", migrationToRun.Order)
-		logEntry.Debug("Starting migration.")
+		migrationCtx, log := logger.AddField(ctx, "order", migrationToRun.Order)
+		log.Debug("Starting migration.")
 		startTime := time.Now()
 		if err := manager.PersistStatus(migrationCtx, migrationToRun.Order, Started); err != nil {
 			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Started, migrationToRun.Order, err)
@@ -268,7 +270,7 @@ func runMigrations(ctx context.Context, migrationsToRun []*Registration, manager
 		if err := manager.PersistStatus(migrationCtx, migrationToRun.Order, Completed); err != nil {
 			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Completed, migrationToRun.Order, err)
 		}
-		logEntry.Debugf("Migration finished in %s.", time.Since(startTime))
+		log.Debugf("Migration finished in %s.", time.Since(startTime))
 	}
 
 	return nil
