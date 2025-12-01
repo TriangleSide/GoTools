@@ -10,15 +10,17 @@
 - No external dependencies beyond the Go standard library.
 - Wrap errors with contextual information using `fmt.Errorf("... (%w)", err)`.
 - Use `errors.New("...")` for errors that do not require formatting.
+- Write early exit guards to reduce nesting.
 
 ## Testing
 - Run tests with: `make test`
 - Run linting with: `make lint` and fix lints related to modified code.
 - Write unit tests for every exported function.
-- Every test file should use the <package>_test package name.
+- Test files should use the <package>_test package name.
 - Achieve 100% coverage for all changes.
 - Each test file should contain exactly one top-level test, with subtests for each scenario using t.Run(...).
 - Subtest names should follow the pattern "when ... it should ..." or "it should ...".
 - Use t.Parallel() in every test and subtest unless there is a specific reason not to.
 - Table-driven tests should define a test-case struct with fields for name, input, expected output, and any relevant data, and each test case should run in its own subtest via t.Run(...).
 - Write concurrency tests where applicable.
+- Do not add comments in test files.
