@@ -252,20 +252,20 @@ func runMigrations(ctx context.Context, migrationsToRun []*Registration, manager
 	}
 
 	for _, migrationToRun := range migrationsToRun {
-		ctx, logEntry := logger.AddField(ctx, "order", migrationToRun.Order)
+		migrationCtx, logEntry := logger.AddField(ctx, "order", migrationToRun.Order)
 		logEntry.Debug("Starting migration.")
 		startTime := time.Now()
-		if err := manager.PersistStatus(ctx, migrationToRun.Order, Started); err != nil {
+		if err := manager.PersistStatus(migrationCtx, migrationToRun.Order, Started); err != nil {
 			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Started, migrationToRun.Order, err)
 		}
-		if err := migrationToRun.Migrate(ctx); err != nil {
+		if err := migrationToRun.Migrate(migrationCtx); err != nil {
 			err = fmt.Errorf("failed to complete the migration with order %d (%w)", migrationToRun.Order, err)
-			if failedStatusErr := manager.PersistStatus(ctx, migrationToRun.Order, Failed); failedStatusErr != nil {
+			if failedStatusErr := manager.PersistStatus(migrationCtx, migrationToRun.Order, Failed); failedStatusErr != nil {
 				return fmt.Errorf("%w and failed to persist its status to %s (%w)", err, Failed, failedStatusErr)
 			}
 			return err
 		}
-		if err := manager.PersistStatus(ctx, migrationToRun.Order, Completed); err != nil {
+		if err := manager.PersistStatus(migrationCtx, migrationToRun.Order, Completed); err != nil {
 			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Completed, migrationToRun.Order, err)
 		}
 		logEntry.Debugf("Migration finished in %s.", time.Since(startTime))
