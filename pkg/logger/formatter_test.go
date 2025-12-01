@@ -29,8 +29,7 @@ func TestFormatter(t *testing.T) {
 
 	t.Run("when fields are formatted it should include fields", func(t *testing.T) {
 		buf := recordOutput(t)
-		ctx := context.Background()
-		log := logger.AddFields(&ctx, map[string]any{
+		_, log := logger.AddFields(context.Background(), map[string]any{
 			"key1": "value1",
 			"key2": 2,
 		})

@@ -14,8 +14,8 @@ const (
 )
 
 // AddField adds a field to the context for the logger.
-func AddField(ctx *context.Context, key string, value any) Logger {
-	fieldsNotCast := (*ctx).Value(contextKey)
+func AddField(ctx context.Context, key string, value any) (context.Context, Logger) {
+	fieldsNotCast := ctx.Value(contextKey)
 	var newFields map[string]any
 	if fieldsNotCast == nil {
 		newFields = make(map[string]any, 1)
@@ -25,15 +25,15 @@ func AddField(ctx *context.Context, key string, value any) Logger {
 		maps.Copy(newFields, fields)
 	}
 	newFields[key] = value
-	*ctx = context.WithValue(*ctx, contextKey, newFields)
-	return &entry{
+	newContext := context.WithValue(ctx, contextKey, newFields)
+	return newContext, &entry{
 		fields: newFields,
 	}
 }
 
 // AddFields adds many fields to the context for the logger.
-func AddFields(ctx *context.Context, fieldsToAdd map[string]any) Logger {
-	fieldsNotCast := (*ctx).Value(contextKey)
+func AddFields(ctx context.Context, fieldsToAdd map[string]any) (context.Context, Logger) {
+	fieldsNotCast := ctx.Value(contextKey)
 	var newFields map[string]any
 	if fieldsNotCast == nil {
 		newFields = make(map[string]any, len(fieldsToAdd))
@@ -43,8 +43,8 @@ func AddFields(ctx *context.Context, fieldsToAdd map[string]any) Logger {
 		maps.Copy(newFields, fields)
 	}
 	maps.Copy(newFields, fieldsToAdd)
-	*ctx = context.WithValue(*ctx, contextKey, newFields)
-	return &entry{
+	newContext := context.WithValue(ctx, contextKey, newFields)
+	return newContext, &entry{
 		fields: newFields,
 	}
 }
