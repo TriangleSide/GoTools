@@ -74,7 +74,7 @@ func TestStructMetadata(t *testing.T) {
 		assert.Equals(t, valueField.Anonymous().Size(), 0)
 	})
 
-	t.Run("when a struct has multiple fields with tags, it should return their field names and type with their tags metadata", func(t *testing.T) {
+	t.Run("when a struct has multiple fields with tags it should return their field names and type with their tags metadata", func(t *testing.T) {
 		t.Parallel()
 		type testStruct struct {
 			Value1 string `key2:"Value3" key4:"Value5"`
