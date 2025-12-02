@@ -131,6 +131,7 @@ func TestReadOnlyMap(t *testing.T) {
 	})
 
 	t.Run("when modifying the slice returned by keys it should have no impact on the map", func(t *testing.T) {
+		t.Parallel()
 		const key = "key"
 		const value = "value"
 		builder := readonly.NewMapBuilder[string, string]()
