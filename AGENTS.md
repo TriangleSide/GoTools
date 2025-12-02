@@ -24,3 +24,9 @@
 - Table-driven tests should define a test-case struct with fields for name, input, expected output, and any relevant data, and each test case should run in its own subtest via t.Run(...).
 - Write concurrency tests where applicable.
 - Do not add comments in test files.
+
+## Pull Requests
+- Create and use a branch named in the format <short_description>.
+- Write a very terse commit message summarizing the change at a high level.
+- End the commit message with a period.
+- Assume the remote is configured correctly and push the branch with `git push -u origin <branch_name>`.

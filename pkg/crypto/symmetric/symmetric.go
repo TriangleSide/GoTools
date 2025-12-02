@@ -12,17 +12,17 @@ import (
 
 // config is the configuration for the encryptor.
 type config struct {
-	blockCypherProvider func(key []byte) (cipher.Block, error)
+	blockCipherProvider func(key []byte) (cipher.Block, error)
 	randomDataFunc      func(buffer []byte) error
 }
 
 // Option is optional configuration of the encryptor.
 type Option func(*config)
 
-// WithBlockCypherProvider overwrites the provider for the block cipher.
-func WithBlockCypherProvider(provider func(key []byte) (cipher.Block, error)) Option {
+// WithBlockCipherProvider overwrites the provider for the block cipher.
+func WithBlockCipherProvider(provider func(key []byte) (cipher.Block, error)) Option {
 	return func(c *config) {
-		c.blockCypherProvider = provider
+		c.blockCipherProvider = provider
 	}
 }
 
@@ -48,7 +48,7 @@ type aesEncryptor struct {
 // New allocates and configures an Encryptor.
 func New(key string, opts ...Option) (Encryptor, error) {
 	cfg := &config{
-		blockCypherProvider: aes.NewCipher,
+		blockCipherProvider: aes.NewCipher,
 		randomDataFunc: func(buffer []byte) error {
 			_, err := io.ReadFull(rand.Reader, buffer)
 			return err
@@ -64,7 +64,7 @@ func New(key string, opts ...Option) (Encryptor, error) {
 	}
 	hash := sha256.Sum256([]byte(key))
 
-	block, err := cfg.blockCypherProvider(hash[:])
+	block, err := cfg.blockCipherProvider(hash[:])
 	if err != nil {
 		return nil, fmt.Errorf("failed to create the block cipher (%w)", err)
 	}

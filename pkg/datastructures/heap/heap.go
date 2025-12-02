@@ -34,7 +34,7 @@ import (
 //   2   4                    7   9
 
 // A heap can be represented as a complete binary tree. Using a complete binary tree ensures
-// the tree is always balanced. The key property of this representation is that each child
+// the tree is always balanced. The key property of this representation is that each node
 // must be bigger (if using max heap) than its children. It does not matter if the children
 // are sorted. This ensures the root node is always the largest.
 //
