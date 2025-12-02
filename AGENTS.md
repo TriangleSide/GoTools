@@ -35,8 +35,8 @@
   6. `git add -A`
   7. Resolve any merge conflicts.
 - Use `git checkout -b <short-description>` to create a new branch.
-- Use `git commit -m "<message>"` with a very terse message summarizing the change at a high level, ending with a period.
+- Use `git commit -m "<message>"` with a very terse commit message summarizing the change at a high level. End the commit message with a period.
 - Do not co-author commits; keep the current git user as the sole author.
 - Push the branch to remote with `git push -u origin <branch_name>`.
-- Use `gh pr create --base main` to open pull requests against the main branch.
+- Use `gh pr create --base main --fill` to open pull requests against the main branch.
 - Use `git checkout main` to go to the main branch after the PR is created.
