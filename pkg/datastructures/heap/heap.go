@@ -112,8 +112,10 @@ func (h *Heap[T]) Push(value T) {
 		parentIndex := (index - 1) / 2 // nolint:mnd
 		if h.hasPriority(h.tree[index], h.tree[parentIndex]) {
 			h.tree[index], h.tree[parentIndex] = h.tree[parentIndex], h.tree[index]
+			index = parentIndex
+		} else {
+			break
 		}
-		index = parentIndex
 	}
 }
 
