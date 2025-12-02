@@ -51,7 +51,7 @@ func TestSymmetricEncryption(t *testing.T) {
 		t.Parallel()
 		key := "encryptionKey" + strconv.Itoa(getRandomInt(t))
 		var providedKey []byte
-		encryptor, err := symmetric.New(key, symmetric.WithBlockCypherProvider(func(keyBytes []byte) (cipher.Block, error) {
+		encryptor, err := symmetric.New(key, symmetric.WithBlockCipherProvider(func(keyBytes []byte) (cipher.Block, error) {
 			providedKey = append([]byte(nil), keyBytes...)
 			return aes.NewCipher(keyBytes)
 		}))
@@ -63,7 +63,7 @@ func TestSymmetricEncryption(t *testing.T) {
 
 	t.Run("when the cipher provider returns an error it should return an error on creation", func(t *testing.T) {
 		t.Parallel()
-		encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(getRandomInt(t)), symmetric.WithBlockCypherProvider(func(key []byte) (cipher.Block, error) {
+		encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(getRandomInt(t)), symmetric.WithBlockCipherProvider(func(key []byte) (cipher.Block, error) {
 			return nil, errors.New("block cipher provider error")
 		}))
 		assert.ErrorPart(t, err, "failed to create the block cipher (block cipher provider error)")
@@ -72,7 +72,7 @@ func TestSymmetricEncryption(t *testing.T) {
 
 	t.Run("when the AEAD mode cannot be created it should return an error on creation", func(t *testing.T) {
 		t.Parallel()
-		encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(getRandomInt(t)), symmetric.WithBlockCypherProvider(func(key []byte) (cipher.Block, error) {
+		encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(getRandomInt(t)), symmetric.WithBlockCipherProvider(func(key []byte) (cipher.Block, error) {
 			return invalidSizeBlock{}, nil
 		}))
 		assert.ErrorPart(t, err, "failed to configure AEAD mode")

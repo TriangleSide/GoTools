@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	// processors is a map of ProcessorTag to SourceFunc.
+	// processors maps processor type names to their SourceFunc implementations.
 	processors = sync.Map{}
 )
 
