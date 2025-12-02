@@ -43,7 +43,6 @@ func NewSliceBuilder[T any]() *SliceBuilder[T] {
 		built:         atomic.Bool{},
 		internalSlice: make([]T, 0),
 	}
-	builder.built.Store(false)
 	return builder
 }
 

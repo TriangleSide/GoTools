@@ -77,7 +77,6 @@ func NewMapBuilder[Key comparable, Value any]() *MapBuilder[Key, Value] {
 		built:       atomic.Bool{},
 		internalMap: make(map[Key]Value),
 	}
-	builder.built.Store(false)
 	return builder
 }
 
