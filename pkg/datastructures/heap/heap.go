@@ -119,12 +119,8 @@ func (h *Heap[T]) Push(value T) {
 	}
 }
 
-// Pop removes the largest or smallest element (depending on the comparator) from the heap.
-// It panics if the heap is empty.
-func (h *Heap[T]) Pop() T {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
+// bubbleDown moves the top element down the heap to maintain the heap property.
+func (h *Heap[T]) bubbleDown() T {
 	retValue := h.tree[0]
 	h.tree[0] = h.tree[len(h.tree)-1]
 	h.tree = h.tree[:len(h.tree)-1]
@@ -169,6 +165,29 @@ func (h *Heap[T]) Pop() T {
 	}
 
 	return retValue
+}
+
+// Pop removes the largest or smallest element (depending on the comparator) from the heap.
+// It panics if the heap is empty.
+func (h *Heap[T]) Pop() T {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	return h.bubbleDown()
+}
+
+// CompareAndPop checks if the top element satisfies the condition and pops it if true.
+// Returns the popped value and true if successful, or zero value and false otherwise.
+// It panics if the heap is empty.
+func (h *Heap[T]) CompareAndPop(shouldPop func(T) bool) (T, bool) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	if !shouldPop(h.tree[0]) {
+		var zeroValue T
+		return zeroValue, false
+	}
+
+	return h.bubbleDown(), true
 }
 
 // Peek returns the min or max value on this heap. The access is O(1).
