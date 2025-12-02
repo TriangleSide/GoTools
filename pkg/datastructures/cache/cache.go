@@ -127,14 +127,3 @@ func (c *Cache[Key, Value]) Remove(key Key) (Value, bool) {
 func (c *Cache[Key, Value]) Clear() {
 	c.keyToItem.Clear()
 }
-
-// Count returns the number of items in the cache. This should be used carefully as it iterates
-// through all the items in the cache.
-func (c *Cache[Key, Value]) Count() int {
-	count := 0
-	c.keyToItem.Range(func(key, value any) bool {
-		count++
-		return true
-	})
-	return count
-}
