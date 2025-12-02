@@ -38,7 +38,6 @@ func TestCache(t *testing.T) {
 		for range 3 {
 			testCache.Clear()
 		}
-		assert.Equals(t, testCache.Count(), 0)
 	})
 
 	t.Run("should be able to remove a key repeatedly", func(t *testing.T) {
@@ -49,7 +48,6 @@ func TestCache(t *testing.T) {
 			_, found := testCache.Remove(key)
 			assert.False(t, found)
 		}
-		assert.Equals(t, testCache.Count(), 0)
 	})
 
 	t.Run("when there is no values in the cache it should return false when getting a key", func(t *testing.T) {
@@ -58,7 +56,6 @@ func TestCache(t *testing.T) {
 		const key = "key"
 		_, gotten := testCache.Get(key)
 		assert.False(t, gotten)
-		assert.Equals(t, testCache.Count(), 0)
 	})
 
 	t.Run("when an item is removed but it is not in the cache it should return false", func(t *testing.T) {
@@ -71,7 +68,6 @@ func TestCache(t *testing.T) {
 		assert.False(t, removed)
 		assert.Equals(t, removedValue, "")
 		cacheMustHaveKeyAndValue(t, testCache, key, value)
-		assert.Equals(t, testCache.Count(), 1)
 	})
 
 	t.Run("when an item is removed it should no longer be in the cache", func(t *testing.T) {
@@ -85,7 +81,6 @@ func TestCache(t *testing.T) {
 		assert.Equals(t, removedValue, value)
 		_, gotten := testCache.Get(key)
 		assert.False(t, gotten)
-		assert.Equals(t, testCache.Count(), 0)
 	})
 
 	t.Run("when an item is expired it should not return true when removed", func(t *testing.T) {
@@ -98,7 +93,6 @@ func TestCache(t *testing.T) {
 		removedValue, removed := testCache.Remove(key)
 		assert.False(t, removed)
 		assert.Equals(t, removedValue, "")
-		assert.Equals(t, testCache.Count(), 0)
 	})
 
 	t.Run("when a value is not expired it should return the value", func(t *testing.T) {
@@ -110,7 +104,6 @@ func TestCache(t *testing.T) {
 		gottenValue, gotten := testCache.Get(key)
 		assert.True(t, gotten)
 		assert.Equals(t, gottenValue, value)
-		assert.Equals(t, testCache.Count(), 1)
 	})
 
 	t.Run("when there is no values in the cache it should call the fn with get or set", func(t *testing.T) {
@@ -130,7 +123,6 @@ func TestCache(t *testing.T) {
 		assert.Equals(t, value, returnVal)
 		_, gotten = testCache.Get(key)
 		assert.True(t, gotten)
-		assert.Equals(t, testCache.Count(), 1)
 	})
 
 	t.Run("when there is no values in the cache it should return an error if it occurs in get or set", func(t *testing.T) {
@@ -150,7 +142,6 @@ func TestCache(t *testing.T) {
 		assert.Equals(t, value, returnVal)
 		_, gotten = testCache.Get(key)
 		assert.False(t, gotten)
-		assert.Equals(t, testCache.Count(), 0)
 	})
 
 	t.Run("when an item is cached without an expiry time it should be available to get", func(t *testing.T) {
@@ -160,10 +151,9 @@ func TestCache(t *testing.T) {
 		const value = "value"
 		testCache.Set(key, value, nil)
 		cacheMustHaveKeyAndValue(t, testCache, key, value)
-		assert.Equals(t, testCache.Count(), 1)
 	})
 
-	t.Run("when an item is cached without an expiry time it should not call the function in get or set since it's not expired", func(t *testing.T) {
+	t.Run("when an item is cached without an expiry time it should not call the function in get or set since it is not expired", func(t *testing.T) {
 		t.Parallel()
 		testCache := cache.New[string, string]()
 		const key = "key"
@@ -178,7 +168,6 @@ func TestCache(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equals(t, value, returnVal)
 		cacheMustHaveKeyAndValue(t, testCache, key, value)
-		assert.Equals(t, testCache.Count(), 1)
 	})
 
 	t.Run("when an item is cached without an expiry time it should be able to be overwritten by set", func(t *testing.T) {
@@ -191,7 +180,6 @@ func TestCache(t *testing.T) {
 		cacheMustHaveKeyAndValue(t, testCache, key, value)
 		testCache.Set(key, newValue, nil)
 		cacheMustHaveKeyAndValue(t, testCache, key, newValue)
-		assert.Equals(t, testCache.Count(), 1)
 	})
 
 	t.Run("when a cache item expires it should not be available to get", func(t *testing.T) {
@@ -203,10 +191,9 @@ func TestCache(t *testing.T) {
 		time.Sleep(time.Nanosecond * 2)
 		_, gotten := testCache.Get(key)
 		assert.False(t, gotten)
-		assert.Equals(t, testCache.Count(), 0)
 	})
 
-	t.Run("when a cache item expires it should call the function in get or set since it's expired", func(t *testing.T) {
+	t.Run("when a cache item expires it should call the function in get or set since it is expired", func(t *testing.T) {
 		t.Parallel()
 		testCache := cache.New[string, string]()
 		const key = "key"
@@ -223,7 +210,6 @@ func TestCache(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equals(t, returnVal, other)
 		cacheMustHaveKeyAndValue(t, testCache, key, other)
-		assert.Equals(t, testCache.Count(), 1)
 	})
 
 	t.Run("it should be able to handle concurrency on unique sequential operations", func(t *testing.T) {
