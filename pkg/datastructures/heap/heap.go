@@ -177,10 +177,14 @@ func (h *Heap[T]) Pop() T {
 
 // CompareAndPop checks if the top element satisfies the condition and pops it if true.
 // Returns the popped value and true if successful, or zero value and false otherwise.
-// It panics if the heap is empty.
 func (h *Heap[T]) CompareAndPop(shouldPop func(T) bool) (T, bool) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
+
+	if len(h.tree) == 0 {
+		var zeroValue T
+		return zeroValue, false
+	}
 
 	if !shouldPop(h.tree[0]) {
 		var zeroValue T

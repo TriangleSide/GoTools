@@ -247,14 +247,18 @@ func TestHeap(t *testing.T) {
 		assert.Equals(t, 0, maxHeap.Size())
 	})
 
-	t.Run("when calling CompareAndPop on an empty heap it should panic", func(t *testing.T) {
+	t.Run("when calling CompareAndPop on an empty heap it should return zero value and false", func(t *testing.T) {
 		t.Parallel()
 
 		maxHeap := heap.New(func(a, b int) bool { return a > b })
-		assert.Panic(t, func() { maxHeap.CompareAndPop(func(v int) bool { return true }) })
+		value, ok := maxHeap.CompareAndPop(func(v int) bool { return true })
+		assert.Equals(t, 0, value)
+		assert.False(t, ok)
 
 		minHeap := heap.New(func(a, b int) bool { return a < b })
-		assert.Panic(t, func() { minHeap.CompareAndPop(func(v int) bool { return true }) })
+		value, ok = minHeap.CompareAndPop(func(v int) bool { return true })
+		assert.Equals(t, 0, value)
+		assert.False(t, ok)
 	})
 
 	t.Run("when CompareAndPop is called it should behave correctly", func(t *testing.T) {
