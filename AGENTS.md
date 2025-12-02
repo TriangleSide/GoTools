@@ -29,4 +29,6 @@
 - Create and use a branch named in the format <short_description>.
 - Write a very terse commit message summarizing the change at a high level.
 - End the commit message with a period.
+- Do not co-author commits; keep the current git user as the sole author.
 - Assume the remote is configured correctly and push the branch with `git push -u origin <branch_name>`.
+- Use `gh pr create --base main` to open pull requests against the main branch.
