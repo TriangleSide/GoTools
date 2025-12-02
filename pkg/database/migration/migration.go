@@ -15,9 +15,16 @@ import (
 type Status string
 
 const (
-	Pending   Status = "PENDING"
-	Started   Status = "STARTED"
-	Failed    Status = "FAILED"
+	// Pending indicates a migration is queued to run.
+	Pending Status = "PENDING"
+
+	// Started indicates a migration is currently running.
+	Started Status = "STARTED"
+
+	// Failed indicates a migration failed during execution.
+	Failed Status = "FAILED"
+
+	// Completed indicates a migration successfully finished.
 	Completed Status = "COMPLETED"
 )
 
