@@ -142,6 +142,7 @@ func TestErrorResponder(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		responders.Error(recorder, errors.New("initial error"), responders.WithJSONMarshal(marshal), responders.WithErrorCallback(writeErrorCallback))
 		assert.Equals(t, len(marshalErrors), 2)
+		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
 		assert.Equals(t, marshalErrors[0], marshalErr)
 		assert.Equals(t, marshalErrors[1], marshalErr)
 	})
