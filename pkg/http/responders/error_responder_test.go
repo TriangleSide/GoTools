@@ -123,6 +123,26 @@ func TestErrorResponder(t *testing.T) {
 		var writeError error
 		writeErrorCallback := func(err error) { writeError = err }
 		responders.Error(recorder, &testUnmarshalableError{}, responders.WithErrorCallback(writeErrorCallback))
+		assert.Equals(t, recorder.Code, http.StatusInternalServerError)
+		httpError := mustDeserializeError(t, recorder)
+		assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
 		assert.ErrorPart(t, writeError, "json")
+	})
+
+	t.Run("when the marshaller fails for the fallback it should invoke the callback", func(t *testing.T) {
+		t.Parallel()
+		marshalErr := errors.New("marshal failure")
+		var marshalErrors []error
+		writeErrorCallback := func(err error) {
+			marshalErrors = append(marshalErrors, err)
+		}
+		marshal := func(any) ([]byte, error) {
+			return nil, marshalErr
+		}
+		recorder := httptest.NewRecorder()
+		responders.Error(recorder, errors.New("initial error"), responders.WithJSONMarshal(marshal), responders.WithErrorCallback(writeErrorCallback))
+		assert.Equals(t, len(marshalErrors), 2)
+		assert.Equals(t, marshalErrors[0], marshalErr)
+		assert.Equals(t, marshalErrors[1], marshalErr)
 	})
 }

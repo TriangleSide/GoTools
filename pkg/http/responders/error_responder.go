@@ -2,7 +2,6 @@ package responders
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -61,10 +60,18 @@ func Error(writer http.ResponseWriter, err error, opts ...Option) {
 		}
 	}
 
-	jsonBytes, err := json.Marshal(errResponse)
+	jsonBytes, err := cfg.jsonMarshal(errResponse)
 	if err != nil {
 		cfg.errorCallback(err)
-		return
+		statusCode = http.StatusInternalServerError
+		errResponse = StandardErrorResponse{
+			Message: http.StatusText(http.StatusInternalServerError),
+		}
+		jsonBytes, err = cfg.jsonMarshal(errResponse)
+		if err != nil {
+			cfg.errorCallback(err)
+			return
+		}
 	}
 
 	writer.Header().Set(headers.ContentLength, strconv.Itoa(len(jsonBytes)))
