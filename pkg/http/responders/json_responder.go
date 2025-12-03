@@ -2,7 +2,6 @@ package responders
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -28,7 +27,7 @@ func JSON[RequestParameters any, ResponseBody any](writer http.ResponseWriter, r
 		return
 	}
 
-	jsonBytes, err := json.Marshal(response)
+	jsonBytes, err := cfg.jsonMarshal(response)
 	if err != nil {
 		Error(writer, err, opts...)
 		return
