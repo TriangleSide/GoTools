@@ -70,6 +70,7 @@ func Error(writer http.ResponseWriter, err error, opts ...Option) {
 		jsonBytes, err = cfg.jsonMarshal(errResponse)
 		if err != nil {
 			cfg.errorCallback(err)
+			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	}
