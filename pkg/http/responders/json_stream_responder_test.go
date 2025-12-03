@@ -111,6 +111,32 @@ func TestJSONStreamResponder(t *testing.T) {
 		assert.NoError(t, response.Body.Close())
 	})
 
+	t.Run("when the callback function returns a nil channel it should respond with an internal server error", func(t *testing.T) {
+		t.Parallel()
+
+		var writeError error
+		writeErrorCallback := func(err error) {
+			writeError = err
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			responders.JSONStream[requestParams, responseBody](w, r, func(params *requestParams) (<-chan *responseBody, int, error) {
+				return nil, http.StatusOK, nil
+			}, responders.WithErrorCallback(writeErrorCallback))
+		}))
+		defer server.Close()
+
+		response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":2}`))
+		assert.NoError(t, err)
+		assert.Equals(t, response.StatusCode, http.StatusInternalServerError)
+		assert.NoError(t, writeError)
+
+		responseObj := &responders.StandardErrorResponse{}
+		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseObj))
+		assert.Equals(t, responseObj.Message, http.StatusText(http.StatusInternalServerError))
+		assert.NoError(t, response.Body.Close())
+	})
+
 	t.Run("when the callback function returns a response that cannot be encoded it should not write the body", func(t *testing.T) {
 		t.Parallel()
 

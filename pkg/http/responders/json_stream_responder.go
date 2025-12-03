@@ -2,6 +2,7 @@ package responders
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/TriangleSide/GoTools/pkg/http/headers"
@@ -23,6 +24,10 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 	responseChan, status, err := callback(requestParams)
 	if err != nil {
 		Error(writer, err, opts...)
+		return
+	}
+	if responseChan == nil {
+		Error(writer, errors.New("response channel cannot be nil"), opts...)
 		return
 	}
 
