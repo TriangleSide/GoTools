@@ -20,12 +20,17 @@ type Middleware func(next http.HandlerFunc) http.HandlerFunc
 
 // CreateChain returns a http.HandlerFunc that invokes each middleware in order then the final http.HandlerFunc.
 func CreateChain(mw []Middleware, finalHandlerFunc http.HandlerFunc) http.HandlerFunc {
+	if finalHandlerFunc == nil {
+		panic("the final handler cannot be nil")
+	}
 	if len(mw) == 0 {
 		return finalHandlerFunc
 	}
 	lastHandler := finalHandlerFunc
-	for i := int(len(mw)) - 1; i >= 0; i-- {
-		lastHandler = mw[i](lastHandler)
+	for i := len(mw) - 1; i >= 0; i-- {
+		if mw[i] != nil {
+			lastHandler = mw[i](lastHandler)
+		}
 	}
 	return lastHandler
 }

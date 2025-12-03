@@ -13,6 +13,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
+// pathValidationTag is the validation tag name used to validate API paths.
 const (
 	pathValidationTag = "api_path"
 )

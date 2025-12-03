@@ -19,7 +19,7 @@ func Decode[T any](request *http.Request) (returnParams *T, returnErr error) {
 	defer func() {
 		if request.Body != nil {
 			if err := request.Body.Close(); err != nil {
-				returnErr = errors.Join(returnErr, fmt.Errorf("failed to close the response body (%w)", err))
+				returnErr = errors.Join(returnErr, fmt.Errorf("failed to close the request body (%w)", err))
 				returnParams = nil
 			}
 		}
@@ -63,7 +63,7 @@ func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 	if strings.EqualFold(request.Header.Get(headers.ContentType), headers.ContentTypeApplicationJson) {
 		decoder := json.NewDecoder(request.Body)
 		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&params); err != nil {
+		if err := decoder.Decode(params); err != nil {
 			return fmt.Errorf("failed to decode json body (%w)", err)
 		}
 	}

@@ -41,7 +41,7 @@ const (
 // LookupKeyToFieldName is the tag's lookup key to the name of the field on the struct.
 //
 //	type MyStruct struct {
-//		HeaderParameter string `httpHeader:"x-my-parameter" json"-"`
+//		HeaderParameter string `httpHeader:"x-my-parameter" json:"-"`
 //	}
 //
 // Returns the following map:
@@ -81,15 +81,15 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 // ExtractAndValidateFieldTagLookupKeys validates the struct tags and returns a map of unique tag lookup keys for each field in the struct.
 //
 //	type MyStruct struct {
-//		HeaderParameter string `httpHeader:"x-my-parameter" json"-"`
-//		PathParameter   string `urlPath:"my-id" json"-"`
+//		HeaderParameter string `httpHeader:"x-my-parameter" json:"-"`
+//		PathParameter   string `urlPath:"my-id" json:"-"`
 //	}
 //
 // Returns the following map:
 //
 //	{
 //		"httpHeader": {
-//			"x-my-parameter": "MyParameter"
+//			"x-my-parameter": "HeaderParameter"
 //		},
 //		"urlPath": {
 //			"my-id": "PathParameter"

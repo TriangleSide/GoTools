@@ -194,7 +194,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 		decoded, err := parameters.Decode[struct {
 			Field string `json:"message"`
 		}](request)
-		assert.ErrorExact(t, err, "failed to close the response body (close error)")
+		assert.ErrorExact(t, err, "failed to close the request body (close error)")
 		assert.True(t, readCloser.Closed)
 		assert.Nil(t, decoded)
 	})
@@ -213,7 +213,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 			Field string `json:"message" validate:"oneof=NOT_EXISTS"`
 		}](request)
 		assert.ErrorPart(t, err, "validation failed for request parameters")
-		assert.ErrorPart(t, err, "failed to close the response body (close error)")
+		assert.ErrorPart(t, err, "failed to close the request body (close error)")
 		assert.True(t, readCloser.Closed)
 		assert.Nil(t, decoded)
 	})
