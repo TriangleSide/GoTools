@@ -157,9 +157,8 @@ func (server *Server) Run() error {
 
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
-	} else {
-		return fmt.Errorf("error encountered while serving http requests (%w)", err)
 	}
+	return fmt.Errorf("error encountered while serving http requests (%w)", err)
 }
 
 // Shutdown gracefully shuts down the server and waits for it to finish.
