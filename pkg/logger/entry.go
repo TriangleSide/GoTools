@@ -18,14 +18,20 @@ type entry struct {
 }
 
 func (l *entry) Panic(args ...any) {
+	lock.RLock()
+	defer lock.RUnlock()
 	appLogger.Panicln(formatLog(l.fields, fmt.Sprint(args...)))
 }
 
 func (l *entry) Panicf(format string, args ...any) {
+	lock.RLock()
+	defer lock.RUnlock()
 	appLogger.Panicln(formatLog(l.fields, fmt.Sprintf(format, args...)))
 }
 
 func (l *entry) PanicFn(fn LogFn) {
+	lock.RLock()
+	defer lock.RUnlock()
 	appLogger.Panicln(formatLog(l.fields, fmt.Sprint(fn()...)))
 }
 
