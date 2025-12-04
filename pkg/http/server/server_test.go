@@ -324,6 +324,55 @@ func TestServer(t *testing.T) {
 		assert.Equals(t, seq, []string{"0", "1", "2", "3", "4"})
 	})
 
+	t.Run("when multiple methods are registered for the same path it should enforce method routing", func(t *testing.T) {
+		t.Parallel()
+
+		serverAddr := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
+			return getDefaultConfig(t), nil
+		}), server.WithEndpointHandlers(
+			&testHandler{
+				Path:   "/resource",
+				Method: http.MethodGet,
+				Handler: func(writer http.ResponseWriter, request *http.Request) {
+					writer.WriteHeader(http.StatusOK)
+					_, err := writer.Write([]byte("get"))
+					assert.NoError(t, err)
+				},
+			},
+			&testHandler{
+				Path:   "/resource",
+				Method: http.MethodPost,
+				Handler: func(writer http.ResponseWriter, request *http.Request) {
+					writer.WriteHeader(http.StatusCreated)
+					_, err := writer.Write([]byte("post"))
+					assert.NoError(t, err)
+				},
+			},
+		))
+
+		assertRequest := func(method string, expectedStatus int, expectedBody string) {
+			t.Helper()
+
+			request, err := http.NewRequest(method, "http://"+serverAddr+"/resource", nil)
+			assert.NoError(t, err)
+
+			response, err := http.DefaultClient.Do(request)
+			assert.NoError(t, err)
+			assert.NotNil(t, response)
+			assert.Equals(t, response.StatusCode, expectedStatus)
+
+			body, err := io.ReadAll(response.Body)
+			assert.NoError(t, err)
+			assert.Equals(t, string(body), expectedBody)
+
+			assert.NoError(t, response.Body.Close())
+		}
+
+		assertRequest(http.MethodGet, http.StatusOK, "get")
+		assertRequest(http.MethodPost, http.StatusCreated, "post")
+		assertRequest(http.MethodPut, http.StatusMethodNotAllowed, "")
+	})
+
 	t.Run("when a server is started without TLS an HTTP client should be able to make requests", func(t *testing.T) {
 		t.Parallel()
 		serverAddr := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {

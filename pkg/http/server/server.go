@@ -45,11 +45,21 @@ func New(opts ...Option) (*Server, error) {
 
 	serveMux := http.NewServeMux()
 	for apiPath, methodToEndpointHandlerMap := range builder.Handlers() {
+		methodHandlers := make(map[string]http.HandlerFunc, len(methodToEndpointHandlerMap))
 		for method, endpointHandler := range methodToEndpointHandlerMap {
 			endpointHandlerMw := append(srvOpts.commonMiddleware, endpointHandler.Middleware...)
 			handlerChain := middleware.CreateChain(endpointHandlerMw, endpointHandler.Handler)
-			serveMux.HandleFunc(fmt.Sprintf("%s %s", method, apiPath), handlerChain)
+			methodHandlers[string(method)] = handlerChain
 		}
+		path := string(apiPath)
+		serveMux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+			handler, ok := methodHandlers[request.Method]
+			if !ok {
+				writer.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
+			handler(writer, request)
+		})
 	}
 
 	var tlsConfig *tls.Config
