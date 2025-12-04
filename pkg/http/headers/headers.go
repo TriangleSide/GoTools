@@ -1,6 +1,9 @@
 package headers
 
 const (
+	// Allow lists the set of methods supported by a resource.
+	Allow = "Allow"
+
 	// ContentType indicates the media type of the data being sent.
 	ContentType = "Content-Type"
 
