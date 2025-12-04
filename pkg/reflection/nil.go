@@ -10,7 +10,7 @@ func IsNil(value reflect.Value) bool {
 		return true
 	}
 	switch value.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
 		return value.IsNil()
 	default:
 		return false
