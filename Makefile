@@ -1,14 +1,10 @@
-GOMODCACHE ?= $(HOME)/go/pkg/mod
-GOCACHE ?= $(HOME)/.cache/go-build
-
 GO_CONTAINER_VERSION := $(shell grep '^go ' go.mod | awk '{print $$2}')
 GOLANGCI_LINT_VERSION := v2.6.1
 
 CONTAINER_RUN := podman run --rm -v $(PWD):/app -w /app --network host
 
-GO_CONTAINER_CACHES := -v $(GOMODCACHE):/go/pkg/mod -e GOMODCACHE=/go/pkg/mod -v $(GOCACHE):/root/.cache/go-build -e GOCACHE=/root/.cache/go-build
-GO_CONTAINER_RUN := $(CONTAINER_RUN) $(GO_CONTAINER_CACHES) -e CGO_ENABLED=0 golang:$(GO_CONTAINER_VERSION) go
-CGO_CONTAINER_RUN := $(CONTAINER_RUN) $(GO_CONTAINER_CACHES) -e CGO_ENABLED=1 golang:$(GO_CONTAINER_VERSION) go
+GO_CONTAINER_RUN := $(CONTAINER_RUN) -e CGO_ENABLED=0 golang:$(GO_CONTAINER_VERSION) go
+CGO_CONTAINER_RUN := $(CONTAINER_RUN) -e CGO_ENABLED=1 golang:$(GO_CONTAINER_VERSION) go
 
 .PHONY: clean
 clean:
