@@ -1,9 +1,7 @@
 package responders
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -44,7 +42,6 @@ func findRegistryMatch(err error) (*registeredErrorResponse, error) {
 
 // Error responds to an HTTP requests with an ErrorResponse. It tries to match it to a known error type
 // so it can return its corresponding status and message. It defaults to HTTP 500 internal server error.
-// An error is returned if there was an error writing the response.
 func Error(writer http.ResponseWriter, err error, opts ...Option) {
 	cfg := configure(opts...)
 
@@ -79,7 +76,7 @@ func Error(writer http.ResponseWriter, err error, opts ...Option) {
 	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJson)
 	writer.WriteHeader(statusCode)
 
-	if _, writeErr := io.Copy(writer, bytes.NewBuffer(jsonBytes)); writeErr != nil {
+	if _, writeErr := writer.Write(jsonBytes); writeErr != nil {
 		cfg.errorCallback(writeErr)
 		return
 	}
