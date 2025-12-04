@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -55,6 +56,7 @@ func New(opts ...Option) (*Server, error) {
 			methodHandlers[string(method)] = handlerChain
 			allowedMethods = append(allowedMethods, string(method))
 		}
+		sort.Strings(allowedMethods)
 		path := string(apiPath)
 		serveMux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			handler, ok := methodHandlers[request.Method]
