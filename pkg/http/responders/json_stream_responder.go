@@ -11,7 +11,6 @@ import (
 
 // JSONStream responds to an HTTP request by streaming responses as JSON objects.
 // The producer is responsible for closing the response channel.
-// An error is returned if there was an error writing the response.
 func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWriter, request *http.Request, callback func(*RequestParameters) (<-chan *ResponseBody, int, error), opts ...Option) {
 	cfg := configure(opts...)
 

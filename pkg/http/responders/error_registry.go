@@ -8,7 +8,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-// registeredErrorTypeResponse is used by the Error responder to format the response.
+// registeredErrorResponse is used by the Error responder to format the response.
 type registeredErrorResponse struct {
 	Status   int
 	Callback func(err any) any
