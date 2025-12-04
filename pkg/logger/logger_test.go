@@ -164,7 +164,7 @@ func TestLogger(t *testing.T) {
 
 		formatterDone := make(chan struct{})
 		go func() {
-			for i := range iterations/6 {
+			for i := range iterations / 6 {
 				logger.SetFormatter(func(fields map[string]any, msg string) string {
 					return fmt.Sprintf("%d %s", i, msg)
 				})
