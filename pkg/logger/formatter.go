@@ -41,7 +41,5 @@ func SetFormatter(formatter FormatterFunc) {
 
 // formatLog formats the log message using the fields in the context and the provided message.
 func formatLog(fields map[string]any, msg string) string {
-	lock.RLock()
-	defer lock.RUnlock()
 	return appLogFormatter(fields, msg)
 }
