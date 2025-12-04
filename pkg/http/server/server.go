@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/http/api"
+	"github.com/TriangleSide/GoTools/pkg/http/headers"
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
 )
 
@@ -46,15 +48,18 @@ func New(opts ...Option) (*Server, error) {
 	serveMux := http.NewServeMux()
 	for apiPath, methodToEndpointHandlerMap := range builder.Handlers() {
 		methodHandlers := make(map[string]http.HandlerFunc, len(methodToEndpointHandlerMap))
+		allowedMethods := make([]string, 0, len(methodToEndpointHandlerMap))
 		for method, endpointHandler := range methodToEndpointHandlerMap {
 			endpointHandlerMw := append(srvOpts.commonMiddleware, endpointHandler.Middleware...)
 			handlerChain := middleware.CreateChain(endpointHandlerMw, endpointHandler.Handler)
 			methodHandlers[string(method)] = handlerChain
+			allowedMethods = append(allowedMethods, string(method))
 		}
 		path := string(apiPath)
 		serveMux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			handler, ok := methodHandlers[request.Method]
 			if !ok {
+				writer.Header().Set(headers.Allow, strings.Join(allowedMethods, ", "))
 				writer.WriteHeader(http.StatusMethodNotAllowed)
 				return
 			}

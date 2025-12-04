@@ -350,7 +350,7 @@ func TestServer(t *testing.T) {
 			},
 		))
 
-		assertRequest := func(method string, expectedStatus int, expectedBody string) {
+		assertRequest := func(method string, expectedStatus int, expectedBody string, expectedAllowHeader string) {
 			t.Helper()
 
 			request, err := http.NewRequest(method, "http://"+serverAddr+"/resource", nil)
@@ -365,12 +365,16 @@ func TestServer(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equals(t, string(body), expectedBody)
 
+			if expectedAllowHeader != "" {
+				assert.Equals(t, response.Header.Get(headers.Allow), expectedAllowHeader)
+			}
+
 			assert.NoError(t, response.Body.Close())
 		}
 
-		assertRequest(http.MethodGet, http.StatusOK, "get")
-		assertRequest(http.MethodPost, http.StatusCreated, "post")
-		assertRequest(http.MethodPut, http.StatusMethodNotAllowed, "")
+		assertRequest(http.MethodGet, http.StatusOK, "get", "")
+		assertRequest(http.MethodPost, http.StatusCreated, "post", "")
+		assertRequest(http.MethodPut, http.StatusMethodNotAllowed, "", "GET, POST")
 	})
 
 	t.Run("when a server is started without TLS an HTTP client should be able to make requests", func(t *testing.T) {
