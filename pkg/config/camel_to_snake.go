@@ -1,12 +1,12 @@
-package stringcase
+package config
 
 import (
 	"strings"
 	"unicode"
 )
 
-// CamelToSnake converts a camelCase string to an upper case SNAKE_CASE format.
-func CamelToSnake(str string) string {
+// camelToSnake converts a camelCase string to an upper case SNAKE_CASE format.
+func camelToSnake(str string) string {
 	var snake strings.Builder
 	for i, r := range str {
 		if i > 0 && unicode.IsUpper(r) && (i+1 < len(str) && unicode.IsLower(rune(str[i+1])) || unicode.IsLower(rune(str[i-1]))) {

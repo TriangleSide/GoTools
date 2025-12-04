@@ -87,6 +87,7 @@ func TestAssign(t *testing.T) {
 	})
 
 	t.Run("when an unknown field is set it should panic", func(t *testing.T) {
+		t.Parallel()
 		values := &testStruct{}
 		assert.PanicPart(t, func() {
 			_ = structs.AssignToField(values, "NonExistentField", "some value")

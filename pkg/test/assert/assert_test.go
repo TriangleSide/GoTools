@@ -84,7 +84,7 @@ func TestAssertFunctions(t *testing.T) {
 				callback: func(tr *testRecorder, opts ...assert.Option) {
 					assert.Equals(tr, 1, 2, opts...)
 				},
-				expectLogs: []string{"Expected 1 to equal 2."},
+				expectLogs: []string{"Expected 1 and 2 to be equal."},
 			},
 			{
 				name: "Equals positive case - Comparing nil with nil",
@@ -98,14 +98,14 @@ func TestAssertFunctions(t *testing.T) {
 				callback: func(tr *testRecorder, opts ...assert.Option) {
 					assert.Equals(tr, nil, 1, opts...)
 				},
-				expectLogs: []string{"Expected <nil> to equal 1."},
+				expectLogs: []string{"Expected <nil> and 1 to be equal."},
 			},
 			{
 				name: "Equals negative case - Comparing different types",
 				callback: func(tr *testRecorder, opts ...assert.Option) {
 					assert.Equals(tr, 0, 0.0, opts...)
 				},
-				expectLogs: []string{"Expected 0 to equal 0."},
+				expectLogs: []string{"Expected 0 and 0 to be equal."},
 			},
 			{
 				name: "Equals positive case - Comparing empty slices",
@@ -130,7 +130,7 @@ func TestAssertFunctions(t *testing.T) {
 					s2 := []int{}
 					assert.Equals(tr, s1, s2, opts...)
 				},
-				expectLogs: []string{"Expected [] to equal []."},
+				expectLogs: []string{"Expected [] and [] to be equal."},
 			},
 			{
 				name: "Equals positive case - Comparing maps with same content",
@@ -157,7 +157,7 @@ func TestAssertFunctions(t *testing.T) {
 					m2 := map[string]int{}
 					assert.Equals(tr, m1, m2, opts...)
 				},
-				expectLogs: []string{"Expected map[] to equal map[]."},
+				expectLogs: []string{"Expected map[] and map[] to be equal."},
 			},
 			{
 				name: "NotEquals positive case - Comparing different integers",
@@ -171,14 +171,14 @@ func TestAssertFunctions(t *testing.T) {
 				callback: func(tr *testRecorder, opts ...assert.Option) {
 					assert.NotEquals(tr, 1, 1, opts...)
 				},
-				expectLogs: []string{"Expected arguments 1 to differ."},
+				expectLogs: []string{"Expected 1 and 1 to differ."},
 			},
 			{
 				name: "NotEquals negative case - Comparing nil with nil",
 				callback: func(tr *testRecorder, opts ...assert.Option) {
 					assert.NotEquals(tr, nil, nil, opts...)
 				},
-				expectLogs: []string{"Expected arguments <nil> to differ."},
+				expectLogs: []string{"Expected <nil> and <nil> to differ."},
 			},
 			{
 				name: "NotEquals positive case - Comparing nil with non-nil",
@@ -199,7 +199,7 @@ func TestAssertFunctions(t *testing.T) {
 				callback: func(tr *testRecorder, opts ...assert.Option) {
 					assert.NotEquals(tr, []int{}, []int{}, opts...)
 				},
-				expectLogs: []string{"Expected arguments [] to differ."},
+				expectLogs: []string{"Expected [] and [] to differ."},
 			},
 			{
 				name: "Panic positive case - Function panics as expected",
@@ -407,7 +407,7 @@ func TestAssertFunctions(t *testing.T) {
 				expectLogs: []string{},
 			},
 			{
-				name: "Nil negative case - Value is a nil integer slice",
+				name: "Nil positive case - Value is a nil integer slice",
 				callback: func(tr *testRecorder, opts ...assert.Option) {
 					var value []int
 					assert.Nil(tr, value, opts...)

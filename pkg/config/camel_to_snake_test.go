@@ -1,16 +1,15 @@
-package stringcase_test
+package config //nolint:testpackage
 
 import (
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/stringcase"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
-func TestStringCase(t *testing.T) {
+func TestCamelToSnake(t *testing.T) {
 	t.Parallel()
 
-	t.Run("camel to snake", func(t *testing.T) {
+	t.Run("it should convert camel case to snake case", func(t *testing.T) {
 		t.Parallel()
 		subTests := []struct {
 			value    string
@@ -27,7 +26,7 @@ func TestStringCase(t *testing.T) {
 			{"CAMELCase", "CAMEL_CASE"},
 		}
 		for _, st := range subTests {
-			assert.Equals(t, stringcase.CamelToSnake(st.value), st.expected)
+			assert.Equals(t, camelToSnake(st.value), st.expected)
 		}
 	})
 }

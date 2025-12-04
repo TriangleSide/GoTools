@@ -7,21 +7,21 @@ import (
 	"sync"
 )
 
-// Equals checks if the expected and actual values are equal.
-func Equals(t Testing, actual any, expected any, options ...Option) {
+// Equals checks if two values are equal.
+func Equals(t Testing, first any, second any, options ...Option) {
 	tCtx := newTestContext(t, options...)
 	tCtx.Helper()
-	if !reflect.DeepEqual(expected, actual) {
-		tCtx.fail(fmt.Sprintf("Expected %+v to equal %+v.", actual, expected))
+	if !reflect.DeepEqual(first, second) {
+		tCtx.fail(fmt.Sprintf("Expected %+v and %+v to be equal.", first, second))
 	}
 }
 
-// NotEquals checks if the expected and actual values are not equal.
-func NotEquals(t Testing, actual any, expected any, options ...Option) {
+// NotEquals checks if two values are not equal.
+func NotEquals(t Testing, first any, second any, options ...Option) {
 	tCtx := newTestContext(t, options...)
 	tCtx.Helper()
-	if reflect.DeepEqual(expected, actual) {
-		tCtx.fail(fmt.Sprintf("Expected arguments %+v to differ.", actual))
+	if reflect.DeepEqual(first, second) {
+		tCtx.fail(fmt.Sprintf("Expected %+v and %+v to differ.", first, second))
 	}
 }
 
