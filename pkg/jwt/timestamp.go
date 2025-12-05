@@ -33,7 +33,7 @@ func (ts Timestamp) String() string {
 // MarshalJSON implements json.Marshaler using RFC 3339 format.
 func (ts Timestamp) MarshalJSON() ([]byte, error) {
 	if ts.time.IsZero() {
-		return []byte("null"), nil
+		return nil, errors.New("timestamp is zero while marshaling")
 	}
 	return json.Marshal(ts.time.Format(time.RFC3339))
 }

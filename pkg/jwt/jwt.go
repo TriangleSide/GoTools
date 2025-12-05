@@ -49,7 +49,7 @@ type config struct {
 // newConfig builds a config populated with the defaults and supplied options.
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		algorithm: HS512,
+		algorithm: EdDSA,
 	}
 	for _, opt := range opts {
 		opt(cfg)
@@ -82,15 +82,6 @@ func Encode(claims Claims, key []byte, keyId string, opts ...Option) (string, er
 }
 
 // Decode validates the supplied token string using the secret and returns the decoded claims.
-// TODO: mitigate against JWT algorithm-confusion vulnerability. The algorithm should not be able to be swapped.
-//  1. System uses EdDSA (asymmetric) for signing tokens with a private key
-//  2. Attacker intercepts a valid token signed with EdDSA
-//  3. Attacker modifies the header to change algorithm from EdDSA to HS512
-//  4. Attacker uses the PUBLIC key (which is public) as the HMAC-SHA512 secret
-//  5. Attacker can now forge any token because Decode will:
-//     - Read HS512 from the modified header
-//     - Select the HMAC provider
-//     - Verify using HMAC with the public key as the secret
 func Decode(token string, keyProvider func(keyId string) ([]byte, error)) (*Claims, error) {
 	if token == "" {
 		return nil, errors.New("token cannot be empty")
