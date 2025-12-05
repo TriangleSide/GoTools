@@ -12,8 +12,18 @@ type signatureProvider interface {
 
 var (
 	// signatureProviders maps SignatureAlgorithm values to their corresponding signatureProvider implementations.
+	// Private secret algorithms must not be added because of the algorithm-confusion vulnerability.
+	//
+	// The JWT algorithm-confusion vulnerability is when:
+	//  1. System uses EdDSA (asymmetric) for signing tokens with a private key.
+	//  2. Attacker intercepts a valid token signed with EdDSA.
+	//  3. Attacker modifies the header to change algorithm from EdDSA to HS512
+	//  4. Attacker uses the PUBLIC key (which is public) as the HMAC-SHA512 secret
+	//  5. Attacker can now forge any token because Decode will:
+	//     - Read HS512 from the modified header
+	//     - Select the HMAC provider
+	//     - Verify using HMAC with the public key as the secret
 	signatureProviders = map[SignatureAlgorithm]signatureProvider{
-		HS512: hmacSHA512Provider{},
 		EdDSA: eddsaProvider{},
 	}
 )

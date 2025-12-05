@@ -30,13 +30,6 @@ func TestSignatureAlgorithms(t *testing.T) {
 		wrongKey   []byte
 	}{
 		{
-			algorithm:  jwt.HS512,
-			signingKey: []byte(string(jwt.HS512) + "-secret"),
-			verifyKey:  []byte(string(jwt.HS512) + "-secret"),
-			keyID:      "kid-" + string(jwt.HS512),
-			wrongKey:   []byte("wrong-secret"),
-		},
-		{
 			algorithm:  jwt.EdDSA,
 			signingKey: primaryPrivateKey,
 			verifyKey:  primaryPublicKey,
