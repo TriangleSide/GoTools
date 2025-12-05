@@ -213,6 +213,7 @@ func Contains(t Testing, value any, check any, options ...Option) {
 	tCtx.fail("Unknown types for the contains check.")
 }
 
+// FloatEquals checks if two floating point values are equal within a given epsilon.
 func FloatEquals[T ~float64 | ~float32](t Testing, first T, second T, epsilon T, options ...Option) {
 	tCtx := newTestContext(t, options...)
 	tCtx.Helper()

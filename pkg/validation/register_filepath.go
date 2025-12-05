@@ -7,10 +7,11 @@ import (
 )
 
 const (
+	// FilepathValidatorName is the name of the validator that checks if a file path is accessible.
 	FilepathValidatorName Validator = "filepath"
 )
 
-// init registers the validator.
+// init registers the filepath validator that checks if a file path exists and is accessible.
 func init() {
 	MustRegisterValidator(FilepathValidatorName, func(params *CallbackParameters) *CallbackResult {
 		result := NewCallbackResult()

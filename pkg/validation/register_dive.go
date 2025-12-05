@@ -6,10 +6,11 @@ import (
 )
 
 const (
+	// DiveValidatorName is the name of the validator that iterates over slice elements for validation.
 	DiveValidatorName Validator = "dive"
 )
 
-// init registers the validator.
+// init registers the dive validator that iterates over slice elements and applies subsequent validators to each.
 func init() {
 	MustRegisterValidator(DiveValidatorName, func(params *CallbackParameters) *CallbackResult {
 		result := NewCallbackResult()

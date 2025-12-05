@@ -9,10 +9,11 @@ import (
 )
 
 const (
+	// OneOfValidatorName is the name of the validator that checks if a value matches one of the allowed values.
 	OneOfValidatorName Validator = "oneof"
 )
 
-// init registers the validator.
+// init registers the oneof validator that checks if a value is one of a space-separated list of allowed values.
 func init() {
 	MustRegisterValidator(OneOfValidatorName, func(params *CallbackParameters) *CallbackResult {
 		result := NewCallbackResult()
