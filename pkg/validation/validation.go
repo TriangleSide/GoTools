@@ -100,21 +100,21 @@ func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, 
 				if errors.As(callbackResponse.err, &violation) {
 					violations.AddViolation(violation)
 					return false, nil
-				} else {
-					return false, callbackResponse.err
 				}
-			} else if callbackResponse.stop {
+				return false, callbackResponse.err
+			}
+			if callbackResponse.stop {
 				return false, nil
-			} else if callbackResponse.newValues != nil {
+			}
+			if callbackResponse.newValues != nil {
 				for _, newValue := range callbackResponse.newValues {
 					if newValErr := checkValidatorsAgainstValue(isStructValue, structValue, structFieldName, newValue, rest(), violations); newValErr != nil {
 						return false, newValErr
 					}
 				}
 				return false, nil
-			} else {
-				return false, fmt.Errorf("callback response is not correctly filled for validator %s", name)
 			}
+			return false, fmt.Errorf("callback response is not correctly filled for validator %s", name)
 		}
 
 		return true, nil
@@ -145,7 +145,7 @@ func validateRecursively(depth int, val reflect.Value, violations *Violations) e
 			}
 		}
 	case reflect.Slice, reflect.Array:
-		for i := 0; i < val.Len(); i++ {
+		for i := range val.Len() {
 			if err := validateRecursively(depth+1, val.Index(i), violations); err != nil {
 				return err
 			}

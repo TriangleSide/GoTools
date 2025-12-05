@@ -77,7 +77,7 @@ func TestHTTPApi(t *testing.T) {
 		assert.NotNil(t, handler.Handler)
 		assert.Nil(t, handler.Middleware)
 
-		request, err := http.NewRequest(http.MethodGet, path, nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 		assert.NoError(t, err)
 		recorder := httptest.NewRecorder()
 		handler.Handler.ServeHTTP(recorder, request)
@@ -109,7 +109,7 @@ func TestHTTPApi(t *testing.T) {
 		assert.NotNil(t, handler.Handler)
 		assert.Nil(t, handler.Middleware)
 
-		request, err := http.NewRequest(http.MethodGet, path, nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 		assert.NoError(t, err)
 		recorder := httptest.NewRecorder()
 		handler.Handler.ServeHTTP(recorder, request)
@@ -153,13 +153,13 @@ func TestHTTPApi(t *testing.T) {
 		assert.NotNil(t, postHandler.Handler)
 		assert.Nil(t, postHandler.Middleware)
 
-		getRequest, err := http.NewRequest(http.MethodGet, path, nil)
+		getRequest, err := http.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 		assert.NoError(t, err)
 		getRecorder := httptest.NewRecorder()
 		getHandler.Handler.ServeHTTP(getRecorder, getRequest)
 		assert.Equals(t, getRecorder.Code, http.StatusOK)
 
-		postRequest, err := http.NewRequest(http.MethodPost, path, nil)
+		postRequest, err := http.NewRequestWithContext(t.Context(), http.MethodPost, path, nil)
 		assert.NoError(t, err)
 		postRecorder := httptest.NewRecorder()
 		postHandler.Handler.ServeHTTP(postRecorder, postRequest)
@@ -206,13 +206,13 @@ func TestHTTPApi(t *testing.T) {
 		assert.NotNil(t, getHandler2.Handler)
 		assert.Nil(t, getHandler2.Middleware)
 
-		getRequest1, err := http.NewRequest(http.MethodGet, "/test1", nil)
+		getRequest1, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/test1", nil)
 		assert.NoError(t, err)
 		getRecorder1 := httptest.NewRecorder()
 		getHandler1.Handler.ServeHTTP(getRecorder1, getRequest1)
 		assert.Equals(t, getRecorder1.Code, http.StatusOK)
 
-		getRequest2, err := http.NewRequest(http.MethodGet, "/test2", nil)
+		getRequest2, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/test2", nil)
 		assert.NoError(t, err)
 		getRecorder2 := httptest.NewRecorder()
 		getHandler2.Handler.ServeHTTP(getRecorder2, getRequest2)

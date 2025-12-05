@@ -37,7 +37,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when decoding a struct that fails the tag validation it should panic", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodGet, "/", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		assert.PanicPart(t, func() {
@@ -49,7 +49,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when json is sent with an unknown field it should fail to decode", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodPost, "/", strings.NewReader(`{"fieldThatDoesNotExist":"value"}`))
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"fieldThatDoesNotExist":"value"}`))
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJson)
@@ -61,7 +61,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when json is not properly formatted it should fail to decode", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodPost, "/", strings.NewReader(`{"myJsonField":"value"`))
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"myJsonField":"value"`))
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJson)
@@ -73,7 +73,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when there are multiple values for a query parameter it should fail to decode", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodGet, "/?TestQuery=value1&TestQuery=value2", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/?TestQuery=value1&TestQuery=value2", nil)
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		_, err = parameters.Decode[struct {
@@ -84,7 +84,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when there is a query parameter field that can't be set it should fail to decode", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodGet, "/?TestQuery=NotAnInt", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/?TestQuery=NotAnInt", nil)
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		_, err = parameters.Decode[struct {
@@ -95,7 +95,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when there are multiple values for a header it should fail to decode", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodGet, "/", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		request.Header["TestHeader"] = []string{"value1", "value2"}
@@ -107,7 +107,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when there is a header field that can't be set it should fail to decode", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodGet, "/", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		request.Header["TestHeader"] = []string{"NotAndInt"}
@@ -149,7 +149,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when the validation fails it should fail to decode", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodGet, "/", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		_, err = parameters.Decode[struct {
@@ -160,7 +160,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when the generic is not a struct it should panic", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodGet, "/", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		assert.PanicPart(t, func() {
@@ -173,7 +173,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 		type parameterParams struct {
 			Field string `httpHeader:"TestHeader" json:"-" validate:"required"`
 		}
-		request, err := http.NewRequest(http.MethodGet, "/", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 		assert.NoError(t, err)
 		request = request.WithContext(context.Background())
 		assert.PanicPart(t, func() {
@@ -183,7 +183,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when the body fails to close it should return an error", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodPost, "/", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", nil)
 		assert.NoError(t, err)
 		readCloser := &testJsonReadCloser{
 			ReturnedError: errors.New("close error"),
@@ -201,7 +201,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 
 	t.Run("when the body fails to close and theres a decode error it should return both errors", func(t *testing.T) {
 		t.Parallel()
-		request, err := http.NewRequest(http.MethodPost, "/", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", nil)
 		assert.NoError(t, err)
 		readCloser := &testJsonReadCloser{
 			ReturnedError: errors.New("close error"),
@@ -346,7 +346,7 @@ func TestDecodeHTTPParameters(t *testing.T) {
 				"JSONPtrListField": ["item1", "item2"]
 			}`
 
-		request, err := http.NewRequest(http.MethodPost, "http://"+listener.Addr().String()+clientPath+queryParams, bytes.NewBufferString(jsonBody))
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://"+listener.Addr().String()+clientPath+queryParams, bytes.NewBufferString(jsonBody))
 		assert.NoError(t, err)
 		request.Header.Set("Content-Type", "application/json")
 		request.Header.Set("Header-Does-Not-Exist-In-The-Struct", "value")

@@ -51,7 +51,9 @@ func New(opts ...Option) (*Server, error) {
 		methodHandlers := make(map[string]http.HandlerFunc, len(methodToEndpointHandlerMap))
 		allowedMethods := make([]string, 0, len(methodToEndpointHandlerMap))
 		for method, endpointHandler := range methodToEndpointHandlerMap {
-			endpointHandlerMw := append(srvOpts.commonMiddleware, endpointHandler.Middleware...)
+			endpointHandlerMw := make([]middleware.Middleware, 0, len(srvOpts.commonMiddleware)+len(endpointHandler.Middleware))
+			endpointHandlerMw = append(endpointHandlerMw, srvOpts.commonMiddleware...)
+			endpointHandlerMw = append(endpointHandlerMw, endpointHandler.Middleware...)
 			handlerChain := middleware.CreateChain(endpointHandlerMw, endpointHandler.Handler)
 			methodHandlers[string(method)] = handlerChain
 			allowedMethods = append(allowedMethods, string(method))

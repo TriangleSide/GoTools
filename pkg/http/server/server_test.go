@@ -96,10 +96,13 @@ func TestServer(t *testing.T) {
 		t.Helper()
 		waitUntilReady := make(chan struct{})
 		var address string
-		allOpts := append(options, server.WithBoundCallback(func(addr *net.TCPAddr) {
+		allOpts := make([]server.Option, 0, len(options)+2)
+		allOpts = append(allOpts, options...)
+		allOpts = append(allOpts, server.WithBoundCallback(func(addr *net.TCPAddr) {
 			address = addr.String()
 			close(waitUntilReady)
-		}), server.WithEndpointHandlers(handler))
+		}))
+		allOpts = append(allOpts, server.WithEndpointHandlers(handler))
 		srv, err := server.New(allOpts...)
 		assert.NoError(t, err)
 		assert.NotNil(t, srv)
@@ -124,7 +127,7 @@ func TestServer(t *testing.T) {
 		} else {
 			protocol = "http"
 		}
-		request, err := http.NewRequest(http.MethodGet, protocol+"://"+addr, nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, protocol+"://"+addr, nil)
 		assert.NoError(t, err)
 		assert.NotNil(t, request)
 		response, err := httpClient.Do(request)
@@ -313,7 +316,7 @@ func TestServer(t *testing.T) {
 			},
 		}))
 		httpClient := &http.Client{}
-		request, err := http.NewRequest(http.MethodGet, "http://"+serverAddr+"/test", nil)
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+serverAddr+"/test", nil)
 		assert.NoError(t, err)
 		response, err := httpClient.Do(request)
 		t.Cleanup(func() {
@@ -353,7 +356,7 @@ func TestServer(t *testing.T) {
 		assertRequest := func(method string, expectedStatus int, expectedBody string, expectedAllowHeader string) {
 			t.Helper()
 
-			request, err := http.NewRequest(method, "http://"+serverAddr+"/resource", nil)
+			request, err := http.NewRequestWithContext(t.Context(), method, "http://"+serverAddr+"/resource", nil)
 			assert.NoError(t, err)
 
 			response, err := http.DefaultClient.Do(request)
@@ -630,7 +633,7 @@ func TestServer(t *testing.T) {
 					},
 				},
 			}
-			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddr, nil)
+			request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "https://"+serverAddr, nil)
 			assert.NoError(t, err)
 			response, err := httpClient.Do(request)
 			if response != nil {
@@ -693,7 +696,7 @@ func TestServer(t *testing.T) {
 					},
 				},
 			}
-			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddress, nil)
+			request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "https://"+serverAddress, nil)
 			assert.NoError(t, err)
 			assert.NotNil(t, request)
 			response, err := httpClient.Do(request)
@@ -741,7 +744,7 @@ func TestServer(t *testing.T) {
 					},
 				},
 			}
-			request, err := http.NewRequest(http.MethodGet, "https://"+serverAddress, nil)
+			request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "https://"+serverAddress, nil)
 			assert.NoError(t, err)
 			response, err := httpClient.Do(request)
 			if response != nil {
