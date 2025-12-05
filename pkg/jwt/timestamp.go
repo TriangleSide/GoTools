@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -19,11 +20,6 @@ func NewTimestamp(t time.Time) Timestamp {
 // Time returns the underlying time.Time value.
 func (ts Timestamp) Time() time.Time {
 	return ts.time
-}
-
-// IsZero reports whether the timestamp represents the zero time instant.
-func (ts Timestamp) IsZero() bool {
-	return ts.time.IsZero()
 }
 
 // String returns the RFC 3339 representation of the timestamp.
@@ -49,8 +45,7 @@ func (ts *Timestamp) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("timestamp must be a string (%w)", err)
 	}
 	if s == "" {
-		ts.time = time.Time{}
-		return nil
+		return errors.New("timestamp cannot be empty")
 	}
 	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
