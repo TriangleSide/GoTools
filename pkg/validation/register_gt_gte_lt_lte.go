@@ -7,13 +7,17 @@ import (
 )
 
 const (
-	GreaterThanValidatorName        Validator = "gt"
+	// GreaterThanValidatorName is the name of the validator that checks if a numeric value is greater than a threshold.
+	GreaterThanValidatorName Validator = "gt"
+	// GreaterThanOrEqualValidatorName is the name of the validator that checks if a numeric value is greater than or equal to a threshold.
 	GreaterThanOrEqualValidatorName Validator = "gte"
-	LessThanValidatorName           Validator = "lt"
-	LessThanOrEqualValidatorName    Validator = "lte"
+	// LessThanValidatorName is the name of the validator that checks if a numeric value is less than a threshold.
+	LessThanValidatorName Validator = "lt"
+	// LessThanOrEqualValidatorName is the name of the validator that checks if a numeric value is less than or equal to a threshold.
+	LessThanOrEqualValidatorName Validator = "lte"
 )
 
-// init registers the validators.
+// init registers the numeric comparison validators (gt, gte, lt, lte) for comparing values against thresholds.
 func init() {
 	registerComparisonValidation(GreaterThanValidatorName, func(a, b float64) bool { return a > b }, "greater than")
 	registerComparisonValidation(GreaterThanOrEqualValidatorName, func(a, b float64) bool { return a >= b }, "greater than or equal to")

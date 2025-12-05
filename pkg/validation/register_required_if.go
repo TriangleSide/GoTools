@@ -10,10 +10,11 @@ import (
 )
 
 const (
+	// RequiredIfValidatorName is the name of the validator that conditionally requires a field based on another field's value.
 	RequiredIfValidatorName Validator = "required_if"
 )
 
-// init registers the validator.
+// init registers the required_if validator that requires a field when another struct field matches a specified value.
 func init() {
 	MustRegisterValidator(RequiredIfValidatorName, func(params *CallbackParameters) *CallbackResult {
 		result := NewCallbackResult()

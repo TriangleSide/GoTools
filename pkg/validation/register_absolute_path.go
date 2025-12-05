@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	// AbsolutePathValidatorName is the name of the validator that enforces absolute, valid, existing filesystem paths.
 	AbsolutePathValidatorName Validator = "absolute_path"
 )
 

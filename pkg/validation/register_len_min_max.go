@@ -8,12 +8,15 @@ import (
 )
 
 const (
+	// LenValidatorName is the name of the validator that checks if a string has an exact byte length.
 	LenValidatorName Validator = "len"
+	// MinValidatorName is the name of the validator that checks if a string has a minimum byte length.
 	MinValidatorName Validator = "min"
+	// MaxValidatorName is the name of the validator that checks if a string has a maximum byte length.
 	MaxValidatorName Validator = "max"
 )
 
-// init registers the validators.
+// init registers the string length validators (len, min, max) for checking string byte lengths.
 func init() {
 	registerStringLengthValidation(LenValidatorName, func(length, target int) bool { return length == target }, "exactly")
 	registerStringLengthValidation(MinValidatorName, func(length, target int) bool { return length >= target }, "at least")
