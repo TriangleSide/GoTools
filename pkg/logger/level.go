@@ -9,10 +9,15 @@ import (
 type LogLevel int
 
 const (
+	// LevelError only logs error messages.
 	LevelError LogLevel = iota
+	// LevelWarn logs warning and error messages.
 	LevelWarn
+	// LevelInfo logs informational, warning, and error messages.
 	LevelInfo
+	// LevelDebug logs debug, informational, warning, and error messages.
 	LevelDebug
+	// LevelTrace logs all messages including trace-level details.
 	LevelTrace
 )
 
