@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/jwt"
+	"github.com/TriangleSide/GoTools/pkg/ptr"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
@@ -96,14 +97,14 @@ func TestSignatureAlgorithms(t *testing.T) {
 			t.Run("when using "+string(alg.algorithm)+" and "+tc.condition+" it should "+tc.expectation, func(t *testing.T) {
 				t.Parallel()
 
-				body := jwt.Body{
-					Issuer:   "issuer-" + string(alg.algorithm),
-					Subject:  "subject-" + string(alg.algorithm),
-					Audience: "audience-" + string(alg.algorithm),
-					TokenID:  "token-" + string(alg.algorithm),
+				claims := jwt.Claims{
+					Issuer:   ptr.Of("issuer-" + string(alg.algorithm)),
+					Subject:  ptr.Of("subject-" + string(alg.algorithm)),
+					Audience: ptr.Of("audience-" + string(alg.algorithm)),
+					TokenID:  ptr.Of("token-" + string(alg.algorithm)),
 				}
 
-				token, err := jwt.Encode(body, alg.signingKey, alg.keyID, jwt.WithSignatureAlgorithm(alg.algorithm))
+				token, err := jwt.Encode(claims, alg.signingKey, alg.keyID, jwt.WithSignatureAlgorithm(alg.algorithm))
 				assert.NoError(t, err)
 
 				_, err = jwt.Decode(token, func(requestedKeyID string) ([]byte, error) {
@@ -129,7 +130,7 @@ func TestSignatureAlgorithms(t *testing.T) {
 
 				assert.NoError(t, err)
 				assert.NotNil(t, decodedBody)
-				assert.Equals(t, *decodedBody, body)
+				assert.Equals(t, *decodedBody, claims)
 			})
 		}
 	}

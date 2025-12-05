@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/reflection"
 	"github.com/TriangleSide/GoTools/pkg/structs"
@@ -17,10 +18,15 @@ const (
 	extraForBraces = 2
 )
 
+var (
+	// timestampType holds the reflect.Type for the Timestamp struct.
+	timestampType = reflect.TypeFor[Timestamp]()
+)
+
 // marshalToStableJSON takes a struct and marshals it to a JSON string with stable field ordering.
 // Since this is only for JWTs, we can be assured that:
 //   - the json tag is always present.
-//   - the field is either string or int64.
+//   - the field is either string or Timestamp.
 //
 // So we can skip error handling for those cases.
 func marshalToStableJSON(v any) string {
@@ -32,14 +38,16 @@ func marshalToStableJSON(v any) string {
 	for fieldName, fieldMetadata := range metadata.All() {
 		jsonFieldName := fieldMetadata.Tags().Get("json")
 		structValue, _ := structs.ValueFromName(value.Interface(), fieldName)
-		if structValue.IsZero() {
+		if reflection.IsNil(structValue) {
 			continue
 		}
+		structValue = reflection.Dereference(structValue)
 		var valueStr string
-		if structValue.Kind() == reflect.String {
-			valueStr = strconv.Quote(structValue.String())
+		if structValue.Type() == timestampType {
+			ts := structValue.Interface().(Timestamp)
+			valueStr = strconv.Quote(ts.Time().Format(time.RFC3339))
 		} else {
-			valueStr = strconv.FormatInt(structValue.Int(), 10)
+			valueStr = strconv.Quote(structValue.String())
 		}
 		fieldNameTJSONStringValue[jsonFieldName] = valueStr
 		strCount += len(jsonFieldName) + len(valueStr) + extraForQuotesColonAndComma
