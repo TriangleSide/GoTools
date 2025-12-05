@@ -36,13 +36,17 @@ func init() {
 		path := value.String()
 		if len(path) == 0 {
 			return result.WithError(validation.NewViolation(params, errors.New("the path cannot be empty")))
-		} else if path == "/" {
+		}
+		if path == "/" {
 			return nil
-		} else if !isValidCharacters(path) {
+		}
+		if !isValidCharacters(path) {
 			return result.WithError(validation.NewViolation(params, errors.New("the path contains invalid characters")))
-		} else if !strings.HasPrefix(path, "/") {
+		}
+		if !strings.HasPrefix(path, "/") {
 			return result.WithError(validation.NewViolation(params, errors.New("the path must start with '/'")))
-		} else if strings.HasSuffix(path, "/") {
+		}
+		if strings.HasSuffix(path, "/") {
 			return result.WithError(validation.NewViolation(params, errors.New("the path cannot end with '/'")))
 		}
 

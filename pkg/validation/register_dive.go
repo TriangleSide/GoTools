@@ -26,7 +26,7 @@ func init() {
 			return result.WithStop()
 		}
 
-		for i := 0; i < value.Len(); i++ {
+		for i := range value.Len() {
 			result.AddValue(value.Index(i))
 		}
 		return result

@@ -84,7 +84,7 @@ func TestSignatureAlgorithms(t *testing.T) {
 				if len(parts) != 3 {
 					return token
 				}
-				parts[2] = parts[2] + "?"
+				parts[2] += "?"
 				return strings.Join(parts, ".")
 			},
 			expectErr: "failed to decode signature",

@@ -164,14 +164,14 @@ func TestHeap(t *testing.T) {
 		for range count {
 			randomValue := getRandomInt(t, count/10)
 			minHeap.Push(randomValue)
-			valueToCount[randomValue] = valueToCount[randomValue] + 1
+			valueToCount[randomValue]++
 
 			randomValue = getRandomInt(t, count/10)
 			minHeap.Push(randomValue)
-			valueToCount[randomValue] = valueToCount[randomValue] + 1
+			valueToCount[randomValue]++
 
 			valueRemoved := minHeap.Pop()
-			valueToCount[valueRemoved] = valueToCount[valueRemoved] - 1
+			valueToCount[valueRemoved]--
 			if valueToCount[valueRemoved] < 0 {
 				t.Fatalf("Value %d was not added.", valueRemoved)
 			}
@@ -185,7 +185,7 @@ func TestHeap(t *testing.T) {
 			valueRemoved := minHeap.Pop()
 			assert.True(t, valueRemoved >= lastValue)
 
-			valueToCount[valueRemoved] = valueToCount[valueRemoved] - 1
+			valueToCount[valueRemoved]--
 			if valueToCount[valueRemoved] < 0 {
 				t.Fatalf("Value %d was not added.", valueRemoved)
 			}

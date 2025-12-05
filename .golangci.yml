@@ -14,12 +14,14 @@ linters:
     - contextcheck
     - copyloopvar
     - dupl
+    - dupword
     - durationcheck
     - errcheck
     - errchkjson
     - errorlint
     - errorlint
     - goconst
+    - gocritic
     - godot
     - godox
     - gosec
@@ -27,6 +29,7 @@ linters:
     - iface
     - importas
     - ineffassign
+    - intrange
     - misspell
     - mnd
     - musttag
