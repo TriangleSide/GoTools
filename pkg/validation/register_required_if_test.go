@@ -159,6 +159,7 @@ func TestRequiredIfValidator(t *testing.T) {
 	})
 
 	t.Run("when the field under validation is a pointer and required it should enforce required", func(t *testing.T) {
+		t.Parallel()
 		type TestStruct struct {
 			Status string
 			Field  *string `validate:"required_if=Status active"`
