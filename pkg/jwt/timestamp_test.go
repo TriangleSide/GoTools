@@ -24,18 +24,6 @@ func TestTimestamp(t *testing.T) {
 		assert.Equals(t, ts.String(), "2024-06-01T12:00:00Z")
 	})
 
-	t.Run("when timestamp is zero it should return true from IsZero method", func(t *testing.T) {
-		t.Parallel()
-		var ts jwt.Timestamp
-		assert.Equals(t, ts.IsZero(), true)
-	})
-
-	t.Run("when timestamp is non-zero it should return false from IsZero method", func(t *testing.T) {
-		t.Parallel()
-		ts := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
-		assert.Equals(t, ts.IsZero(), false)
-	})
-
 	t.Run("when timestamp is zero it should marshal to null", func(t *testing.T) {
 		t.Parallel()
 		var ts jwt.Timestamp
@@ -60,12 +48,11 @@ func TestTimestamp(t *testing.T) {
 		assert.Equals(t, ts.Time(), time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
 	})
 
-	t.Run("when unmarshaling empty string it should result in zero timestamp", func(t *testing.T) {
+	t.Run("when unmarshaling empty string it should return error", func(t *testing.T) {
 		t.Parallel()
 		var ts jwt.Timestamp
 		err := json.Unmarshal([]byte(`""`), &ts)
-		assert.NoError(t, err)
-		assert.Equals(t, ts.IsZero(), true)
+		assert.ErrorPart(t, err, "timestamp cannot be empty")
 	})
 
 	t.Run("when unmarshaling invalid RFC 3339 string it should return error", func(t *testing.T) {
