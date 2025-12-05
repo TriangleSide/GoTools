@@ -45,7 +45,7 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 		panic(fmt.Sprintf("Type must be a struct or a pointer to a struct but got %s.", reflectType.Kind().String()))
 	}
 
-	for fieldIndex := 0; fieldIndex < reflectType.NumField(); fieldIndex++ {
+	for fieldIndex := range reflectType.NumField() {
 		field := reflectType.Field(fieldIndex)
 
 		anonymousChainCopy := make([]string, len(anonymousChain))

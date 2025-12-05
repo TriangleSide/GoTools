@@ -91,7 +91,7 @@ func TestErrorResponder(t *testing.T) {
 		assert.NoError(t, writeError)
 	})
 
-	t.Run("when the error is joined with a a custom registered type it should return its custom message and status", func(t *testing.T) {
+	t.Run("when the error is joined with a custom registered type it should return its custom message and status", func(t *testing.T) {
 		t.Parallel()
 		recorder := httptest.NewRecorder()
 		var writeError error

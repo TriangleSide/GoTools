@@ -8,9 +8,7 @@ const (
 
 // init registers the validator.
 func init() {
-	MustRegisterValidator(RequiredValidatorName, func(params *CallbackParameters) *CallbackResult {
-		return required(params)
-	})
+	MustRegisterValidator(RequiredValidatorName, required)
 }
 
 // required checks if the value is a zero value for its type.
