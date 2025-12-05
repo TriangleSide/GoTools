@@ -1,6 +1,8 @@
 package jwt_test
 
 import (
+	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"strings"
@@ -19,10 +21,13 @@ func TestJSONEncoding(t *testing.T) {
 	nbf := jwt.NewTimestamp(time.Date(2021, 3, 20, 8, 30, 0, 0, time.UTC))
 	iat := jwt.NewTimestamp(time.Date(2018, 1, 10, 4, 15, 0, 0, time.UTC))
 
+	seed := sha256.Sum256([]byte("eddsa-provider-primary"))
+	key := ed25519.NewKeyFromSeed(seed[:])
+
 	testCases := []struct {
 		name           string
 		claims         jwt.Claims
-		key            string
+		key            []byte
 		keyID          string
 		expectedHeader string
 		expectedBody   string
@@ -38,9 +43,9 @@ func TestJSONEncoding(t *testing.T) {
 				IssuedAt:  ptr.Of(iat),
 				TokenID:   ptr.Of("token"),
 			},
-			key:            "secret",
+			key:            key,
 			keyID:          "kid",
-			expectedHeader: `{"alg":"HS512","kid":"kid","typ":"JWT"}`,
+			expectedHeader: `{"alg":"EdDSA","kid":"kid","typ":"JWT"}`,
 			expectedBody:   `{"aud":"audience","exp":"2024-06-01T12:00:00Z","iat":"2018-01-10T04:15:00Z","iss":"issuer","jti":"token","nbf":"2021-03-20T08:30:00Z","sub":"subject"}`,
 		},
 		{
@@ -49,17 +54,17 @@ func TestJSONEncoding(t *testing.T) {
 				Subject:   ptr.Of("subject"),
 				ExpiresAt: ptr.Of(exp),
 			},
-			key:            "spare-key",
+			key:            key,
 			keyID:          "",
-			expectedHeader: `{"alg":"HS512","kid":"","typ":"JWT"}`,
+			expectedHeader: `{"alg":"EdDSA","kid":"","typ":"JWT"}`,
 			expectedBody:   `{"exp":"2024-06-01T12:00:00Z","sub":"subject"}`,
 		},
 		{
 			name:           "when no claims are provided it should encode an empty body",
 			claims:         jwt.Claims{},
-			key:            "empty-claims",
+			key:            key,
 			keyID:          "kid-only",
-			expectedHeader: `{"alg":"HS512","kid":"kid-only","typ":"JWT"}`,
+			expectedHeader: `{"alg":"EdDSA","kid":"kid-only","typ":"JWT"}`,
 			expectedBody:   `{}`,
 		},
 		{
@@ -69,9 +74,9 @@ func TestJSONEncoding(t *testing.T) {
 				Issuer:   ptr.Of("issuer-with-escape\\"),
 				TokenID:  ptr.Of("token \"complex\" value\\id"),
 			},
-			key:            "escape-key",
+			key:            key,
 			keyID:          "",
-			expectedHeader: `{"alg":"HS512","kid":"","typ":"JWT"}`,
+			expectedHeader: `{"alg":"EdDSA","kid":"","typ":"JWT"}`,
 			expectedBody:   `{"aud":"audience \"quoted\" path\\folder","iss":"issuer-with-escape\\","jti":"token \"complex\" value\\id"}`,
 		},
 		{
@@ -83,9 +88,9 @@ func TestJSONEncoding(t *testing.T) {
 				NotBefore: ptr.Of(jwt.NewTimestamp(time.Date(2025, 9, 1, 0, 0, 0, 0, time.FixedZone("CET", 1*3600)))),
 				Subject:   ptr.Of("subject"),
 			},
-			key:            "timezone-key",
+			key:            key,
 			keyID:          "timezone-kid",
-			expectedHeader: `{"alg":"HS512","kid":"timezone-kid","typ":"JWT"}`,
+			expectedHeader: `{"alg":"EdDSA","kid":"timezone-kid","typ":"JWT"}`,
 			expectedBody:   `{"aud":"timezone-audience","exp":"2030-12-25T15:30:00Z","iat":"2020-06-15T22:45:00Z","nbf":"2025-08-31T23:00:00Z","sub":"subject"}`,
 		},
 	}
@@ -94,7 +99,7 @@ func TestJSONEncoding(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			token, err := jwt.Encode(tc.claims, []byte(tc.key), tc.keyID)
+			token, err := jwt.Encode(tc.claims, tc.key, tc.keyID)
 			assert.NoError(t, err)
 
 			parts := strings.Split(token, ".")
@@ -106,7 +111,7 @@ func TestJSONEncoding(t *testing.T) {
 			var header jwt.Header
 			err = json.Unmarshal(headerJSON, &header)
 			assert.NoError(t, err)
-			assert.Equals(t, header.Algorithm, "HS512")
+			assert.Equals(t, header.Algorithm, string(jwt.EdDSA))
 			assert.Equals(t, header.KeyID, tc.keyID)
 			assert.Equals(t, header.Type, "JWT")
 

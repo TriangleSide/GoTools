@@ -24,12 +24,11 @@ func TestTimestamp(t *testing.T) {
 		assert.Equals(t, ts.String(), "2024-06-01T12:00:00Z")
 	})
 
-	t.Run("when timestamp is zero it should marshal to null", func(t *testing.T) {
+	t.Run("when timestamp is zero it should return an error", func(t *testing.T) {
 		t.Parallel()
 		var ts jwt.Timestamp
-		data, err := json.Marshal(ts)
-		assert.NoError(t, err)
-		assert.Equals(t, string(data), "null")
+		_, err := json.Marshal(ts)
+		assert.ErrorPart(t, err, "timestamp is zero while marshaling")
 	})
 
 	t.Run("when timestamp is non-zero it should marshal to RFC 3339 string", func(t *testing.T) {
