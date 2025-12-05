@@ -8,10 +8,11 @@ import (
 )
 
 const (
+	// IPAddrValidatorName is the name of the validator that checks if a string is a valid IP address.
 	IPAddrValidatorName Validator = "ip_addr"
 )
 
-// init registers the validator.
+// init registers the ip_addr validator that checks if a string value is a valid IPv4 or IPv6 address.
 func init() {
 	MustRegisterValidator(IPAddrValidatorName, func(params *CallbackParameters) *CallbackResult {
 		result := NewCallbackResult()
