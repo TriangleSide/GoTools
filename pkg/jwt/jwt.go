@@ -20,15 +20,15 @@ type Header struct {
 	KeyID     string `json:"kid"`
 }
 
-// Body represents the body (claims) of a JSON Web Token.
-type Body struct {
-	Issuer    string `json:"iss"`
-	Subject   string `json:"sub"`
-	Audience  string `json:"aud"`
-	ExpiresAt int64  `json:"exp"`
-	NotBefore int64  `json:"nbf"`
-	IssuedAt  int64  `json:"iat"`
-	TokenID   string `json:"jti"`
+// Claims represents the claims (body) of a JSON Web Token.
+type Claims struct {
+	Issuer    *string    `json:"iss"`
+	Subject   *string    `json:"sub"`
+	Audience  *string    `json:"aud"`
+	ExpiresAt *Timestamp `json:"exp"`
+	NotBefore *Timestamp `json:"nbf"`
+	IssuedAt  *Timestamp `json:"iat"`
+	TokenID   *string    `json:"jti"`
 }
 
 // Option describes a functional option for customizing Encode and Decode behavior.
@@ -57,15 +57,15 @@ func newConfig(opts ...Option) *config {
 	return cfg
 }
 
-// Encode converts the provided body into a signed JWT string using the supplied key and options.
-func Encode(body Body, key []byte, keyId string, opts ...Option) (string, error) {
+// Encode converts the provided claims into a signed JWT string using the supplied key and options.
+func Encode(claims Claims, key []byte, keyId string, opts ...Option) (string, error) {
 	cfg := newConfig(opts...)
 
 	header := Header{Algorithm: string(cfg.algorithm), Type: "JWT", KeyID: keyId}
 	headerJson := marshalToStableJSON(header)
 	encodedHeader := base64.RawURLEncoding.EncodeToString([]byte(headerJson))
 
-	bodyJson := marshalToStableJSON(body)
+	bodyJson := marshalToStableJSON(claims)
 	encodedBody := base64.RawURLEncoding.EncodeToString([]byte(bodyJson))
 
 	provider, ok := signatureProviders[SignatureAlgorithm(header.Algorithm)]
@@ -81,7 +81,7 @@ func Encode(body Body, key []byte, keyId string, opts ...Option) (string, error)
 	return strings.Join([]string{encodedHeader, encodedBody, encodedSignature}, "."), nil
 }
 
-// Decode validates the supplied token string using the secret and returns the decoded body.
+// Decode validates the supplied token string using the secret and returns the decoded claims.
 // TODO: mitigate against JWT algorithm-confusion vulnerability. The algorithm should not be able to be swapped.
 //  1. System uses EdDSA (asymmetric) for signing tokens with a private key
 //  2. Attacker intercepts a valid token signed with EdDSA
@@ -91,7 +91,7 @@ func Encode(body Body, key []byte, keyId string, opts ...Option) (string, error)
 //     - Read HS512 from the modified header
 //     - Select the HMAC provider
 //     - Verify using HMAC with the public key as the secret
-func Decode(token string, keyProvider func(keyId string) ([]byte, error)) (*Body, error) {
+func Decode(token string, keyProvider func(keyId string) ([]byte, error)) (*Claims, error) {
 	if token == "" {
 		return nil, errors.New("token cannot be empty")
 	}
@@ -135,10 +135,10 @@ func Decode(token string, keyProvider func(keyId string) ([]byte, error)) (*Body
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode body (%w)", err)
 	}
-	var body Body
-	if err := json.Unmarshal(bodyJson, &body); err != nil {
+	var claims Claims
+	if err := json.Unmarshal(bodyJson, &claims); err != nil {
 		return nil, fmt.Errorf("json unmarshal error (%w)", err)
 	}
 
-	return &body, nil
+	return &claims, nil
 }

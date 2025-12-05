@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/jwt"
+	"github.com/TriangleSide/GoTools/pkg/ptr"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
@@ -21,17 +22,17 @@ func TestEdDSAProvider(t *testing.T) {
 	secondarySeed := sha256.Sum256([]byte("eddsa-provider-secondary"))
 	secondaryPrivateKey := ed25519.NewKeyFromSeed(secondarySeed[:])
 
-	body := jwt.Body{
-		Issuer:   "issuer-eddsa",
-		Subject:  "subject-eddsa",
-		Audience: "audience-eddsa",
-		TokenID:  "token-eddsa",
+	claims := jwt.Claims{
+		Issuer:   ptr.Of("issuer-eddsa"),
+		Subject:  ptr.Of("subject-eddsa"),
+		Audience: ptr.Of("audience-eddsa"),
+		TokenID:  ptr.Of("token-eddsa"),
 	}
 
 	t.Run("when signing key is invalid it should return an error", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := jwt.Encode(body, []byte("short"), "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
+		_, err := jwt.Encode(claims, []byte("short"), "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
 		assert.ErrorPart(t, err, "failed to sign token")
 		assert.ErrorPart(t, err, "failed to use private key")
 	})
@@ -39,7 +40,7 @@ func TestEdDSAProvider(t *testing.T) {
 	t.Run("when verifying key is invalid it should return an error", func(t *testing.T) {
 		t.Parallel()
 
-		token, err := jwt.Encode(body, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
+		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
 		assert.NoError(t, err)
 
 		_, err = jwt.Decode(token, func(string) ([]byte, error) {
@@ -51,33 +52,33 @@ func TestEdDSAProvider(t *testing.T) {
 	t.Run("when verifying with a private key it should succeed", func(t *testing.T) {
 		t.Parallel()
 
-		token, err := jwt.Encode(body, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
+		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
 		assert.NoError(t, err)
 
 		decoded, err := jwt.Decode(token, func(string) ([]byte, error) {
 			return primaryPrivateKey, nil
 		})
 		assert.NoError(t, err)
-		assert.Equals(t, decoded.Issuer, body.Issuer)
+		assert.Equals(t, decoded.Issuer, claims.Issuer)
 	})
 
 	t.Run("when verifying with a public key it should succeed", func(t *testing.T) {
 		t.Parallel()
 
-		token, err := jwt.Encode(body, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
+		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
 		assert.NoError(t, err)
 
 		decoded, err := jwt.Decode(token, func(string) ([]byte, error) {
 			return primaryPublicKey, nil
 		})
 		assert.NoError(t, err)
-		assert.Equals(t, decoded.Issuer, body.Issuer)
+		assert.Equals(t, decoded.Issuer, claims.Issuer)
 	})
 
 	t.Run("when signature length is invalid it should return an error", func(t *testing.T) {
 		t.Parallel()
 
-		token, err := jwt.Encode(body, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
+		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
 		assert.NoError(t, err)
 
 		parts := strings.Split(token, ".")
@@ -93,7 +94,7 @@ func TestEdDSAProvider(t *testing.T) {
 	t.Run("when verifying with the wrong private key it should fail", func(t *testing.T) {
 		t.Parallel()
 
-		token, err := jwt.Encode(body, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
+		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
 		assert.NoError(t, err)
 
 		_, err = jwt.Decode(token, func(string) ([]byte, error) {
@@ -105,13 +106,13 @@ func TestEdDSAProvider(t *testing.T) {
 	t.Run("when payload is tampered it should reject the token", func(t *testing.T) {
 		t.Parallel()
 
-		token, err := jwt.Encode(body, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
+		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
 		assert.NoError(t, err)
 
-		tamperedBody := body
-		tamperedBody.TokenID = "tampered-eddsa"
+		tamperedClaims := claims
+		tamperedClaims.TokenID = ptr.Of("tampered-eddsa")
 
-		tamperedToken, err := jwt.Encode(tamperedBody, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
+		tamperedToken, err := jwt.Encode(tamperedClaims, primaryPrivateKey, "eddsa", jwt.WithSignatureAlgorithm(jwt.EdDSA))
 		assert.NoError(t, err)
 
 		parts := strings.Split(token, ".")
