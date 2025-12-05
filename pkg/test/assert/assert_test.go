@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
@@ -15,10 +16,6 @@ type testRecorder struct {
 	errorCount  int
 	fatalCount  int
 	logs        []string
-}
-
-func (tr *testRecorder) Name() string {
-	return tr.t.Name()
 }
 
 func (tr *testRecorder) Helper() {
@@ -534,5 +531,31 @@ func TestAssertFunctions(t *testing.T) {
 				}
 			})
 		}
+	})
+
+	t.Run("it should be thread safe when calling assert functions concurrently", func(t *testing.T) {
+		t.Parallel()
+		const goroutines = 8
+		const iterations = 1000
+		wg := sync.WaitGroup{}
+		wg.Add(goroutines)
+		for range goroutines {
+			go func() {
+				defer wg.Done()
+				for range iterations {
+					assert.Equals(t, 1, 1)
+					assert.NotEquals(t, 1, 2)
+					assert.True(t, true)
+					assert.False(t, false)
+					assert.Nil(t, nil)
+					assert.NotNil(t, 1)
+					assert.NoError(t, nil)
+					assert.Contains(t, "hello world", "world")
+					assert.FloatEquals(t, 1.0, 1.0, 0.1)
+					assert.Panic(t, func() { panic("test") })
+				}
+			}()
+		}
+		wg.Wait()
 	})
 }
