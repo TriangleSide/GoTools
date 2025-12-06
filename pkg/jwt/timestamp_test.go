@@ -12,6 +12,18 @@ import (
 func TestTimestamp(t *testing.T) {
 	t.Parallel()
 
+	t.Run("when timestamp is zero it should return true from IsZero", func(t *testing.T) {
+		t.Parallel()
+		var ts jwt.Timestamp
+		assert.Equals(t, ts.IsZero(), true)
+	})
+
+	t.Run("when timestamp is non-zero it should return false from IsZero", func(t *testing.T) {
+		t.Parallel()
+		ts := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+		assert.Equals(t, ts.IsZero(), false)
+	})
+
 	t.Run("when timestamp is zero it should return empty string from String method", func(t *testing.T) {
 		t.Parallel()
 		var ts jwt.Timestamp

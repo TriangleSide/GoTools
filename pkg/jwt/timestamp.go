@@ -22,6 +22,11 @@ func (ts Timestamp) Time() time.Time {
 	return ts.time
 }
 
+// IsZero reports whether the timestamp represents the zero time instant.
+func (ts Timestamp) IsZero() bool {
+	return ts.time.IsZero()
+}
+
 // String returns the RFC 3339 representation of the timestamp.
 func (ts Timestamp) String() string {
 	if ts.time.IsZero() {
