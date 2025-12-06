@@ -24,17 +24,14 @@ var (
 )
 
 // marshalToStableJSON takes a struct and marshals it to a JSON string with stable field ordering.
-// Since this is only for JWTs, we can be assured that:
-//   - the json tag is always present.
-//   - the field is either string or Timestamp.
-//
-// So we can skip error handling for those cases.
+// Since this is only for JWTs, we can be assured that the json tag is always present and the
+// field is either string or Timestamp. Error handling can be skipped for those cases.
 func marshalToStableJSON(v any) string {
 	value := reflection.Dereference(reflect.ValueOf(v))
 	metadata := structs.MetadataFromType(value.Type())
 
 	strCount := 0
-	fieldNameTJSONStringValue := make(map[string]string)
+	fieldNameToJSONStringValue := make(map[string]string)
 	for fieldName, fieldMetadata := range metadata.All() {
 		jsonFieldName := fieldMetadata.Tags().Get("json")
 		structValue, _ := structs.ValueFromName(value.Interface(), fieldName)
@@ -42,6 +39,9 @@ func marshalToStableJSON(v any) string {
 			continue
 		}
 		structValue = reflection.Dereference(structValue)
+		if structValue.IsZero() {
+			continue
+		}
 		var valueStr string
 		if structValue.Type() == timestampType {
 			ts := structValue.Interface().(Timestamp)
@@ -49,12 +49,12 @@ func marshalToStableJSON(v any) string {
 		} else {
 			valueStr = strconv.Quote(structValue.String())
 		}
-		fieldNameTJSONStringValue[jsonFieldName] = valueStr
+		fieldNameToJSONStringValue[jsonFieldName] = valueStr
 		strCount += len(jsonFieldName) + len(valueStr) + extraForQuotesColonAndComma
 	}
 
-	sortedFields := make([]string, 0, len(fieldNameTJSONStringValue))
-	for fieldName := range fieldNameTJSONStringValue {
+	sortedFields := make([]string, 0, len(fieldNameToJSONStringValue))
+	for fieldName := range fieldNameToJSONStringValue {
 		sortedFields = append(sortedFields, fieldName)
 	}
 	slices.Sort(sortedFields)
@@ -70,7 +70,7 @@ func marshalToStableJSON(v any) string {
 		sb.WriteByte('"')
 		sb.WriteString(fieldName)
 		sb.WriteString(`":`)
-		sb.WriteString(fieldNameTJSONStringValue[fieldName])
+		sb.WriteString(fieldNameToJSONStringValue[fieldName])
 	}
 	sb.WriteByte('}')
 
