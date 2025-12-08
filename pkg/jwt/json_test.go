@@ -102,7 +102,7 @@ func TestStableJSONMarshalling(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				token, err := jwt.Encode(tc.claims, tc.key, tc.keyID)
+				token, err := jwt.Encode(tc.claims, tc.key, tc.keyID, jwt.EdDSA)
 				assert.NoError(t, err)
 
 				parts := strings.Split(token, ".")
@@ -142,7 +142,7 @@ func TestStableJSONMarshalling(t *testing.T) {
 			IssuedAt:  ptr.Of(jwt.Timestamp{}),
 		}
 
-		token, err := jwt.Encode(claims, key, "kid")
+		token, err := jwt.Encode(claims, key, "kid", jwt.EdDSA)
 		assert.NoError(t, err)
 
 		parts := strings.Split(token, ".")
