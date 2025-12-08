@@ -31,37 +31,9 @@ type Claims struct {
 	TokenID   *string    `json:"jti"`
 }
 
-// Option describes a functional option for customizing Encode and Decode behavior.
-type Option func(*config)
-
-// WithSignatureAlgorithm overrides the default signature algorithm used for signing and verification.
-func WithSignatureAlgorithm(algorithm SignatureAlgorithm) Option {
-	return func(cfg *config) {
-		cfg.algorithm = algorithm
-	}
-}
-
-// config contains the runtime configuration for Encode and Decode helpers.
-type config struct {
-	algorithm SignatureAlgorithm
-}
-
-// newConfig builds a config populated with the defaults and supplied options.
-func newConfig(opts ...Option) *config {
-	cfg := &config{
-		algorithm: EdDSA,
-	}
-	for _, opt := range opts {
-		opt(cfg)
-	}
-	return cfg
-}
-
-// Encode converts the provided claims into a signed JWT string using the supplied key and options.
-func Encode(claims Claims, key []byte, keyId string, opts ...Option) (string, error) {
-	cfg := newConfig(opts...)
-
-	header := Header{Algorithm: string(cfg.algorithm), Type: "JWT", KeyID: keyId}
+// Encode converts the provided claims into a signed JWT string using the supplied key and algorithm.
+func Encode(claims Claims, key []byte, keyId string, algorithm SignatureAlgorithm) (string, error) {
+	header := Header{Algorithm: string(algorithm), Type: "JWT", KeyID: keyId}
 	headerJson := marshalToStableJSON(header)
 	encodedHeader := base64.RawURLEncoding.EncodeToString([]byte(headerJson))
 
@@ -81,8 +53,8 @@ func Encode(claims Claims, key []byte, keyId string, opts ...Option) (string, er
 	return strings.Join([]string{encodedHeader, encodedBody, encodedSignature}, "."), nil
 }
 
-// Decode validates the supplied token string using the secret and returns the decoded claims.
-func Decode(token string, keyProvider func(keyId string) ([]byte, error)) (*Claims, error) {
+// Decode validates the supplied token string using the key and algorithm from the provider and returns the decoded claims.
+func Decode(token string, keyProvider func(keyId string) ([]byte, SignatureAlgorithm, error)) (*Claims, error) {
 	if token == "" {
 		return nil, errors.New("token cannot be empty")
 	}
@@ -101,12 +73,16 @@ func Decode(token string, keyProvider func(keyId string) ([]byte, error)) (*Clai
 		return nil, fmt.Errorf("json unmarshal error (%w)", err)
 	}
 
-	key, err := keyProvider(header.KeyID)
+	key, algorithm, err := keyProvider(header.KeyID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve key (%w)", err)
 	}
 
-	provider, ok := signatureProviders[SignatureAlgorithm(header.Algorithm)]
+	if SignatureAlgorithm(header.Algorithm) != algorithm {
+		return nil, errors.New("token algorithm does not match expected algorithm")
+	}
+
+	provider, ok := signatureProviders[algorithm]
 	if !ok {
 		return nil, errors.New("failed to resolve signature provider")
 	}
