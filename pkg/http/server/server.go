@@ -41,69 +41,10 @@ func New(opts ...Option) (*Server, error) {
 		return nil, fmt.Errorf("could not load configuration (%w)", err)
 	}
 
-	builder := api.NewHTTPAPIBuilder()
-	for _, endpointHandler := range srvOpts.endpointHandlers {
-		endpointHandler.AcceptHTTPAPIBuilder(builder)
-	}
-
-	serveMux := http.NewServeMux()
-	for apiPath, methodToEndpointHandlerMap := range builder.Handlers() {
-		methodHandlers := make(map[string]http.HandlerFunc, len(methodToEndpointHandlerMap))
-		allowedMethods := make([]string, 0, len(methodToEndpointHandlerMap))
-		for method, endpointHandler := range methodToEndpointHandlerMap {
-			endpointHandlerMw := make([]middleware.Middleware, 0, len(srvOpts.commonMiddleware)+len(endpointHandler.Middleware))
-			endpointHandlerMw = append(endpointHandlerMw, srvOpts.commonMiddleware...)
-			endpointHandlerMw = append(endpointHandlerMw, endpointHandler.Middleware...)
-			handlerChain := middleware.CreateChain(endpointHandlerMw, endpointHandler.Handler)
-			methodHandlers[string(method)] = handlerChain
-			allowedMethods = append(allowedMethods, string(method))
-		}
-		sort.Strings(allowedMethods)
-		path := string(apiPath)
-		serveMux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
-			handler, ok := methodHandlers[request.Method]
-			if !ok {
-				writer.Header().Set(headers.Allow, strings.Join(allowedMethods, ", "))
-				writer.WriteHeader(http.StatusMethodNotAllowed)
-				return
-			}
-			handler(writer, request)
-		})
-	}
-
-	var tlsConfig *tls.Config
-	switch envConfig.HTTPServerTLSMode {
-	case TLSModeOff:
-		tlsConfig = nil
-	case TLSModeTLS:
-		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
-		}
-		tlsConfig = &tls.Config{
-			MinVersion:   tls.VersionTLS13,
-			Certificates: []tls.Certificate{serverCert},
-		}
-	case TLSModeMutualTLS:
-		if len(envConfig.HTTPServerClientCACerts) == 0 {
-			return nil, errors.New("no client CAs provided")
-		}
-		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
-		}
-		clientCAs, err := loadMutualTLSClientCAs(envConfig.HTTPServerClientCACerts)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load client CA certificates (%w)", err)
-		}
-		tlsConfig = &tls.Config{
-			MinVersion:   tls.VersionTLS13,
-			Certificates: []tls.Certificate{serverCert},
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			ClientCAs:    clientCAs,
-		}
-	default:
-		return nil, fmt.Errorf("invalid TLS mode: %s", envConfig.HTTPServerTLSMode)
+	serveMux := newServeMux(srvOpts)
+	tlsConfig, err := newTLSConfig(envConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	srv := &Server{
@@ -172,6 +113,77 @@ func (server *Server) Shutdown(ctx context.Context) error {
 	}
 	server.wg.Wait()
 	return err
+}
+
+// newServeMux creates and configures an HTTP request multiplexer with endpoint handlers.
+func newServeMux(srvOpts *serverOptions) *http.ServeMux {
+	builder := api.NewHTTPAPIBuilder()
+	for _, endpointHandler := range srvOpts.endpointHandlers {
+		endpointHandler.AcceptHTTPAPIBuilder(builder)
+	}
+
+	serveMux := http.NewServeMux()
+	for apiPath, methodToEndpointHandlerMap := range builder.Handlers() {
+		methodHandlers := make(map[string]http.HandlerFunc, len(methodToEndpointHandlerMap))
+		allowedMethods := make([]string, 0, len(methodToEndpointHandlerMap))
+		for method, endpointHandler := range methodToEndpointHandlerMap {
+			endpointHandlerMw := make([]middleware.Middleware, 0, len(srvOpts.commonMiddleware)+len(endpointHandler.Middleware))
+			endpointHandlerMw = append(endpointHandlerMw, srvOpts.commonMiddleware...)
+			endpointHandlerMw = append(endpointHandlerMw, endpointHandler.Middleware...)
+			handlerChain := middleware.CreateChain(endpointHandlerMw, endpointHandler.Handler)
+			methodHandlers[string(method)] = handlerChain
+			allowedMethods = append(allowedMethods, string(method))
+		}
+		sort.Strings(allowedMethods)
+		path := string(apiPath)
+		serveMux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+			handler, ok := methodHandlers[request.Method]
+			if !ok {
+				writer.Header().Set(headers.Allow, strings.Join(allowedMethods, ", "))
+				writer.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
+			handler(writer, request)
+		})
+	}
+	return serveMux
+}
+
+// newTLSConfig creates a TLS configuration based on the specified TLS mode.
+func newTLSConfig(envConfig *Config) (*tls.Config, error) {
+	switch envConfig.HTTPServerTLSMode {
+	case TLSModeOff:
+		return nil, nil
+	case TLSModeTLS:
+		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
+		}
+		return &tls.Config{
+			MinVersion:   tls.VersionTLS13,
+			Certificates: []tls.Certificate{serverCert},
+		}, nil
+	case TLSModeMutualTLS:
+		if len(envConfig.HTTPServerClientCACerts) == 0 {
+			return nil, errors.New("no client CAs provided")
+		}
+		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
+		}
+		clientCAs, err := loadMutualTLSClientCAs(envConfig.HTTPServerClientCACerts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client CA certificates (%w)", err)
+		}
+		return &tls.Config{
+			MinVersion:   tls.VersionTLS13,
+			Certificates: []tls.Certificate{serverCert},
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			ClientCAs:    clientCAs,
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid TLS mode: %s", envConfig.HTTPServerTLSMode)
+	}
 }
 
 // loadMutualTLSClientCAs loads client CA certificates for mutual TLS.
