@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,8 @@ import (
 const (
 	// tokenSegmentCount represents the number of segments in a JWT string.
 	tokenSegmentCount = 3
+	// jwtType is the standard type value for JWT headers.
+	jwtType = "JWT"
 )
 
 // Header represents the header portion of a JSON Web Token.
@@ -31,9 +34,12 @@ type Claims struct {
 	TokenID   *string    `json:"jti"`
 }
 
+// KeyProvider is a function type that retrieves the signing key and algorithm based on the provided context and key ID.
+type KeyProvider func(ctx context.Context, keyId string) ([]byte, SignatureAlgorithm, error)
+
 // Encode converts the provided claims into a signed JWT string using the supplied key and algorithm.
 func Encode(claims Claims, key []byte, keyId string, algorithm SignatureAlgorithm) (string, error) {
-	header := Header{Algorithm: string(algorithm), Type: "JWT", KeyID: keyId}
+	header := Header{Algorithm: string(algorithm), Type: jwtType, KeyID: keyId}
 	headerJson := marshalToStableJSON(header)
 	encodedHeader := base64.RawURLEncoding.EncodeToString([]byte(headerJson))
 
@@ -54,7 +60,7 @@ func Encode(claims Claims, key []byte, keyId string, algorithm SignatureAlgorith
 }
 
 // Decode validates the supplied token string using the key and algorithm from the provider and returns the decoded claims.
-func Decode(token string, keyProvider func(keyId string) ([]byte, SignatureAlgorithm, error)) (*Claims, error) {
+func Decode(ctx context.Context, token string, keyProvider KeyProvider) (*Claims, error) {
 	if token == "" {
 		return nil, errors.New("token cannot be empty")
 	}
@@ -73,7 +79,7 @@ func Decode(token string, keyProvider func(keyId string) ([]byte, SignatureAlgor
 		return nil, fmt.Errorf("json unmarshal error (%w)", err)
 	}
 
-	key, algorithm, err := keyProvider(header.KeyID)
+	key, algorithm, err := keyProvider(ctx, header.KeyID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve key (%w)", err)
 	}
