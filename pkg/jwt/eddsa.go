@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"crypto/ed25519"
+	"crypto/rand"
 	"errors"
 	"fmt"
 )
@@ -13,6 +14,15 @@ const (
 
 // eddsaProvider implements the signatureProvider interface using ed25519.
 type eddsaProvider struct{}
+
+// KeyGen generates a new ed25519 private key using cryptographically secure random bytes.
+func (e eddsaProvider) KeyGen() ([]byte, error) {
+	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate ed25519 key (%w)", err)
+	}
+	return privateKey, nil
+}
 
 // Sign signs the data using ed25519 with the provided private key.
 func (e eddsaProvider) Sign(data []byte, key []byte) ([]byte, error) {

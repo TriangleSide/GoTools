@@ -3,7 +3,7 @@ package server
 import (
 	"fmt"
 	"net"
-	"net/netip"
+	"strconv"
 
 	"github.com/TriangleSide/GoTools/pkg/config"
 	"github.com/TriangleSide/GoTools/pkg/http/api"
@@ -26,13 +26,12 @@ func configure(opts ...Option) *serverOptions {
 			return config.ProcessAndValidate[Config]()
 		},
 		listenerProvider: func(bindIp string, bindPort uint16) (*net.TCPListener, error) {
-			ip, err := netip.ParseAddr(bindIp)
+			addr := net.JoinHostPort(bindIp, strconv.FormatUint(uint64(bindPort), 10))
+			tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse bind IP: %w", err)
+				return nil, fmt.Errorf("failed to resolve TCP address: %w", err)
 			}
-			addrPort := netip.AddrPortFrom(ip, bindPort)
-			tcpAddr := net.TCPAddrFromAddrPort(addrPort)
-			return net.ListenTCP(tcpAddr.Network(), tcpAddr)
+			return net.ListenTCP("tcp", tcpAddr)
 		},
 	}
 
