@@ -1,6 +1,7 @@
 package jwt_test
 
 import (
+	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
@@ -43,7 +44,8 @@ func TestEdDSAProvider(t *testing.T) {
 		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.EdDSA)
 		assert.NoError(t, err)
 
-		_, err = jwt.Decode(token, func(string) ([]byte, jwt.SignatureAlgorithm, error) {
+		ctx := context.Background()
+		_, err = jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 			return []byte("short"), jwt.EdDSA, nil
 		})
 		assert.ErrorPart(t, err, "failed to use public key")
@@ -55,7 +57,8 @@ func TestEdDSAProvider(t *testing.T) {
 		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.EdDSA)
 		assert.NoError(t, err)
 
-		decoded, err := jwt.Decode(token, func(string) ([]byte, jwt.SignatureAlgorithm, error) {
+		ctx := context.Background()
+		decoded, err := jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 			return primaryPrivateKey, jwt.EdDSA, nil
 		})
 		assert.NoError(t, err)
@@ -68,7 +71,8 @@ func TestEdDSAProvider(t *testing.T) {
 		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.EdDSA)
 		assert.NoError(t, err)
 
-		decoded, err := jwt.Decode(token, func(string) ([]byte, jwt.SignatureAlgorithm, error) {
+		ctx := context.Background()
+		decoded, err := jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 			return primaryPublicKey, jwt.EdDSA, nil
 		})
 		assert.NoError(t, err)
@@ -85,7 +89,8 @@ func TestEdDSAProvider(t *testing.T) {
 		parts[2] = base64.RawURLEncoding.EncodeToString([]byte("short"))
 		token = strings.Join(parts, ".")
 
-		_, err = jwt.Decode(token, func(string) ([]byte, jwt.SignatureAlgorithm, error) {
+		ctx := context.Background()
+		_, err = jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 			return primaryPublicKey, jwt.EdDSA, nil
 		})
 		assert.ErrorPart(t, err, "eddsa signature must be 64 bytes")
@@ -97,7 +102,8 @@ func TestEdDSAProvider(t *testing.T) {
 		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.EdDSA)
 		assert.NoError(t, err)
 
-		_, err = jwt.Decode(token, func(string) ([]byte, jwt.SignatureAlgorithm, error) {
+		ctx := context.Background()
+		_, err = jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 			return secondaryPrivateKey, jwt.EdDSA, nil
 		})
 		assert.Error(t, err)
@@ -120,7 +126,8 @@ func TestEdDSAProvider(t *testing.T) {
 		parts[1] = tamperedParts[1]
 		tampered := strings.Join(parts, ".")
 
-		_, err = jwt.Decode(tampered, func(string) ([]byte, jwt.SignatureAlgorithm, error) {
+		ctx := context.Background()
+		_, err = jwt.Decode(ctx, tampered, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 			return primaryPublicKey, jwt.EdDSA, nil
 		})
 		assert.ErrorPart(t, err, "token signature is invalid")
@@ -132,7 +139,8 @@ func TestEdDSAProvider(t *testing.T) {
 		token, err := jwt.Encode(claims, primaryPrivateKey, "eddsa", jwt.EdDSA)
 		assert.NoError(t, err)
 
-		_, err = jwt.Decode(token, func(string) ([]byte, jwt.SignatureAlgorithm, error) {
+		ctx := context.Background()
+		_, err = jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 			return primaryPublicKey, jwt.SignatureAlgorithm("RS256"), nil
 		})
 		assert.ErrorPart(t, err, "token algorithm does not match expected algorithm")
