@@ -1,7 +1,7 @@
 ## General
 - Follow Go best practices.
 - Write idiomatic Go code.
-- The package is intended to be used as a library.
+- This repository is intended to be used as a library.
 
 ## Development
 - Every function, struct, variable in a package block, and every const at package level must have a terse one or two line comment describing its purpose.

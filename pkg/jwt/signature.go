@@ -1,11 +1,17 @@
 package jwt
 
+import (
+	"crypto/sha256"
+	"encoding/base64"
+)
+
 // SignatureAlgorithm is the name of the algorithm used to sign the JWT.
 // This name is encoded into the JWT header.
 type SignatureAlgorithm string
 
 // signatureProvider are the functions used to sign and verify JWTs that all hashing algorithms must implement.
 type signatureProvider interface {
+	KeyGen() ([]byte, error)
 	Sign(data []byte, key []byte) ([]byte, error)
 	Verify(data []byte, signature []byte, key []byte) (bool, error)
 }
@@ -27,3 +33,15 @@ var (
 		EdDSA: eddsaProvider{},
 	}
 )
+
+// keyGen generates a new cryptographically secure signing key and key ID for the specified algorithm.
+// The key ID is derived from a SHA-256 hash of the key.
+func keyGen(provider signatureProvider) ([]byte, string, error) {
+	key, err := provider.KeyGen()
+	if err != nil {
+		return nil, "", err
+	}
+	keyHash := sha256.Sum256(key)
+	keyId := base64.RawURLEncoding.EncodeToString(keyHash[:])
+	return key, keyId, nil
+}
