@@ -97,12 +97,12 @@ func TestSignatureAlgorithms(t *testing.T) {
 					TokenID:  ptr.Of("token-" + string(alg.algorithm)),
 				}
 
-				token, err := jwt.Encode(claims, alg.signingKey, alg.keyID, jwt.WithSignatureAlgorithm(alg.algorithm))
+				token, err := jwt.Encode(claims, alg.signingKey, alg.keyID, alg.algorithm)
 				assert.NoError(t, err)
 
-				_, err = jwt.Decode(token, func(requestedKeyID string) ([]byte, error) {
+				_, err = jwt.Decode(token, func(requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 					assert.Equals(t, requestedKeyID, alg.keyID)
-					return alg.wrongKey, nil
+					return alg.wrongKey, alg.algorithm, nil
 				})
 				assert.Error(t, err)
 
@@ -110,9 +110,9 @@ func TestSignatureAlgorithms(t *testing.T) {
 					token = tc.mutateToken(token)
 				}
 
-				decodedBody, err := jwt.Decode(token, func(requestedKeyID string) ([]byte, error) {
+				decodedBody, err := jwt.Decode(token, func(requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 					assert.Equals(t, requestedKeyID, alg.keyID)
-					return alg.verifyKey, nil
+					return alg.verifyKey, alg.algorithm, nil
 				})
 
 				if tc.expectErr != "" {
