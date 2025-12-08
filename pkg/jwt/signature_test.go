@@ -1,6 +1,7 @@
 package jwt_test
 
 import (
+	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"strings"
@@ -100,7 +101,8 @@ func TestSignatureAlgorithms(t *testing.T) {
 				token, err := jwt.Encode(claims, alg.signingKey, alg.keyID, alg.algorithm)
 				assert.NoError(t, err)
 
-				_, err = jwt.Decode(token, func(requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+				ctx := context.Background()
+				_, err = jwt.Decode(ctx, token, func(ctx context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 					assert.Equals(t, requestedKeyID, alg.keyID)
 					return alg.wrongKey, alg.algorithm, nil
 				})
@@ -110,7 +112,7 @@ func TestSignatureAlgorithms(t *testing.T) {
 					token = tc.mutateToken(token)
 				}
 
-				decodedBody, err := jwt.Decode(token, func(requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+				decodedBody, err := jwt.Decode(ctx, token, func(ctx context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 					assert.Equals(t, requestedKeyID, alg.keyID)
 					return alg.verifyKey, alg.algorithm, nil
 				})
