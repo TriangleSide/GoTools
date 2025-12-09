@@ -13,17 +13,21 @@
 - Write early exit guards to reduce nesting.
 
 ## Testing
-- Run tests with: `make test`
-- Run linting with: `make lint` and fix lints related to modified code.
-- Write unit tests for every exported function.
-- Test files should use the <package>_test package name.
-- Achieve 100% coverage for all changes.
-- Each test file should contain exactly one top-level test, with subtests for each scenario using t.Run(...).
-- Subtest names should follow the pattern "when ... it should ..." or "it should ...".
-- Use t.Parallel() in every test and subtest unless there is a specific reason not to.
-- Table-driven tests should define a test-case struct with fields for name, input, expected output, and any relevant data, and each test case should run in its own subtest via t.Run(...).
-- Write concurrency tests where applicable.
+- Run the entire test suite with: `make test`
+- Test names should follow a format like `Test<FunctionName>_<Scenario>_<SubScenario>_<ExpectedBehavior>`.
+- Write unit tests for every exported function; test both success and error paths.
+- Test files should use the `<package>_test` package name (black-box testing).
+- Achieve 100% coverage for all changes made.
+- For table-driven tests, define a struct with the subtest name, input, and expected output fields.
+- Use `t.Parallel()` in every test and subtest unless there is a specific reason not to.
+- Use `t.Helper()` in test helper functions.
+- Use `t.Cleanup()` for teardown logic.
+- Use `t.Run()` for each scenario in table-driven tests.
+- Write concurrency tests when possible.
 - Do not add comments in test files.
+
+## Linting
+- Check lints with: `make lint` and fix lints related to modified code.
 
 ## Creating a Pull Request
 - Before creating a new branch, follow these steps one at a time:
