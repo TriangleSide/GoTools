@@ -50,3 +50,47 @@ func TestCamelToSnake_MultipleConsecutiveNumbers_HandlesCorrectly(t *testing.T) 
 	assert.NotNil(t, conf)
 	assert.Equals(t, conf.Field1a1Split, "multi_number")
 }
+
+func TestCamelToSnake_SingleUppercaseCharacter_NoUnderscore(t *testing.T) {
+	type testStruct struct {
+		A string `config:"ENV"`
+	}
+	t.Setenv("A", "single_upper")
+	conf, err := config.ProcessAndValidate[testStruct]()
+	assert.NoError(t, err)
+	assert.NotNil(t, conf)
+	assert.Equals(t, conf.A, "single_upper")
+}
+
+func TestCamelToSnake_TrailingUppercaseAfterLowercase_AddsUnderscore(t *testing.T) {
+	type testStruct struct {
+		TestAB string `config:"ENV"`
+	}
+	t.Setenv("TEST_AB", "trailing_upper")
+	conf, err := config.ProcessAndValidate[testStruct]()
+	assert.NoError(t, err)
+	assert.NotNil(t, conf)
+	assert.Equals(t, conf.TestAB, "trailing_upper")
+}
+
+func TestCamelToSnake_AllUppercase_NoUnderscores(t *testing.T) {
+	type testStruct struct {
+		ABC string `config:"ENV"`
+	}
+	t.Setenv("ABC", "all_upper")
+	conf, err := config.ProcessAndValidate[testStruct]()
+	assert.NoError(t, err)
+	assert.NotNil(t, conf)
+	assert.Equals(t, conf.ABC, "all_upper")
+}
+
+func TestCamelToSnake_LowercaseStart_ConvertsToUppercase(t *testing.T) {
+	type testStruct struct {
+		CamelCase string `config:"ENV"`
+	}
+	t.Setenv("CAMEL_CASE", "lowercase_start")
+	conf, err := config.ProcessAndValidate[testStruct]()
+	assert.NoError(t, err)
+	assert.NotNil(t, conf)
+	assert.Equals(t, conf.CamelCase, "lowercase_start")
+}
