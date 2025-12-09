@@ -235,3 +235,15 @@ func TestProcessAndValidate_ProcessorNotRegistered_ReturnsError(t *testing.T) {
 	assert.ErrorPart(t, err, "processor DOES_NOT_EXIST not registered")
 	assert.Nil(t, conf)
 }
+
+func TestProcess_EnvSetToValidValue_SetsFieldWithoutValidation(t *testing.T) {
+	type testStruct struct {
+		Value int `config:"ENV" validate:"gte=100"`
+	}
+
+	t.Setenv("VALUE", "5")
+	conf, err := config.Process[testStruct]()
+	assert.NoError(t, err)
+	assert.NotNil(t, conf)
+	assert.Equals(t, conf.Value, 5)
+}
