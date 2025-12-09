@@ -30,7 +30,7 @@ func JSONStream[RequestParameters any, ResponseBody any](writer http.ResponseWri
 		return
 	}
 
-	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJson)
+	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJSON)
 	writer.Header().Set(headers.TransferEncoding, headers.TransferEncodingChunked)
 	writer.WriteHeader(status)
 

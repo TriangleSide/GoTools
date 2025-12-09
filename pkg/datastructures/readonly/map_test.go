@@ -29,237 +29,299 @@ func verifyMapKeyAndValue[Key comparable, Value any](t *testing.T, roMap *readon
 	assert.True(t, found)
 }
 
-func TestReadOnlyMap(t *testing.T) {
+func TestMapBuilder_WhenNoEntries_ShouldCreateEmptyMap(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, string]()
+	roMap := builder.Build()
+	assert.True(t, roMap.Size() == 0)
+}
+
+func TestMapBuilder_WhenBuildCalledTwice_ShouldPanic(t *testing.T) {
+	t.Parallel()
+	assert.Panic(t, func() {
+		builder := readonly.NewMapBuilder[string, string]()
+		builder.Build()
+		builder.Build()
+	})
+}
+
+func TestMapBuilder_WhenSetCalledAfterBuild_ShouldPanic(t *testing.T) {
+	t.Parallel()
+	assert.Panic(t, func() {
+		builder := readonly.NewMapBuilder[string, string]()
+		builder.Build()
+		builder.Set()
+	})
+}
+
+func TestMapBuilder_WhenSetMapCalledAfterBuild_ShouldPanic(t *testing.T) {
+	t.Parallel()
+	assert.Panic(t, func() {
+		builder := readonly.NewMapBuilder[string, string]()
+		builder.Build()
+		builder.SetMap(map[string]string{})
+	})
+}
+
+func TestMap_WhenKeyValueAdded_ShouldBeRetrievable(t *testing.T) {
+	t.Parallel()
+	const key = "key"
+	const value = "value"
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.Set(readonly.MapEntry[string, string]{Key: key, Value: value})
+	roMap := builder.Build()
+	verifyMapKeyAndValue(t, roMap, key, value)
+}
+
+func TestMapBuilder_WhenSetMapUsed_ShouldBeAvailableInMap(t *testing.T) {
+	t.Parallel()
+	const key = "key"
+	const value = "value"
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.SetMap(map[string]string{key: value})
+	roMap := builder.Build()
+	verifyMapKeyAndValue(t, roMap, key, value)
+}
+
+func TestMap_WhenQueryingNonExistingValues_ShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+	const key = "key"
+	const value = "value"
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.SetMap(map[string]string{key: value})
+	roMap := builder.Build()
+	actual := roMap.Get("missing")
+	assert.Equals(t, actual, "")
+	fetched, ok := roMap.Fetch("missing")
+	assert.False(t, ok)
+	assert.Equals(t, actual, fetched)
+	assert.Equals(t, roMap.Size(), 1)
+}
+
+func TestMapBuilder_WhenValuesOverwritten_ShouldOnlyHaveLastValue(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.Set(readonly.MapEntry[string, string]{Key: "key1", Value: "value1"})
+	builder.Set(readonly.MapEntry[string, string]{Key: "key1", Value: "value2"})
+	builder.Set(readonly.MapEntry[string, string]{Key: "key2", Value: "value3"})
+	builder.SetMap(map[string]string{"key2": "value4"})
+	builder.SetMap(map[string]string{"key3": "value5"})
+	builder.Set(readonly.MapEntry[string, string]{Key: "key3", Value: "value6"})
+	roMap := builder.Build()
+	verifyMapKeyAndValue(t, roMap, "key1", "value2")
+	verifyMapKeyAndValue(t, roMap, "key2", "value4")
+	verifyMapKeyAndValue(t, roMap, "key3", "value6")
+}
+
+func TestMap_WhenStructUsedAsKey_ShouldBeRetrievable(t *testing.T) {
+	t.Parallel()
+	type testStruct struct {
+		Value int
+	}
+	builder := readonly.NewMapBuilder[testStruct, testStruct]()
+	builder.SetMap(map[testStruct]testStruct{
+		{Value: 1}: {Value: 2},
+	})
+	roMap := builder.Build()
+	gotten := roMap.Get(testStruct{Value: 1})
+	assert.Equals(t, gotten.Value, 2)
+}
+
+func TestMap_WhenModifyingKeysSlice_ShouldNotAffectMap(t *testing.T) {
+	t.Parallel()
+	const key = "key"
+	const value = "value"
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.SetMap(map[string]string{key: value})
+	roMap := builder.Build()
+	keys := roMap.Keys()
+	assert.Equals(t, len(keys), 1)
+	assert.Equals(t, keys[0], key)
+	keys[0] = "modifiedKey"
+	assert.True(t, roMap.Has(key))
+	assert.False(t, roMap.Has("modifiedKey"))
+	keys = roMap.Keys()
+	assert.Equals(t, len(keys), 1)
+	assert.Equals(t, keys[0], key)
+}
+
+func TestMapBuilder_WhenNoValuesAdded_ShouldCreateEmptyMap(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, string]()
+	roMap := builder.Build()
+	assert.Equals(t, roMap.Size(), 0)
+}
+
+func TestMapBuilder_WhenSetWithNothingAndSetMapWithEmptyMap_ShouldCreateEmptyMap(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.Set()
+	builder.SetMap(map[string]string{})
+	roMap := builder.Build()
+	assert.Equals(t, roMap.Size(), 0)
+}
+
+func TestMapBuilder_WhenModifyingSourceMap_ShouldNotAffectBuiltMap(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, string]()
+	mapToSet := map[string]string{
+		"key1": "value1",
+	}
+	builder.SetMap(mapToSet)
+	roMap := builder.Build()
+	mapToSet["key1"] = "value2"
+	assert.Equals(t, roMap.Get("key1"), "value1")
+}
+
+func TestMap_WhenIterating_ShouldHaveAllData(t *testing.T) {
+	t.Parallel()
+	iteratingMap := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+	}
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.SetMap(iteratingMap)
+	roMap := builder.Build()
+	count := 0
+	for range roMap.All() {
+		count++
+	}
+	assert.Equals(t, count, len(iteratingMap))
+}
+
+func TestMap_WhenIteratingWithBreak_ShouldHandleBreak(t *testing.T) {
+	t.Parallel()
+	iteratingMap := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+	}
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.SetMap(iteratingMap)
+	roMap := builder.Build()
+	count := 0
+	for range roMap.All() {
+		count++
+		break
+	}
+	assert.Equals(t, count, 1)
+}
+
+func TestMap_WhenIteratingWithFalseYield_ShouldHandleFalseYield(t *testing.T) {
+	t.Parallel()
+	iteratingMap := map[string]string{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+	}
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.SetMap(iteratingMap)
+	roMap := builder.Build()
+	count := 0
+	roMap.All()(func(key string, value string) bool {
+		count++
+		return false
+	})
+	assert.Equals(t, count, 1)
+}
+
+func TestMap_WhenIteratingOverEmptyMap_ShouldDoNothing(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.SetMap(map[string]string{})
+	roMap := builder.Build()
+	count := 0
+	for range roMap.All() {
+		count++
+	}
+	assert.Equals(t, count, 0)
+}
+
+func TestMap_WhenManyThreadsUseMap_ShouldHaveNoIssues(t *testing.T) {
 	t.Parallel()
 
-	t.Run("when the MapBuilder doesnt have entries it should create an empty Map", func(t *testing.T) {
-		t.Parallel()
-		builder := readonly.NewMapBuilder[string, string]()
-		roMap := builder.Build()
-		assert.True(t, roMap.Size() == 0)
-	})
+	const entryCount = 1000
+	const goRoutineCount = 8
+	wg := sync.WaitGroup{}
+	waitToStart := make(chan struct{})
 
-	t.Run("when build gets called on a MapBuilder twice it should panic", func(t *testing.T) {
-		t.Parallel()
-		assert.Panic(t, func() {
-			builder := readonly.NewMapBuilder[string, string]()
-			builder.Build()
-			builder.Build()
-		})
-	})
+	builder := readonly.NewMapBuilder[int, int]()
+	for i := range entryCount {
+		builder.Set(readonly.MapEntry[int, int]{Key: i, Value: i * 10})
+	}
+	roMap := builder.Build()
 
-	t.Run("when set gets called after build it should panic", func(t *testing.T) {
-		t.Parallel()
-		assert.Panic(t, func() {
-			builder := readonly.NewMapBuilder[string, string]()
-			builder.Build()
-			builder.Set()
-		})
-	})
-
-	t.Run("when set map gets called after build it should panic", func(t *testing.T) {
-		t.Parallel()
-		assert.Panic(t, func() {
-			builder := readonly.NewMapBuilder[string, string]()
-			builder.Build()
-			builder.SetMap(map[string]string{})
-		})
-	})
-
-	t.Run("when a key and value is added to a read only map it should be retrievable", func(t *testing.T) {
-		t.Parallel()
-		const key = "key"
-		const value = "value"
-		builder := readonly.NewMapBuilder[string, string]()
-		builder.Set(readonly.MapEntry[string, string]{Key: key, Value: value})
-		roMap := builder.Build()
-		verifyMapKeyAndValue(t, roMap, key, value)
-	})
-
-	t.Run("when set map is used with the MapBuilder it should be available in the map", func(t *testing.T) {
-		t.Parallel()
-		const key = "key"
-		const value = "value"
-		builder := readonly.NewMapBuilder[string, string]()
-		builder.SetMap(map[string]string{key: value})
-		roMap := builder.Build()
-		verifyMapKeyAndValue(t, roMap, key, value)
-	})
-
-	t.Run("when querying for non existing values it should return false", func(t *testing.T) {
-		t.Parallel()
-		const key = "key"
-		const value = "value"
-		builder := readonly.NewMapBuilder[string, string]()
-		builder.SetMap(map[string]string{key: value})
-		roMap := builder.Build()
-		actual := roMap.Get("missing")
-		assert.Equals(t, actual, "")
-		fetched, ok := roMap.Fetch("missing")
-		assert.False(t, ok)
-		assert.Equals(t, actual, fetched)
-		assert.Equals(t, roMap.Size(), 1)
-	})
-
-	t.Run("when values are overwritten in the MapBuilder it should only have the last value", func(t *testing.T) {
-		t.Parallel()
-		builder := readonly.NewMapBuilder[string, string]()
-		builder.Set(readonly.MapEntry[string, string]{Key: "key1", Value: "value1"})
-		builder.Set(readonly.MapEntry[string, string]{Key: "key1", Value: "value2"})
-		builder.Set(readonly.MapEntry[string, string]{Key: "key2", Value: "value3"})
-		builder.SetMap(map[string]string{"key2": "value4"})
-		builder.SetMap(map[string]string{"key3": "value5"})
-		builder.Set(readonly.MapEntry[string, string]{Key: "key3", Value: "value6"})
-		roMap := builder.Build()
-		verifyMapKeyAndValue(t, roMap, "key1", "value2")
-		verifyMapKeyAndValue(t, roMap, "key2", "value4")
-		verifyMapKeyAndValue(t, roMap, "key3", "value6")
-	})
-
-	t.Run("when a struct is used as a key it should be retrievable", func(t *testing.T) {
-		t.Parallel()
-		type testStruct struct {
-			Value int
-		}
-		builder := readonly.NewMapBuilder[testStruct, testStruct]()
-		builder.SetMap(map[testStruct]testStruct{
-			{Value: 1}: {Value: 2},
-		})
-		roMap := builder.Build()
-		gotten := roMap.Get(testStruct{Value: 1})
-		assert.Equals(t, gotten.Value, 2)
-	})
-
-	t.Run("when modifying the slice returned by keys it should have no impact on the map", func(t *testing.T) {
-		t.Parallel()
-		const key = "key"
-		const value = "value"
-		builder := readonly.NewMapBuilder[string, string]()
-		builder.SetMap(map[string]string{key: value})
-		roMap := builder.Build()
-		keys := roMap.Keys()
-		assert.Equals(t, len(keys), 1)
-		assert.Equals(t, keys[0], key)
-		keys[0] = "modifiedKey"
-		assert.True(t, roMap.Has(key))
-		assert.False(t, roMap.Has("modifiedKey"))
-		keys = roMap.Keys()
-		assert.Equals(t, len(keys), 1)
-		assert.Equals(t, keys[0], key)
-	})
-
-	t.Run("when adding no values to the MapBuilder it should create an empty map", func(t *testing.T) {
-		t.Parallel()
-		builder := readonly.NewMapBuilder[string, string]()
-		roMap := builder.Build()
-		assert.Equals(t, roMap.Size(), 0)
-	})
-
-	t.Run("when the MapBuilder uses set with nothing and set map with an empty map it should create an empty map", func(t *testing.T) {
-		t.Parallel()
-		builder := readonly.NewMapBuilder[string, string]()
-		builder.Set()
-		builder.SetMap(map[string]string{})
-		roMap := builder.Build()
-		assert.Equals(t, roMap.Size(), 0)
-	})
-
-	t.Run("when modifying the map used in the MapBuilder it should not affect the built map", func(t *testing.T) {
-		t.Parallel()
-		builder := readonly.NewMapBuilder[string, string]()
-		mapToSet := map[string]string{
-			"key1": "value1",
-		}
-		builder.SetMap(mapToSet)
-		roMap := builder.Build()
-		mapToSet["key1"] = "value2"
-		assert.Equals(t, roMap.Get("key1"), "value1")
-	})
-
-	t.Run("when iterating over some values", func(t *testing.T) {
-		t.Parallel()
-		iteratingMap := map[string]string{
-			"key1": "value1",
-			"key2": "value2",
-			"key3": "value3",
-		}
-
-		t.Run("it should have all the data", func(t *testing.T) {
-			t.Parallel()
-			builder := readonly.NewMapBuilder[string, string]()
-			builder.SetMap(iteratingMap)
-			roMap := builder.Build()
-			count := 0
-			for range roMap.All() {
-				count++
+	for range goRoutineCount {
+		wg.Go(func() {
+			<-waitToStart
+			for k := range entryCount {
+				expected := k * 10
+				verifyMapKeyAndValue(t, roMap, k, expected)
 			}
-			assert.Equals(t, count, len(iteratingMap))
 		})
+	}
 
-		t.Run("it should be able to handle a break", func(t *testing.T) {
-			t.Parallel()
-			builder := readonly.NewMapBuilder[string, string]()
-			builder.SetMap(iteratingMap)
-			roMap := builder.Build()
-			count := 0
-			for range roMap.All() {
-				count++
-				break
-			}
-			assert.Equals(t, count, 1)
-		})
+	close(waitToStart)
+	wg.Wait()
+}
 
-		t.Run("it should be able to handle a false yield", func(t *testing.T) {
-			t.Parallel()
-			builder := readonly.NewMapBuilder[string, string]()
-			builder.SetMap(iteratingMap)
-			roMap := builder.Build()
-			count := 0
-			roMap.All()(func(key string, value string) bool {
-				count++
-				return false
-			})
-			assert.Equals(t, count, 1)
-		})
-	})
+func TestMap_WhenHasCalledOnNonExistingKey_ShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.Set(readonly.MapEntry[string, string]{Key: "key", Value: "value"})
+	roMap := builder.Build()
+	assert.False(t, roMap.Has("nonexistent"))
+}
 
-	t.Run("when iterating over an empty map it should do nothing", func(t *testing.T) {
-		t.Parallel()
-		builder := readonly.NewMapBuilder[string, string]()
-		builder.SetMap(map[string]string{})
-		roMap := builder.Build()
-		count := 0
-		for range roMap.All() {
-			count++
-		}
-		assert.Equals(t, count, 0)
-	})
+func TestMap_WhenKeysCalledOnEmptyMap_ShouldReturnEmptySlice(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, string]()
+	roMap := builder.Build()
+	keys := roMap.Keys()
+	assert.Equals(t, len(keys), 0)
+}
 
-	t.Run("when many threads use the map it should have no issues", func(t *testing.T) {
-		t.Parallel()
+func TestMapBuilder_WhenSetCalledWithMultipleEntries_ShouldAddAllEntries(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, string]()
+	builder.Set(
+		readonly.MapEntry[string, string]{Key: "key1", Value: "value1"},
+		readonly.MapEntry[string, string]{Key: "key2", Value: "value2"},
+		readonly.MapEntry[string, string]{Key: "key3", Value: "value3"},
+	)
+	roMap := builder.Build()
+	assert.Equals(t, roMap.Size(), 3)
+	assert.Equals(t, roMap.Get("key1"), "value1")
+	assert.Equals(t, roMap.Get("key2"), "value2")
+	assert.Equals(t, roMap.Get("key3"), "value3")
+}
 
-		const entryCount = 1000
-		const goRoutineCount = 8
-		wg := sync.WaitGroup{}
-		waitToStart := make(chan struct{})
+func TestMapBuilder_WhenMethodChaining_ShouldWork(t *testing.T) {
+	t.Parallel()
+	roMap := readonly.NewMapBuilder[string, string]().
+		Set(readonly.MapEntry[string, string]{Key: "key1", Value: "value1"}).
+		SetMap(map[string]string{"key2": "value2"}).
+		Set(readonly.MapEntry[string, string]{Key: "key3", Value: "value3"}).
+		Build()
+	assert.Equals(t, roMap.Size(), 3)
+	assert.Equals(t, roMap.Get("key1"), "value1")
+	assert.Equals(t, roMap.Get("key2"), "value2")
+	assert.Equals(t, roMap.Get("key3"), "value3")
+}
 
-		builder := readonly.NewMapBuilder[int, int]()
-		for i := range entryCount {
-			builder.Set(readonly.MapEntry[int, int]{Key: i, Value: i * 10})
-		}
-		roMap := builder.Build()
-
-		for range goRoutineCount {
-			wg.Go(func() {
-				<-waitToStart
-				for k := range entryCount {
-					expected := k * 10
-					verifyMapKeyAndValue(t, roMap, k, expected)
-				}
-			})
-		}
-
-		close(waitToStart)
-		wg.Wait()
-	})
+func TestMap_WhenNilValueStored_ShouldBeRetrievable(t *testing.T) {
+	t.Parallel()
+	builder := readonly.NewMapBuilder[string, *string]()
+	builder.Set(readonly.MapEntry[string, *string]{Key: "nilKey", Value: nil})
+	str := "value"
+	builder.Set(readonly.MapEntry[string, *string]{Key: "nonNilKey", Value: &str})
+	roMap := builder.Build()
+	assert.Equals(t, roMap.Size(), 2)
+	assert.True(t, roMap.Has("nilKey"))
+	nilValue, ok := roMap.Fetch("nilKey")
+	assert.True(t, ok)
+	assert.True(t, nilValue == nil)
+	nonNilValue := roMap.Get("nonNilKey")
+	assert.Equals(t, *nonNilValue, "value")
 }
