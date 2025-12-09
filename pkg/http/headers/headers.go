@@ -1,20 +1,24 @@
 package headers
 
+// Header keys.
 const (
 	// Allow lists the set of methods supported by a resource.
 	Allow = "Allow"
 
-	// ContentType indicates the media type of the data being sent.
-	ContentType = "Content-Type"
-
 	// ContentLength indicates the size of the message body, in bytes, sent to the recipient.
 	ContentLength = "Content-Length"
 
-	// ContentTypeApplicationJson indicates that the body of the HTTP request or response contains JSON.
-	ContentTypeApplicationJson = "application/json"
+	// ContentType indicates the media type of the data being sent.
+	ContentType = "Content-Type"
 
 	// TransferEncoding specifies the form of encoding used to transfer the payload body to the caller.
 	TransferEncoding = "Transfer-Encoding"
+)
+
+// Header values.
+const (
+	// ContentTypeApplicationJSON indicates that the body of the HTTP request or response contains JSON.
+	ContentTypeApplicationJSON = "application/json"
 
 	// TransferEncodingChunked allows data to be sent in a series of chunks without specifying the total size beforehand.
 	TransferEncodingChunked = "chunked"
