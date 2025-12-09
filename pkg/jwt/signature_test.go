@@ -54,16 +54,12 @@ func TestSignatureAlgorithms(t *testing.T) {
 				if len(parts) != 3 {
 					return token
 				}
-				signature := []byte(parts[2])
-				if len(signature) == 0 {
+				sigBytes, err := base64.RawURLEncoding.DecodeString(parts[2])
+				if err != nil || len(sigBytes) == 0 {
 					return token
 				}
-				if signature[len(signature)-1] == 'A' {
-					signature[len(signature)-1] = 'B'
-				} else {
-					signature[len(signature)-1] = 'A'
-				}
-				parts[2] = string(signature)
+				sigBytes[0] ^= 0xFF
+				parts[2] = base64.RawURLEncoding.EncodeToString(sigBytes)
 				return strings.Join(parts, ".")
 			},
 			expectErr: "failed to verify token",
