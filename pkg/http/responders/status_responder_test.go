@@ -12,73 +12,69 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
-func TestStatus(t *testing.T) {
+type statusRequestParams struct {
+	ID int `json:"id" validate:"gt=0"`
+}
+
+func statusHandler(params *statusRequestParams) (int, error) {
+	if params.ID == 123 {
+		return http.StatusOK, nil
+	}
+	return 0, &testError{}
+}
+
+func statusErrorMessageTest(t *testing.T, jsonBody, expectedError string) {
+	t.Helper()
+
+	var writeError error
+	writeErrorCallback := func(err error) {
+		writeError = err
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		responders.Status[statusRequestParams](w, r, statusHandler, responders.WithErrorCallback(writeErrorCallback))
+	}))
+	defer server.Close()
+
+	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(jsonBody))
+	assert.NoError(t, err)
+	assert.Equals(t, response.StatusCode, http.StatusBadRequest)
+	assert.NoError(t, writeError)
+
+	responseBody := &responders.StandardErrorResponse{}
+	assert.NoError(t, json.NewDecoder(response.Body).Decode(responseBody))
+	assert.Contains(t, responseBody.Message, expectedError)
+	assert.NoError(t, response.Body.Close())
+}
+
+func TestStatus_CallbackSuccess_ReturnsCorrectStatusCode(t *testing.T) {
 	t.Parallel()
 
-	type requestParams struct {
-		ID int `json:"id" validate:"gt=0"`
+	var writeError error
+	writeErrorCallback := func(err error) {
+		writeError = err
 	}
 
-	statusHandler := func(params *requestParams) (int, error) {
-		if params.ID == 123 {
-			return http.StatusOK, nil
-		}
-		return 0, &testError{}
-	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		responders.Status[statusRequestParams](w, r, statusHandler, responders.WithErrorCallback(writeErrorCallback))
+	}))
+	defer server.Close()
 
-	errorMessageTest := func(t *testing.T, jsonBody, expectedError string) {
-		t.Helper()
-
-		var writeError error
-		writeErrorCallback := func(err error) {
-			writeError = err
-		}
-
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.Status[requestParams](w, r, statusHandler, responders.WithErrorCallback(writeErrorCallback))
-		}))
-		defer server.Close()
-
-		response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(jsonBody))
-		assert.NoError(t, err)
-		assert.Equals(t, response.StatusCode, http.StatusBadRequest)
-		assert.NoError(t, writeError)
-
-		responseBody := &responders.StandardErrorResponse{}
-		assert.NoError(t, json.NewDecoder(response.Body).Decode(responseBody))
-		assert.Contains(t, responseBody.Message, expectedError)
+	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":123}`))
+	t.Cleanup(func() {
 		assert.NoError(t, response.Body.Close())
-	}
-
-	t.Run("when the callback function processes the request successfully it should respond with the correct status code", func(t *testing.T) {
-		t.Parallel()
-
-		var writeError error
-		writeErrorCallback := func(err error) {
-			writeError = err
-		}
-
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			responders.Status[requestParams](w, r, statusHandler, responders.WithErrorCallback(writeErrorCallback))
-		}))
-		defer server.Close()
-
-		response, err := http.Post(server.URL, headers.ContentTypeApplicationJson, strings.NewReader(`{"id":123}`))
-		t.Cleanup(func() {
-			assert.NoError(t, response.Body.Close())
-		})
-		assert.NoError(t, err)
-		assert.Equals(t, response.StatusCode, http.StatusOK)
-		assert.NoError(t, writeError)
 	})
+	assert.NoError(t, err)
+	assert.Equals(t, response.StatusCode, http.StatusOK)
+	assert.NoError(t, writeError)
+}
 
-	t.Run("when the parameter decoder fails it should respond with an error JSON response and appropriate status code", func(t *testing.T) {
-		t.Parallel()
-		errorMessageTest(t, `{"id":-1}`, "validation failed on field 'ID'")
-	})
+func TestStatus_ParameterDecoderFails_ReturnsErrorResponse(t *testing.T) {
+	t.Parallel()
+	statusErrorMessageTest(t, `{"id":-1}`, "validation failed on field 'ID'")
+}
 
-	t.Run("when the callback function returns an error it should respond with an error JSON response and appropriate status code", func(t *testing.T) {
-		t.Parallel()
-		errorMessageTest(t, `{"id":456}`, "test error")
-	})
+func TestStatus_CallbackReturnsError_ReturnsErrorResponse(t *testing.T) {
+	t.Parallel()
+	statusErrorMessageTest(t, `{"id":456}`, "test error")
 }

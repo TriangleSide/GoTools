@@ -60,7 +60,7 @@ func Decode[T any](request *http.Request) (returnParams *T, returnErr error) {
 
 // decodeJSONBodyParameters decodes JSON from the request body into the parameter struct.
 func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
-	if strings.EqualFold(request.Header.Get(headers.ContentType), headers.ContentTypeApplicationJson) {
+	if strings.EqualFold(request.Header.Get(headers.ContentType), headers.ContentTypeApplicationJSON) {
 		decoder := json.NewDecoder(request.Body)
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(params); err != nil {

@@ -73,7 +73,7 @@ func Error(writer http.ResponseWriter, err error, opts ...Option) {
 	}
 
 	writer.Header().Set(headers.ContentLength, strconv.Itoa(len(jsonBytes)))
-	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJson)
+	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJSON)
 	writer.WriteHeader(statusCode)
 
 	if _, writeErr := writer.Write(jsonBytes); writeErr != nil {

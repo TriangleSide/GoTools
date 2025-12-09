@@ -31,7 +31,7 @@ func JSON[RequestParameters any, ResponseBody any](writer http.ResponseWriter, r
 	}
 
 	writer.Header().Set(headers.ContentLength, strconv.Itoa(len(jsonBytes)))
-	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJson)
+	writer.Header().Set(headers.ContentType, headers.ContentTypeApplicationJSON)
 	writer.WriteHeader(status)
 
 	if _, writeErr := writer.Write(jsonBytes); writeErr != nil {

@@ -29,305 +29,460 @@ func getRandomInt(t *testing.T, max int) int {
 	return int(randomValueBig.Int64())
 }
 
-func TestCache(t *testing.T) {
+func TestClear_CalledRepeatedly_Succeeds(t *testing.T) {
 	t.Parallel()
+	testCache := cache.New[string, string]()
+	for range 3 {
+		testCache.Clear()
+	}
+}
 
-	t.Run("should be able to clear the cache repeatedly", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		for range 3 {
-			testCache.Clear()
-		}
+func TestRemove_KeyNotPresent_ReturnsFalse(t *testing.T) {
+	t.Parallel()
+	const key = "key"
+	testCache := cache.New[string, string]()
+	for range 3 {
+		_, found := testCache.Remove(key)
+		assert.False(t, found)
+	}
+}
+
+func TestGet_EmptyCache_ReturnsFalse(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+}
+
+func TestRemove_KeyNotInCache_ReturnsFalseAndValueRemains(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, ptr.Of(time.Minute))
+	removedValue, removed := testCache.Remove("otherKey")
+	assert.False(t, removed)
+	assert.Equals(t, removedValue, "")
+	cacheMustHaveKeyAndValue(t, testCache, key, value)
+}
+
+func TestRemove_KeyInCache_RemovesAndReturnsTrue(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, ptr.Of(time.Minute))
+	removedValue, removed := testCache.Remove(key)
+	assert.True(t, removed)
+	assert.Equals(t, removedValue, value)
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+}
+
+func TestRemove_ExpiredItem_ReturnsFalse(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, ptr.Of(time.Nanosecond))
+	time.Sleep(time.Nanosecond * 2)
+	removedValue, removed := testCache.Remove(key)
+	assert.False(t, removed)
+	assert.Equals(t, removedValue, "")
+}
+
+func TestGet_NotExpired_ReturnsValue(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, ptr.Of(time.Minute))
+	gottenValue, gotten := testCache.Get(key)
+	assert.True(t, gotten)
+	assert.Equals(t, gottenValue, value)
+}
+
+func TestGetOrSet_EmptyCache_CallsFunctionAndSetsValue(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	fnCalled := false
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+		fnCalled = true
+		return value, nil, nil
 	})
+	assert.NoError(t, err)
+	assert.True(t, fnCalled)
+	assert.Equals(t, value, returnVal)
+	_, gotten = testCache.Get(key)
+	assert.True(t, gotten)
+}
 
-	t.Run("should be able to remove a key repeatedly", func(t *testing.T) {
-		t.Parallel()
-		const key = "key"
-		testCache := cache.New[string, string]()
-		for range 3 {
-			_, found := testCache.Remove(key)
-			assert.False(t, found)
-		}
+func TestGetOrSet_FunctionReturnsError_ReturnsError(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	fnCalled := false
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+		fnCalled = true
+		return value, nil, errors.New("error")
 	})
+	assert.ErrorExact(t, err, "error")
+	assert.True(t, fnCalled)
+	assert.Equals(t, value, returnVal)
+	_, gotten = testCache.Get(key)
+	assert.False(t, gotten)
+}
 
-	t.Run("when there is no values in the cache it should return false when getting a key", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		_, gotten := testCache.Get(key)
-		assert.False(t, gotten)
+func TestSet_NoExpiry_ValueIsAvailable(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, nil)
+	cacheMustHaveKeyAndValue(t, testCache, key, value)
+}
+
+func TestGetOrSet_NoExpiry_DoesNotCallFunction(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, nil)
+	fnCalled := false
+	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+		fnCalled = true
+		return "other", nil, nil
 	})
+	assert.False(t, fnCalled)
+	assert.NoError(t, err)
+	assert.Equals(t, value, returnVal)
+	cacheMustHaveKeyAndValue(t, testCache, key, value)
+}
 
-	t.Run("when an item is removed but it is not in the cache it should return false", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		testCache.Set(key, value, ptr.Of(time.Minute))
-		removedValue, removed := testCache.Remove("otherKey")
-		assert.False(t, removed)
-		assert.Equals(t, removedValue, "")
-		cacheMustHaveKeyAndValue(t, testCache, key, value)
+func TestSet_NoExpiry_CanBeOverwritten(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, nil)
+	const newValue = "newValue"
+	cacheMustHaveKeyAndValue(t, testCache, key, value)
+	testCache.Set(key, newValue, nil)
+	cacheMustHaveKeyAndValue(t, testCache, key, newValue)
+}
+
+func TestGet_Expired_ReturnsFalse(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, ptr.Of(time.Nanosecond))
+	time.Sleep(time.Nanosecond * 2)
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+}
+
+func TestGetOrSet_Expired_CallsFunctionAndUpdatesValue(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	const other = "other"
+	testCache.Set(key, value, ptr.Of(time.Nanosecond))
+	time.Sleep(time.Nanosecond * 2)
+	fnCalled := false
+	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+		fnCalled = true
+		return other, nil, nil
 	})
+	assert.True(t, fnCalled)
+	assert.NoError(t, err)
+	assert.Equals(t, returnVal, other)
+	cacheMustHaveKeyAndValue(t, testCache, key, other)
+}
 
-	t.Run("when an item is removed it should no longer be in the cache", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		testCache.Set(key, value, ptr.Of(time.Minute))
-		removedValue, removed := testCache.Remove(key)
-		assert.True(t, removed)
-		assert.Equals(t, removedValue, value)
-		_, gotten := testCache.Get(key)
-		assert.False(t, gotten)
-	})
-
-	t.Run("when an item is expired it should not return true when removed", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		testCache.Set(key, value, ptr.Of(time.Nanosecond))
-		time.Sleep(time.Nanosecond * 2)
-		removedValue, removed := testCache.Remove(key)
-		assert.False(t, removed)
-		assert.Equals(t, removedValue, "")
-	})
-
-	t.Run("when a value is not expired it should return the value", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		testCache.Set(key, value, ptr.Of(time.Minute))
-		gottenValue, gotten := testCache.Get(key)
-		assert.True(t, gotten)
-		assert.Equals(t, gottenValue, value)
-	})
-
-	t.Run("when there is no values in the cache it should call the fn with get or set", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		fnCalled := false
-		_, gotten := testCache.Get(key)
-		assert.False(t, gotten)
-		returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
-			fnCalled = true
-			return value, nil, nil
-		})
-		assert.NoError(t, err)
-		assert.True(t, fnCalled)
-		assert.Equals(t, value, returnVal)
-		_, gotten = testCache.Get(key)
-		assert.True(t, gotten)
-	})
-
-	t.Run("when there is no values in the cache it should return an error if it occurs in get or set", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		fnCalled := false
-		_, gotten := testCache.Get(key)
-		assert.False(t, gotten)
-		returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
-			fnCalled = true
-			return value, nil, errors.New("error")
-		})
-		assert.ErrorExact(t, err, "error")
-		assert.True(t, fnCalled)
-		assert.Equals(t, value, returnVal)
-		_, gotten = testCache.Get(key)
-		assert.False(t, gotten)
-	})
-
-	t.Run("when an item is cached without an expiry time it should be available to get", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		testCache.Set(key, value, nil)
-		cacheMustHaveKeyAndValue(t, testCache, key, value)
-	})
-
-	t.Run("when an item is cached without an expiry time it should not call the function in get or set since it is not expired", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		testCache.Set(key, value, nil)
-		fnCalled := false
-		returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
-			fnCalled = true
-			return "other", nil, nil
-		})
-		assert.False(t, fnCalled)
-		assert.NoError(t, err)
-		assert.Equals(t, value, returnVal)
-		cacheMustHaveKeyAndValue(t, testCache, key, value)
-	})
-
-	t.Run("when an item is cached without an expiry time it should be able to be overwritten by set", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		testCache.Set(key, value, nil)
-		const newValue = "newValue"
-		cacheMustHaveKeyAndValue(t, testCache, key, value)
-		testCache.Set(key, newValue, nil)
-		cacheMustHaveKeyAndValue(t, testCache, key, newValue)
-	})
-
-	t.Run("when a cache item expires it should not be available to get", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		testCache.Set(key, value, ptr.Of(time.Nanosecond))
-		time.Sleep(time.Nanosecond * 2)
-		_, gotten := testCache.Get(key)
-		assert.False(t, gotten)
-	})
-
-	t.Run("when a cache item expires it should call the function in get or set since it is expired", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const key = "key"
-		const value = "value"
-		const other = "other"
-		testCache.Set(key, value, ptr.Of(time.Nanosecond))
-		time.Sleep(time.Nanosecond * 2)
-		fnCalled := false
-		returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
-			fnCalled = true
-			return other, nil, nil
-		})
-		assert.True(t, fnCalled)
-		assert.NoError(t, err)
-		assert.Equals(t, returnVal, other)
-		cacheMustHaveKeyAndValue(t, testCache, key, other)
-	})
-
-	t.Run("it should be able to handle concurrency on unique sequential operations", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const threadCount = 4
-		const loopCount = 10000
-		wg := sync.WaitGroup{}
-		startChan := make(chan struct{})
-		for i := range threadCount {
-			wg.Go(func() {
-				<-startChan
-				for k := range loopCount {
-					key := fmt.Sprintf("key-%d-%d", i, k)
-					value := fmt.Sprintf("value-%d-%d", i, k)
-					testCache.Set(key, value, ptr.Of(time.Minute))
-					gottenValue, gotten := testCache.Get(key)
-					assert.True(t, gotten, assert.Continue())
-					assert.Equals(t, value, gottenValue, assert.Continue())
-					testCache.Remove(key)
-					testCache.Set(key, value, ptr.Of(time.Nanosecond))
-					time.Sleep(time.Nanosecond * 2)
-					_, gotten = testCache.Get(key)
-					assert.False(t, gotten, assert.Continue())
-					other := fmt.Sprintf("other-%d-%d", i, k)
-					gottenValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
-						return other, ptr.Of(time.Minute), nil
-					})
-					assert.NoError(t, err, assert.Continue())
-					assert.Equals(t, gottenValue, other, assert.Continue())
-					testCache.Remove(key)
-				}
-			})
-		}
-		close(startChan)
-		wg.Wait()
-	})
-
-	t.Run("it should be able to handle concurrency with Get or Set or Remove", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const threadCount = 4
-		const loopCount = 10000
-		wg := sync.WaitGroup{}
-		startChan := make(chan struct{})
-		for range threadCount {
-			wg.Go(func() {
-				<-startChan
-				for range loopCount {
-					const key = "key"
-					const value = "value"
-					testCache.Set(key, value, ptr.Of(time.Millisecond))
-					gottenValue, gotten := testCache.Get(key)
-					if gotten {
-						assert.Equals(t, gottenValue, value, assert.Continue())
-					}
-					testCache.Remove(key)
-				}
-			})
-		}
-		close(startChan)
-		wg.Wait()
-	})
-
-	t.Run("it should be able to handle concurrency with GetOrSet", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		const threadCount = 4
-		const loopCount = 10000
-		wg := sync.WaitGroup{}
-		startChan := make(chan struct{})
-		for range threadCount {
-			wg.Go(func() {
-				<-startChan
-				for range loopCount {
-					key := "key" + strconv.Itoa(getRandomInt(t, threadCount))
-					value := "value" + strconv.Itoa(getRandomInt(t, threadCount))
-					_, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
-						return value, ptr.Of(time.Millisecond), nil
-					})
-					assert.NoError(t, err, assert.Continue())
-				}
-			})
-		}
-		close(startChan)
-		wg.Wait()
-	})
-
-	t.Run("when there are concurrent calls to GetOrSet it should return the first callers value", func(t *testing.T) {
-		t.Parallel()
-		testCache := cache.New[string, string]()
-		wg := sync.WaitGroup{}
-		const key = "key"
-		const threadCount = 4
-
-		firstWaitChan := make(chan struct{})
-
-		for range threadCount {
-			wg.Go(func() {
-				<-firstWaitChan
-				returnedValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
-					return "other", ptr.Of(time.Hour), nil
+func TestCache_Concurrency_UniqueSequentialOperations(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const threadCount = 4
+	const loopCount = 10000
+	wg := sync.WaitGroup{}
+	startChan := make(chan struct{})
+	for i := range threadCount {
+		wg.Go(func() {
+			<-startChan
+			for k := range loopCount {
+				key := fmt.Sprintf("key-%d-%d", i, k)
+				value := fmt.Sprintf("value-%d-%d", i, k)
+				testCache.Set(key, value, ptr.Of(time.Minute))
+				gottenValue, gotten := testCache.Get(key)
+				assert.True(t, gotten, assert.Continue())
+				assert.Equals(t, value, gottenValue, assert.Continue())
+				testCache.Remove(key)
+				testCache.Set(key, value, ptr.Of(time.Nanosecond))
+				time.Sleep(time.Nanosecond * 2)
+				_, gotten = testCache.Get(key)
+				assert.False(t, gotten, assert.Continue())
+				other := fmt.Sprintf("other-%d-%d", i, k)
+				gottenValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+					return other, ptr.Of(time.Minute), nil
 				})
 				assert.NoError(t, err, assert.Continue())
-				assert.Equals(t, returnedValue, "first", assert.Continue())
-			})
-		}
+				assert.Equals(t, gottenValue, other, assert.Continue())
+				testCache.Remove(key)
+			}
+		})
+	}
+	close(startChan)
+	wg.Wait()
+}
 
+func TestCache_Concurrency_GetSetRemove(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const threadCount = 4
+	const loopCount = 10000
+	wg := sync.WaitGroup{}
+	startChan := make(chan struct{})
+	for range threadCount {
 		wg.Go(func() {
+			<-startChan
+			for range loopCount {
+				const key = "key"
+				const value = "value"
+				testCache.Set(key, value, ptr.Of(time.Millisecond))
+				gottenValue, gotten := testCache.Get(key)
+				if gotten {
+					assert.Equals(t, gottenValue, value, assert.Continue())
+				}
+				testCache.Remove(key)
+			}
+		})
+	}
+	close(startChan)
+	wg.Wait()
+}
+
+func TestCache_Concurrency_GetOrSet(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const threadCount = 4
+	const loopCount = 10000
+	wg := sync.WaitGroup{}
+	startChan := make(chan struct{})
+	for range threadCount {
+		wg.Go(func() {
+			<-startChan
+			for range loopCount {
+				key := "key" + strconv.Itoa(getRandomInt(t, threadCount))
+				value := "value" + strconv.Itoa(getRandomInt(t, threadCount))
+				_, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+					return value, ptr.Of(time.Millisecond), nil
+				})
+				assert.NoError(t, err, assert.Continue())
+			}
+		})
+	}
+	close(startChan)
+	wg.Wait()
+}
+
+func TestGetOrSet_ConcurrentCalls_ReturnsFirstCallersValue(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	wg := sync.WaitGroup{}
+	const key = "key"
+	const threadCount = 4
+
+	firstWaitChan := make(chan struct{})
+
+	for range threadCount {
+		wg.Go(func() {
+			<-firstWaitChan
 			returnedValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
-				close(firstWaitChan)
-				time.Sleep(time.Second)
-				return "first", ptr.Of(time.Nanosecond), nil
+				return "other", ptr.Of(time.Hour), nil
 			})
 			assert.NoError(t, err, assert.Continue())
 			assert.Equals(t, returnedValue, "first", assert.Continue())
 		})
+	}
 
-		wg.Wait()
+	wg.Go(func() {
+		returnedValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+			close(firstWaitChan)
+			time.Sleep(time.Second)
+			return "first", ptr.Of(time.Nanosecond), nil
+		})
+		assert.NoError(t, err, assert.Continue())
+		assert.Equals(t, returnedValue, "first", assert.Continue())
 	})
+
+	wg.Wait()
+}
+
+func TestNew_CreatesEmptyCache(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	_, gotten := testCache.Get("anyKey")
+	assert.False(t, gotten)
+}
+
+func TestSet_OverwriteExpiryWithNoExpiry_ValuePersists(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	testCache.Set(key, "value1", ptr.Of(time.Nanosecond))
+	testCache.Set(key, "value2", nil)
+	time.Sleep(time.Nanosecond * 2)
+	gottenValue, gotten := testCache.Get(key)
+	assert.True(t, gotten)
+	assert.Equals(t, gottenValue, "value2")
+}
+
+func TestSet_OverwriteNoExpiryWithExpiry_ValueExpires(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	testCache.Set(key, "value1", nil)
+	testCache.Set(key, "value2", ptr.Of(time.Nanosecond))
+	time.Sleep(time.Nanosecond * 2)
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+}
+
+func TestGet_AfterClear_ReturnsFalse(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, nil)
+	cacheMustHaveKeyAndValue(t, testCache, key, value)
+	testCache.Clear()
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+}
+
+func TestClear_WithMultipleItems_ClearsAll(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	testCache.Set("key1", "value1", nil)
+	testCache.Set("key2", "value2", ptr.Of(time.Minute))
+	testCache.Set("key3", "value3", nil)
+	testCache.Clear()
+	_, gotten1 := testCache.Get("key1")
+	_, gotten2 := testCache.Get("key2")
+	_, gotten3 := testCache.Get("key3")
+	assert.False(t, gotten1)
+	assert.False(t, gotten2)
+	assert.False(t, gotten3)
+}
+
+func TestGetOrSet_WithTTL_ValueExpiresAfterTTL(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+		return value, ptr.Of(time.Nanosecond), nil
+	})
+	assert.NoError(t, err)
+	assert.Equals(t, returnVal, value)
+	time.Sleep(time.Nanosecond * 2)
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+}
+
+func TestSet_ZeroTTL_ExpiresImmediately(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, ptr.Of(time.Duration(0)))
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+}
+
+func TestCache_MultipleKeys_IndependentExpiry(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	testCache.Set("key1", "value1", ptr.Of(time.Nanosecond))
+	testCache.Set("key2", "value2", ptr.Of(time.Hour))
+	time.Sleep(time.Nanosecond * 2)
+	_, gotten1 := testCache.Get("key1")
+	assert.False(t, gotten1)
+	gottenValue2, gotten2 := testCache.Get("key2")
+	assert.True(t, gotten2)
+	assert.Equals(t, gottenValue2, "value2")
+}
+
+func TestRemove_AfterClear_ReturnsFalse(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const value = "value"
+	testCache.Set(key, value, nil)
+	testCache.Clear()
+	_, removed := testCache.Remove(key)
+	assert.False(t, removed)
+}
+
+func TestGetOrSet_AfterRemove_CallsFunction(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	testCache.Set(key, "value1", nil)
+	testCache.Remove(key)
+	fnCalled := false
+	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+		fnCalled = true
+		return "value2", nil, nil
+	})
+	assert.True(t, fnCalled)
+	assert.NoError(t, err)
+	assert.Equals(t, returnVal, "value2")
+}
+
+func TestCache_IntegerKeys_Works(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[int, string]()
+	testCache.Set(1, "one", nil)
+	testCache.Set(2, "two", ptr.Of(time.Minute))
+	gottenValue1, gotten1 := testCache.Get(1)
+	gottenValue2, gotten2 := testCache.Get(2)
+	assert.True(t, gotten1)
+	assert.Equals(t, gottenValue1, "one")
+	assert.True(t, gotten2)
+	assert.Equals(t, gottenValue2, "two")
+}
+
+func TestCache_StructValues_Works(t *testing.T) {
+	t.Parallel()
+	type testStruct struct {
+		Field1 string
+		Field2 int
+	}
+	testCache := cache.New[string, testStruct]()
+	expected := testStruct{Field1: "test", Field2: 42}
+	testCache.Set("key", expected, nil)
+	gottenValue, gotten := testCache.Get("key")
+	assert.True(t, gotten)
+	assert.Equals(t, gottenValue, expected)
+}
+
+func TestCache_PointerValues_Works(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, *string]()
+	value := "test"
+	testCache.Set("key", &value, nil)
+	gottenValue, gotten := testCache.Get("key")
+	assert.True(t, gotten)
+	assert.Equals(t, *gottenValue, value)
 }
