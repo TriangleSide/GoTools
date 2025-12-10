@@ -9,74 +9,93 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
-func TestTimestamp(t *testing.T) {
+func TestIsZero_WhenTimestampIsZero_ReturnsTrue(t *testing.T) {
 	t.Parallel()
+	var ts jwt.Timestamp
+	assert.Equals(t, ts.IsZero(), true)
+}
 
-	t.Run("when timestamp is zero it should return true from IsZero", func(t *testing.T) {
-		t.Parallel()
-		var ts jwt.Timestamp
-		assert.Equals(t, ts.IsZero(), true)
-	})
+func TestIsZero_WhenTimestampIsNonZero_ReturnsFalse(t *testing.T) {
+	t.Parallel()
+	ts := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+	assert.Equals(t, ts.IsZero(), false)
+}
 
-	t.Run("when timestamp is non-zero it should return false from IsZero", func(t *testing.T) {
-		t.Parallel()
-		ts := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
-		assert.Equals(t, ts.IsZero(), false)
-	})
+func TestString_WhenTimestampIsZero_ReturnsEmptyString(t *testing.T) {
+	t.Parallel()
+	var ts jwt.Timestamp
+	assert.Equals(t, ts.String(), "")
+}
 
-	t.Run("when timestamp is zero it should return empty string from String method", func(t *testing.T) {
-		t.Parallel()
-		var ts jwt.Timestamp
-		assert.Equals(t, ts.String(), "")
-	})
+func TestString_WhenTimestampIsNonZero_ReturnsRFC3339String(t *testing.T) {
+	t.Parallel()
+	ts := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+	assert.Equals(t, ts.String(), "2024-06-01T12:00:00Z")
+}
 
-	t.Run("when timestamp is non-zero it should return RFC 3339 string from String method", func(t *testing.T) {
-		t.Parallel()
-		ts := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
-		assert.Equals(t, ts.String(), "2024-06-01T12:00:00Z")
-	})
+func TestMarshalJSON_WhenTimestampIsZero_ReturnsError(t *testing.T) {
+	t.Parallel()
+	var ts jwt.Timestamp
+	_, err := json.Marshal(ts)
+	assert.ErrorPart(t, err, "timestamp is zero while marshaling")
+}
 
-	t.Run("when timestamp is zero it should return an error", func(t *testing.T) {
-		t.Parallel()
-		var ts jwt.Timestamp
-		_, err := json.Marshal(ts)
-		assert.ErrorPart(t, err, "timestamp is zero while marshaling")
-	})
+func TestMarshalJSON_WhenTimestampIsNonZero_MarshalToRFC3339String(t *testing.T) {
+	t.Parallel()
+	ts := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+	data, err := json.Marshal(ts)
+	assert.NoError(t, err)
+	assert.Equals(t, string(data), `"2024-06-01T12:00:00Z"`)
+}
 
-	t.Run("when timestamp is non-zero it should marshal to RFC 3339 string", func(t *testing.T) {
-		t.Parallel()
-		ts := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
-		data, err := json.Marshal(ts)
-		assert.NoError(t, err)
-		assert.Equals(t, string(data), `"2024-06-01T12:00:00Z"`)
-	})
+func TestUnmarshalJSON_ValidRFC3339String_Succeeds(t *testing.T) {
+	t.Parallel()
+	var ts jwt.Timestamp
+	err := json.Unmarshal([]byte(`"2024-06-01T12:00:00Z"`), &ts)
+	assert.NoError(t, err)
+	assert.Equals(t, ts.Time(), time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+}
 
-	t.Run("when unmarshaling valid RFC 3339 string it should succeed", func(t *testing.T) {
-		t.Parallel()
-		var ts jwt.Timestamp
-		err := json.Unmarshal([]byte(`"2024-06-01T12:00:00Z"`), &ts)
-		assert.NoError(t, err)
-		assert.Equals(t, ts.Time(), time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
-	})
+func TestUnmarshalJSON_EmptyString_ReturnsError(t *testing.T) {
+	t.Parallel()
+	var ts jwt.Timestamp
+	err := json.Unmarshal([]byte(`""`), &ts)
+	assert.ErrorPart(t, err, "timestamp cannot be empty")
+}
 
-	t.Run("when unmarshaling empty string it should return error", func(t *testing.T) {
-		t.Parallel()
-		var ts jwt.Timestamp
-		err := json.Unmarshal([]byte(`""`), &ts)
-		assert.ErrorPart(t, err, "timestamp cannot be empty")
-	})
+func TestUnmarshalJSON_InvalidRFC3339String_ReturnsError(t *testing.T) {
+	t.Parallel()
+	var ts jwt.Timestamp
+	err := json.Unmarshal([]byte(`"not-a-timestamp"`), &ts)
+	assert.ErrorPart(t, err, "invalid RFC 3339 timestamp")
+}
 
-	t.Run("when unmarshaling invalid RFC 3339 string it should return error", func(t *testing.T) {
-		t.Parallel()
-		var ts jwt.Timestamp
-		err := json.Unmarshal([]byte(`"not-a-timestamp"`), &ts)
-		assert.ErrorPart(t, err, "invalid RFC 3339 timestamp")
-	})
+func TestUnmarshalJSON_NonStringValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+	var ts jwt.Timestamp
+	err := json.Unmarshal([]byte(`12345`), &ts)
+	assert.ErrorPart(t, err, "timestamp must be a string")
+}
 
-	t.Run("when unmarshaling non-string value it should return error", func(t *testing.T) {
-		t.Parallel()
-		var ts jwt.Timestamp
-		err := json.Unmarshal([]byte(`12345`), &ts)
-		assert.ErrorPart(t, err, "timestamp must be a string")
-	})
+func TestNewTimestamp_NonUTCTimezone_ConvertsToUTC(t *testing.T) {
+	t.Parallel()
+	loc := time.FixedZone("UTC+5", 5*60*60)
+	input := time.Date(2024, 6, 1, 17, 0, 0, 0, loc)
+	ts := jwt.NewTimestamp(input)
+	assert.Equals(t, ts.Time(), time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+}
+
+func TestUnmarshalJSON_TimezoneOffset_ConvertsToUTC(t *testing.T) {
+	t.Parallel()
+	var ts jwt.Timestamp
+	err := json.Unmarshal([]byte(`"2024-06-01T17:00:00+05:00"`), &ts)
+	assert.NoError(t, err)
+	assert.Equals(t, ts.Time(), time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+}
+
+func TestTime_ReturnsUnderlyingTime(t *testing.T) {
+	t.Parallel()
+	expected := time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC)
+	ts := jwt.NewTimestamp(expected)
+	assert.Equals(t, ts.Time(), expected)
 }
