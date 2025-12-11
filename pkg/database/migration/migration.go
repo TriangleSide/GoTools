@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/logger"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
@@ -197,58 +196,55 @@ func fetchPersistedStatuses(ctx context.Context, manager Manager) (map[Order]Sta
 // listMigrationsToRun compares the registered migrations to the persisted statuses.
 // It returns the list of migrations that need to be run.
 func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([]*Registration, error) {
-	log := logger.FromCtx(ctx)
-
 	orderToPersistedStatus, err := fetchPersistedStatuses(ctx, manager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch the persisted statuses (%w)", err)
 	}
 
+	orderedMigrations := reg.OrderedRegistrations()
+
+	// Check that all persisted migrations are in the registry.
+	registeredMigrationOrders := make(map[Order]struct{})
+	for _, registeredMigration := range orderedMigrations {
+		registeredMigrationOrders[registeredMigration.Order] = struct{}{}
+	}
+	for persistedOrder := range orderToPersistedStatus {
+		if _, found := registeredMigrationOrders[persistedOrder]; !found {
+			return nil, fmt.Errorf("found persisted migration(s) that are not in the registry (%+v)", orderToPersistedStatus)
+		}
+	}
+
+	// Find the latest completed migration.
 	latestCompletedMigration := Order(-1)
-	migrationsToRun := make([]*Registration, 0)
-
-	for _, registeredMigration := range reg.OrderedRegistrations() {
+	for _, registeredMigration := range orderedMigrations {
 		migrationStatus, migrationStatusFound := orderToPersistedStatus[registeredMigration.Order]
-
-		if !registeredMigration.Enabled {
-			if migrationStatusFound {
-				log.Warnf("Migration with order %d is disabled but previously run with status %s. Skipping.",
-					registeredMigration.Order, migrationStatus)
-				delete(orderToPersistedStatus, registeredMigration.Order)
-			} else {
-				log.Debugf("Migration with order %d is disabled and not previously run. Skipping.", registeredMigration.Order)
+		if migrationStatusFound && migrationStatus == Completed {
+			if registeredMigration.Order > latestCompletedMigration {
+				latestCompletedMigration = registeredMigration.Order
 			}
+		}
+	}
+
+	// Determine which migrations need to be run.
+	enabledMigrationsThatArentCompleted := make([]*Registration, 0)
+	for _, registeredMigration := range orderedMigrations {
+		if !registeredMigration.Enabled {
 			continue
 		}
-
-		if migrationStatusFound {
-			delete(orderToPersistedStatus, registeredMigration.Order)
-			if migrationStatus == Completed {
-				log.Debugf("Registration with order %d already completed. Skipping.", registeredMigration.Order)
-				if registeredMigration.Order > latestCompletedMigration {
-					latestCompletedMigration = registeredMigration.Order
-				}
-			} else {
-				log.Debugf("Will attempt to run the migration with order %d and status %s again.", registeredMigration.Order, migrationStatus)
-				migrationsToRun = append(migrationsToRun, registeredMigration)
-			}
-		} else {
-			log.Debugf("New migration with order %d found.", registeredMigration.Order)
-			migrationsToRun = append(migrationsToRun, registeredMigration)
+		migrationStatus := orderToPersistedStatus[registeredMigration.Order]
+		if migrationStatus == Completed {
+			continue
 		}
+		enabledMigrationsThatArentCompleted = append(enabledMigrationsThatArentCompleted, registeredMigration)
 	}
 
-	if len(orderToPersistedStatus) != 0 {
-		return nil, fmt.Errorf("found persisted migration(s) that are not in the registry (%+v)", orderToPersistedStatus)
-	}
-
-	for _, migrationToRun := range migrationsToRun {
+	for _, migrationToRun := range enabledMigrationsThatArentCompleted {
 		if migrationToRun.Order < latestCompletedMigration {
 			return nil, fmt.Errorf("cannot run migrations out of order (found %d but latest completed is %d)", migrationToRun.Order, latestCompletedMigration)
 		}
 	}
 
-	return migrationsToRun, nil
+	return enabledMigrationsThatArentCompleted, nil
 }
 
 // runMigrations first persists the statuses of all the migrations as PENDING.
@@ -261,23 +257,19 @@ func runMigrations(ctx context.Context, migrationsToRun []*Registration, manager
 	}
 
 	for _, migrationToRun := range migrationsToRun {
-		migrationCtx, log := logger.AddField(ctx, "order", migrationToRun.Order)
-		log.Debug("Starting migration.")
-		startTime := time.Now()
-		if err := manager.PersistStatus(migrationCtx, migrationToRun.Order, Started); err != nil {
+		if err := manager.PersistStatus(ctx, migrationToRun.Order, Started); err != nil {
 			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Started, migrationToRun.Order, err)
 		}
-		if err := migrationToRun.Migrate(migrationCtx); err != nil {
+		if err := migrationToRun.Migrate(ctx); err != nil {
 			err = fmt.Errorf("failed to complete the migration with order %d (%w)", migrationToRun.Order, err)
-			if failedStatusErr := manager.PersistStatus(migrationCtx, migrationToRun.Order, Failed); failedStatusErr != nil {
+			if failedStatusErr := manager.PersistStatus(ctx, migrationToRun.Order, Failed); failedStatusErr != nil {
 				return fmt.Errorf("%w and failed to persist its status to %s (%w)", err, Failed, failedStatusErr)
 			}
 			return err
 		}
-		if err := manager.PersistStatus(migrationCtx, migrationToRun.Order, Completed); err != nil {
+		if err := manager.PersistStatus(ctx, migrationToRun.Order, Completed); err != nil {
 			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Completed, migrationToRun.Order, err)
 		}
-		log.Debugf("Migration finished in %s.", time.Since(startTime))
 	}
 
 	return nil
