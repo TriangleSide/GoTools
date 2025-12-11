@@ -18,7 +18,8 @@ type Registration struct {
 
 	// Migrate is invoked to run the migration.
 	// This function MUST be idempotent and retryable.
-	Migrate func(context.Context) error `validate:"required"`
+	// The Status parameter contains the previous persisted status, defaulting to Pending if none exists.
+	Migrate func(context.Context, Status) error `validate:"required"`
 
 	// Enabled indicates if this migration is to be run or not.
 	// A migration could be disabled if another migration covers it.
