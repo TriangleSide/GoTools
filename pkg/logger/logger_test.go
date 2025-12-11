@@ -90,17 +90,16 @@ func TestWithAttrs_ExistingLogger_AddsAttrsToExistingLogger(t *testing.T) {
 	ctx := context.Background()
 	ctx, originalLog := logger.FromContext(ctx)
 	attr := slog.String("key", "value")
-	resultCtx := logger.WithAttrs(ctx, attr)
-	_, newLog := logger.FromContext(resultCtx)
+	resultCtx, newLog := logger.WithAttrs(ctx, attr)
+	assert.NotNil(t, resultCtx)
 	assert.NotEquals(t, originalLog, newLog)
 }
 
 func TestWithAttrs_NoAttrs_ReturnsLoggerWithNoAdditionalAttrs(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	resultCtx := logger.WithAttrs(ctx)
+	resultCtx, log := logger.WithAttrs(ctx)
 	assert.NotNil(t, resultCtx)
-	_, log := logger.FromContext(resultCtx)
 	assert.NotNil(t, log)
 }
 
@@ -142,8 +141,8 @@ func TestWithAttrs_ConcurrentAccess_IsThreadSafe(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			for j := range iterations {
-				localCtx := logger.WithAttrs(ctx, slog.Int("goroutine", id), slog.Int("iteration", j))
-				_, log := logger.FromContext(localCtx)
+				localCtx, log := logger.WithAttrs(ctx, slog.Int("goroutine", id), slog.Int("iteration", j))
+				assert.NotNil(t, localCtx, assert.Continue())
 				assert.NotNil(t, log, assert.Continue())
 			}
 		}(i)

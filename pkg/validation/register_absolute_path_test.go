@@ -20,98 +20,90 @@ func createAbsoluteTempFile(t *testing.T) string {
 	return tempFile
 }
 
-func TestAbsolutePathValidator(t *testing.T) {
+func TestAbsolutePathValidator_InvalidPathSegments_ReturnsError(t *testing.T) {
 	t.Parallel()
+	err := validation.Var("/tmp/../etc/passwd", "absolute_path")
+	assert.ErrorPart(t, err, "path '/tmp/../etc/passwd' is not valid")
+}
 
-	testCases := []struct {
-		name          string
-		value         any
-		setup         func(t *testing.T) any
-		expectedError string
-	}{
-		{
-			name:          "when value contains invalid path segments it should fail",
-			value:         "/tmp/../etc/passwd",
-			expectedError: "path '/tmp/../etc/passwd' is not valid",
-		},
-		{
-			name: "when value is a string with existing absolute file it should succeed",
-			setup: func(t *testing.T) any {
-				t.Helper()
-				return createAbsoluteTempFile(t)
-			},
-			expectedError: "",
-		},
-		{
-			name:          "when value is a string with non-existing absolute path it should return an error",
-			value:         "/non/existing/path/that/does/not/exist",
-			expectedError: "path '/non/existing/path/that/does/not/exist' is not accessible",
-		},
-		{
-			name:          "when value is a relative path even if it exists it should return an error",
-			value:         "relative/path",
-			expectedError: "path 'relative/path' is not absolute",
-		},
-		{
-			name:          "when value is a non-string value, it should return an error",
-			value:         123,
-			expectedError: "value must be a string for the absolute_path validator",
-		},
-		{
-			name:          "when value is a nil pointer, it should fail",
-			value:         (*string)(nil),
-			expectedError: "value is nil",
-		},
-		{
-			name: "when value is a pointer to string with existing absolute file it should succeed",
-			setup: func(t *testing.T) any {
-				t.Helper()
-				return ptr.Of(createAbsoluteTempFile(t))
-			},
-			expectedError: "",
-		},
-		{
-			name:          "when value is a pointer to string with non-existing absolute path it should return an error",
-			value:         ptr.Of("/non/existing/path/that/does/not/exist"),
-			expectedError: "path '/non/existing/path/that/does/not/exist' is not accessible",
-		},
-		{
-			name: "when value is an interface with string value and existing absolute file it should succeed",
-			setup: func(t *testing.T) any {
-				t.Helper()
-				return any(createAbsoluteTempFile(t))
-			},
-			expectedError: "",
-		},
-		{
-			name:          "when value is an interface with string value and relative path it should return an error",
-			value:         any("relative/path"),
-			expectedError: "path 'relative/path' is not absolute",
-		},
-		{
-			name:          "when value is a nil interface it should fail",
-			value:         any(nil),
-			expectedError: "the value is nil",
-		},
-	}
+func TestAbsolutePathValidator_StringWithExistingAbsoluteFile_Succeeds(t *testing.T) {
+	t.Parallel()
+	value := createAbsoluteTempFile(t)
+	err := validation.Var(value, "absolute_path")
+	assert.NoError(t, err)
+}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+func TestAbsolutePathValidator_StringWithExistingAbsoluteDirectory_Succeeds(t *testing.T) {
+	t.Parallel()
+	tempDir := t.TempDir()
+	err := validation.Var(tempDir, "absolute_path")
+	assert.NoError(t, err)
+}
 
-			var value any
-			if tc.setup != nil {
-				value = tc.setup(t)
-			} else {
-				value = tc.value
-			}
+func TestAbsolutePathValidator_StringWithNonExistingAbsolutePath_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("/non/existing/path/that/does/not/exist", "absolute_path")
+	assert.ErrorPart(t, err, "path '/non/existing/path/that/does/not/exist' is not accessible")
+}
 
-			err := validation.Var(value, "absolute_path")
-			if tc.expectedError != "" {
-				assert.ErrorPart(t, err, tc.expectedError)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
+func TestAbsolutePathValidator_RelativePath_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("relative/path", "absolute_path")
+	assert.ErrorPart(t, err, "path 'relative/path' is not absolute")
+}
+
+func TestAbsolutePathValidator_EmptyString_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("", "absolute_path")
+	assert.ErrorPart(t, err, "path '' is not absolute")
+}
+
+func TestAbsolutePathValidator_NonStringValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(123, "absolute_path")
+	assert.ErrorPart(t, err, "value must be a string for the absolute_path validator")
+}
+
+func TestAbsolutePathValidator_NilPointer_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((*string)(nil), "absolute_path")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestAbsolutePathValidator_PointerToStringWithExistingAbsoluteFile_Succeeds(t *testing.T) {
+	t.Parallel()
+	value := ptr.Of(createAbsoluteTempFile(t))
+	err := validation.Var(value, "absolute_path")
+	assert.NoError(t, err)
+}
+
+func TestAbsolutePathValidator_PointerToStringWithNonExistingAbsolutePath_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of("/non/existing/path/that/does/not/exist"), "absolute_path")
+	assert.ErrorPart(t, err, "path '/non/existing/path/that/does/not/exist' is not accessible")
+}
+
+func TestAbsolutePathValidator_PointerToStringWithRelativePath_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of("relative/path"), "absolute_path")
+	assert.ErrorPart(t, err, "path 'relative/path' is not absolute")
+}
+
+func TestAbsolutePathValidator_InterfaceWithStringValueAndExistingAbsoluteFile_Succeeds(t *testing.T) {
+	t.Parallel()
+	value := any(createAbsoluteTempFile(t))
+	err := validation.Var(value, "absolute_path")
+	assert.NoError(t, err)
+}
+
+func TestAbsolutePathValidator_InterfaceWithStringValueAndRelativePath_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(any("relative/path"), "absolute_path")
+	assert.ErrorPart(t, err, "path 'relative/path' is not absolute")
+}
+
+func TestAbsolutePathValidator_NilInterface_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(any(nil), "absolute_path")
+	assert.ErrorPart(t, err, "the value is nil")
 }
