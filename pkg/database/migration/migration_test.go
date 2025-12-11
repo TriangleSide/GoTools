@@ -111,7 +111,7 @@ func (r *managerRecorder) ReleaseMigrationLock(ctx context.Context) error {
 func standardRegisteredMigration(manager *managerRecorder, order migration.Order) *migration.Registration {
 	return &migration.Registration{
 		Order: order,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			manager.Operations = append(manager.Operations, fmt.Sprintf("Migration%d.Migrate()", order))
 			return ctx.Err()
 		},
@@ -143,7 +143,7 @@ func TestMigrate_Success_RunsMigrationsSuccessfully(t *testing.T) {
 	reg.MustRegister(standardRegisteredMigration(manager, migration.Order(2)))
 	reg.MustRegister(&migration.Registration{
 		Order: 3,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			manager.Operations = append(manager.Operations, "Migration3.Migrate()")
 			return ctx.Err()
 		},
@@ -393,7 +393,7 @@ func TestMigrate_MigrateFunctionFails_ReturnsError(t *testing.T) {
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
 			return errors.New("migrate error")
 		},
@@ -425,7 +425,7 @@ func TestMigrate_MigrateFunctionFailsAndPersistFailedStatusFails_ReturnsBothErro
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
 			return errors.New("migrate error")
 		},
@@ -504,7 +504,7 @@ func TestMigrate_DisabledRegistrationWithPersistedStatus_SkipsMigration(t *testi
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
 			return ctx.Err()
 		},
@@ -557,7 +557,7 @@ func TestMigrate_HeartbeatFailsContinuously_CancelsContextAndStopsMigrations(t *
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			<-ctx.Done()
 			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
 			return ctx.Err()
@@ -602,7 +602,7 @@ func TestMigrate_HeartbeatAndReleaseMigrationLockFail_CancelsContextAndStopsMigr
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			<-ctx.Done()
 			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
 			return ctx.Err()
@@ -647,7 +647,7 @@ func TestMigrate_HeartbeatSucceeds_DoesNotPreventProgress(t *testing.T) {
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			<-manager.Heartbeat
 			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
 			return ctx.Err()
@@ -688,7 +688,7 @@ func TestMigrate_HeartbeatRecoversAfterError_ResetsSuccessiveFailures(t *testing
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			heartbeatDone := make(chan struct{})
 			go func() {
 				count := 0
@@ -903,7 +903,7 @@ func TestMigrate_DisabledMigrationWithoutPersistedStatus_SkipsMigration(t *testi
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context) error {
+		Migrate: func(ctx context.Context, _ migration.Status) error {
 			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
 			return ctx.Err()
 		},
@@ -966,4 +966,72 @@ func TestPersistedStatus_InvalidStatuses_FailsValidation(t *testing.T) {
 	assert.Error(t, validation.Struct(migration.PersistedStatus{Order: 4, Status: ""}))
 	assert.Error(t, validation.Struct(migration.PersistedStatus{Order: 5, Status: "UNKNOWN"}))
 	assert.Error(t, validation.Struct(migration.PersistedStatus{Order: -1, Status: migration.Pending}))
+}
+
+func TestMigrate_NoPersistedStatus_PassesPendingAsDefault(t *testing.T) {
+	t.Parallel()
+	manager := &managerRecorder{}
+	var receivedStatus migration.Status
+	reg := migration.NewRegistry()
+	reg.MustRegister(&migration.Registration{
+		Order: 1,
+		Migrate: func(ctx context.Context, previousStatus migration.Status) error {
+			receivedStatus = previousStatus
+			manager.Operations = append(manager.Operations, fmt.Sprintf("Migration1.Migrate(previousStatus=%s)", previousStatus))
+			return nil
+		},
+		Enabled: true,
+	})
+	opts := []migration.Option{migration.WithRegistry(reg)}
+	err := migration.Migrate(manager, opts...)
+	assert.NoError(t, err)
+	assert.Equals(t, migration.Pending, receivedStatus)
+	expectedOps := []string{
+		"AcquireDBLock()",
+		"EnsureDataStores()",
+		"ReleaseDBLock()",
+		"AcquireMigrationLock()",
+		"ListStatuses()",
+		"PersistStatus(order=1, status=PENDING)",
+		"PersistStatus(order=1, status=STARTED)",
+		"Migration1.Migrate(previousStatus=PENDING)",
+		"PersistStatus(order=1, status=COMPLETED)",
+	}
+	assert.Equals(t, expectedOps, manager.Operations)
+}
+
+func TestMigrate_PersistedStatusFailed_PassesFailedToPreviousStatus(t *testing.T) {
+	t.Parallel()
+	manager := &managerRecorder{
+		PersistedMigrations: []migration.PersistedStatus{
+			{Order: 1, Status: migration.Failed},
+		},
+	}
+	var receivedStatus migration.Status
+	reg := migration.NewRegistry()
+	reg.MustRegister(&migration.Registration{
+		Order: 1,
+		Migrate: func(ctx context.Context, previousStatus migration.Status) error {
+			receivedStatus = previousStatus
+			manager.Operations = append(manager.Operations, fmt.Sprintf("Migration1.Migrate(previousStatus=%s)", previousStatus))
+			return nil
+		},
+		Enabled: true,
+	})
+	opts := []migration.Option{migration.WithRegistry(reg)}
+	err := migration.Migrate(manager, opts...)
+	assert.NoError(t, err)
+	assert.Equals(t, migration.Failed, receivedStatus)
+	expectedOps := []string{
+		"AcquireDBLock()",
+		"EnsureDataStores()",
+		"ReleaseDBLock()",
+		"AcquireMigrationLock()",
+		"ListStatuses()",
+		"PersistStatus(order=1, status=PENDING)",
+		"PersistStatus(order=1, status=STARTED)",
+		"Migration1.Migrate(previousStatus=FAILED)",
+		"PersistStatus(order=1, status=COMPLETED)",
+	}
+	assert.Equals(t, expectedOps, manager.Operations)
 }
