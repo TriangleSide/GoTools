@@ -63,11 +63,12 @@ func FromContext(ctx context.Context) (context.Context, *slog.Logger) {
 
 // WithAttrs returns a new context with a logger that has the given attributes.
 // If no logger exists in the context, a new one is created.
-func WithAttrs(ctx context.Context, attrs ...slog.Attr) context.Context {
+func WithAttrs(ctx context.Context, attrs ...slog.Attr) (context.Context, *slog.Logger) {
 	ctx, logger := FromContext(ctx)
 	anySlice := make([]any, 0, len(attrs))
 	for _, attr := range attrs {
 		anySlice = append(anySlice, attr)
 	}
-	return context.WithValue(ctx, ctxKeyInstance, logger.With(anySlice...))
+	newLogger := logger.With(anySlice...)
+	return context.WithValue(ctx, ctxKeyInstance, newLogger), newLogger
 }
