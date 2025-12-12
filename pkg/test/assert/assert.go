@@ -221,7 +221,7 @@ func FloatEquals[T ~float64 | ~float32](t Testing, first T, second T, epsilon T,
 	if abs < 0 {
 		abs = -abs
 	}
-	if abs >= epsilon {
+	if abs > epsilon {
 		tCtx.fail(fmt.Sprintf("Expecting %f to equal %f within a margin of %f.", first, second, epsilon))
 	}
 }
