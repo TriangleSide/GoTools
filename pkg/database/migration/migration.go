@@ -176,31 +176,49 @@ func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([
 	}
 
 	orderedMigrations := reg.OrderedRegistrations()
+	if err := validatePersistedMigrationsAreRegistered(orderToPersistedStatus, orderedMigrations); err != nil {
+		return nil, err
+	}
+	latestCompletedMigration := latestCompletedMigrationOrder(orderToPersistedStatus, orderedMigrations)
+	migrationsToRun := enabledMigrationsThatArentCompleted(orderToPersistedStatus, orderedMigrations)
+	if err := validateMigrationsInOrder(migrationsToRun, latestCompletedMigration); err != nil {
+		return nil, err
+	}
 
-	// Check that all persisted migrations are in the registry.
-	registeredMigrationOrders := make(map[Order]struct{})
+	return migrationsToRun, nil
+}
+
+// validatePersistedMigrationsAreRegistered ensures no persisted migration order is missing from the registry.
+func validatePersistedMigrationsAreRegistered(orderToPersistedStatus map[Order]Status, orderedMigrations []*Registration) error {
+	registeredMigrationOrders := make(map[Order]struct{}, len(orderedMigrations))
 	for _, registeredMigration := range orderedMigrations {
 		registeredMigrationOrders[registeredMigration.Order] = struct{}{}
 	}
+
 	for persistedOrder := range orderToPersistedStatus {
 		if _, found := registeredMigrationOrders[persistedOrder]; !found {
-			return nil, fmt.Errorf("found persisted migration(s) that are not in the registry (%+v)", orderToPersistedStatus)
+			return fmt.Errorf("found persisted migration(s) that are not in the registry (%+v)", orderToPersistedStatus)
 		}
 	}
 
-	// Find the latest completed migration.
+	return nil
+}
+
+// latestCompletedMigrationOrder returns the greatest registered order with a persisted COMPLETED status, or -1 if none exist.
+func latestCompletedMigrationOrder(orderToPersistedStatus map[Order]Status, orderedMigrations []*Registration) Order {
 	latestCompletedMigration := Order(-1)
 	for _, registeredMigration := range orderedMigrations {
 		migrationStatus, migrationStatusFound := orderToPersistedStatus[registeredMigration.Order]
-		if migrationStatusFound && migrationStatus == Completed {
-			if registeredMigration.Order > latestCompletedMigration {
-				latestCompletedMigration = registeredMigration.Order
-			}
+		if migrationStatusFound && migrationStatus == Completed && registeredMigration.Order > latestCompletedMigration {
+			latestCompletedMigration = registeredMigration.Order
 		}
 	}
+	return latestCompletedMigration
+}
 
-	// Determine which migrations need to be run.
-	enabledMigrationsThatArentCompleted := make([]migrationToRun, 0)
+// enabledMigrationsThatArentCompleted returns enabled migrations that are not persisted as COMPLETED, with their previous status.
+func enabledMigrationsThatArentCompleted(orderToPersistedStatus map[Order]Status, orderedMigrations []*Registration) []migrationToRun {
+	migrationsToRun := make([]migrationToRun, 0)
 	for _, registeredMigration := range orderedMigrations {
 		if !registeredMigration.Enabled {
 			continue
@@ -213,19 +231,22 @@ func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([
 		if found {
 			previousStatus = migrationStatus
 		}
-		enabledMigrationsThatArentCompleted = append(enabledMigrationsThatArentCompleted, migrationToRun{
+		migrationsToRun = append(migrationsToRun, migrationToRun{
 			registration:   registeredMigration,
 			previousStatus: previousStatus,
 		})
 	}
+	return migrationsToRun
+}
 
-	for _, mtr := range enabledMigrationsThatArentCompleted {
+// validateMigrationsInOrder ensures no migration will be run with an order less than the latest completed order.
+func validateMigrationsInOrder(migrationsToRun []migrationToRun, latestCompletedMigration Order) error {
+	for _, mtr := range migrationsToRun {
 		if mtr.registration.Order < latestCompletedMigration {
-			return nil, fmt.Errorf("cannot run migrations out of order (found %d but latest completed is %d)", mtr.registration.Order, latestCompletedMigration)
+			return fmt.Errorf("cannot run migrations out of order (found %d but latest completed is %d)", mtr.registration.Order, latestCompletedMigration)
 		}
 	}
-
-	return enabledMigrationsThatArentCompleted, nil
+	return nil
 }
 
 // runMigrations first persists the statuses of all the migrations as PENDING.
