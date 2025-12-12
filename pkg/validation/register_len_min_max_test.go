@@ -9,7 +9,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestStringLengthValidators(t *testing.T) {
+func TestLenMinMaxValidators(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
@@ -165,6 +165,100 @@ func TestStringLengthValidators(t *testing.T) {
 			param:         "5",
 			value:         "héllo", // 'é' is two bytes in UTF-8
 			expectedError: "length 6 must be exactly 5",
+		},
+		{
+			name:          "when the len validator has a negative parameter it should return an error",
+			validator:     "len",
+			param:         "-1",
+			value:         "hello",
+			expectedError: "the length parameter can't be negative",
+		},
+		{
+			name:          "when the min validator has an invalid parameter it should return an error",
+			validator:     "min",
+			param:         "abc",
+			value:         "hello",
+			expectedError: "invalid instruction 'abc' for min",
+		},
+		{
+			name:          "when the max validator has an invalid parameter it should return an error",
+			validator:     "max",
+			param:         "abc",
+			value:         "hello",
+			expectedError: "invalid instruction 'abc' for max",
+		},
+		{
+			name:          "when the min validator has an empty parameter it should return an error",
+			validator:     "min",
+			param:         "",
+			value:         "hello",
+			expectedError: "invalid instruction '' for min",
+		},
+		{
+			name:          "when the max validator has an empty parameter it should return an error",
+			validator:     "max",
+			param:         "",
+			value:         "hello",
+			expectedError: "invalid instruction '' for max",
+		},
+		{
+			name:          "when using min validator with a nil pointer it should not pass",
+			validator:     "min",
+			param:         "5",
+			value:         (*string)(nil),
+			expectedError: "value is nil",
+		},
+		{
+			name:          "when using max validator with a nil pointer it should not pass",
+			validator:     "max",
+			param:         "5",
+			value:         (*string)(nil),
+			expectedError: "value is nil",
+		},
+		{
+			name:          "when the min validator has a non-string value it should return an error",
+			validator:     "min",
+			param:         "5",
+			value:         12345,
+			expectedError: "value must be a string for the min validator",
+		},
+		{
+			name:          "when the max validator has a non-string value it should return an error",
+			validator:     "max",
+			param:         "5",
+			value:         12345,
+			expectedError: "value must be a string for the max validator",
+		},
+		{
+			name:      "when using len validator with a pointer to an empty string and zero length it should pass",
+			validator: "len",
+			param:     "0",
+			value:     ptr.Of(""),
+		},
+		{
+			name:      "when using min validator with a pointer to a string it should pass",
+			validator: "min",
+			param:     "3",
+			value:     ptr.Of("hello"),
+		},
+		{
+			name:      "when using max validator with a pointer to a string it should pass",
+			validator: "max",
+			param:     "10",
+			value:     ptr.Of("hello"),
+		},
+		{
+			name:      "when using max validator with zero length on empty string it should pass",
+			validator: "max",
+			param:     "0",
+			value:     "",
+		},
+		{
+			name:          "when using max validator with zero length on non-empty string it should fail",
+			validator:     "max",
+			param:         "0",
+			value:         "a",
+			expectedError: "length 1 must be at most 0",
 		},
 	}
 
