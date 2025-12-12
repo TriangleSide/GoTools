@@ -1,82 +1,12 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
-	"regexp"
-	"strings"
 
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
-	"github.com/TriangleSide/GoTools/pkg/reflection"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
-
-// pathValidationTag is the validation tag name used to validate API paths.
-const (
-	pathValidationTag = "api_path"
-)
-
-// init adds a validator for the Path.
-func init() {
-	isValidCharacters := regexp.MustCompile(`^[a-zA-Z0-9/{}]+$`).MatchString
-	validation.MustRegisterValidator(pathValidationTag, func(params *validation.CallbackParameters) *validation.CallbackResult {
-		result := validation.NewCallbackResult()
-
-		value := reflection.Dereference(params.Value)
-		if reflection.IsNil(value) {
-			return result.WithError(validation.NewViolation(params, errors.New("the value is nil")))
-		}
-
-		if value.Kind() != reflect.String {
-			return result.WithError(validation.NewViolation(params, errors.New("the value must be a string")))
-		}
-
-		path := value.String()
-		if len(path) == 0 {
-			return result.WithError(validation.NewViolation(params, errors.New("the path cannot be empty")))
-		}
-		if path == "/" {
-			return nil
-		}
-		if !isValidCharacters(path) {
-			return result.WithError(validation.NewViolation(params, errors.New("the path contains invalid characters")))
-		}
-		if !strings.HasPrefix(path, "/") {
-			return result.WithError(validation.NewViolation(params, errors.New("the path must start with '/'")))
-		}
-		if strings.HasSuffix(path, "/") {
-			return result.WithError(validation.NewViolation(params, errors.New("the path cannot end with '/'")))
-		}
-
-		parts := strings.Split(path, "/")
-		parameters := map[string]bool{}
-		for i := 1; i < len(parts); i++ {
-			part := parts[i]
-			if part == "" {
-				return result.WithError(validation.NewViolation(params, errors.New("the path parts cannot be empty")))
-			}
-			if _, foundPart := parameters[part]; foundPart {
-				return result.WithError(validation.NewViolation(params, errors.New("the path parts must be unique")))
-			}
-			parameters[part] = true
-			if strings.Contains(part, "{") || strings.Contains(part, "}") {
-				if !strings.HasPrefix(part, "{") || !strings.HasSuffix(part, "}") {
-					return result.WithError(validation.NewViolation(params, errors.New("the path parameters must start with '{' and end with '}'")))
-				}
-				if strings.Count(part, "{") != 1 || strings.Count(part, "}") != 1 {
-					return result.WithError(validation.NewViolation(params, errors.New("the path parameters must have only one '{' and '}'")))
-				}
-				if part == "{}" {
-					return result.WithError(validation.NewViolation(params, errors.New("the path parameters cannot be empty")))
-				}
-			}
-		}
-
-		return nil
-	})
-}
 
 // Method is a command used by a client to indicate the desired action to be performed
 // on a specified resource within a server as part of the HTTP protocol.

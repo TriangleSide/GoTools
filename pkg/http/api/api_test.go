@@ -8,7 +8,6 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/http/api"
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
 func TestHandlers_EmptyBuilder_ReturnsNothing(t *testing.T) {
@@ -215,91 +214,6 @@ func TestMustRegister_TwoPathsSameMethod_BothRetrievable(t *testing.T) {
 	getRecorder2 := httptest.NewRecorder()
 	getHandler2.Handler.ServeHTTP(getRecorder2, getRequest2)
 	assert.Equals(t, getRecorder2.Code, http.StatusAccepted)
-}
-
-func TestPathValidation_VariousPaths_ValidatesCorrectly(t *testing.T) {
-	t.Parallel()
-
-	validationFunc := func(t *testing.T, path string, expectedErrorMsg string) {
-		t.Helper()
-
-		errCheck := func(t *testing.T, err error) {
-			t.Helper()
-			if expectedErrorMsg != "" {
-				assert.ErrorPart(t, err, expectedErrorMsg)
-			} else {
-				assert.NoError(t, err)
-			}
-		}
-
-		type testStructRef struct {
-			Path string `validate:"api_path"`
-		}
-		errCheck(t, validation.Struct(&testStructRef{Path: path}))
-
-		type testStructPtr struct {
-			Path *string `validate:"api_path"`
-		}
-		errCheck(t, validation.Struct(&testStructPtr{Path: &path}))
-	}
-
-	validationFunc(t, "/", "")
-	validationFunc(t, "/a/b/c/1/2/3", "")
-	validationFunc(t, "/a/{b}/c", "")
-	validationFunc(t, "", "path cannot be empty")
-	validationFunc(t, "/+", "path contains invalid characters")
-	validationFunc(t, " /a", "path contains invalid characters")
-	validationFunc(t, "/a ", "path contains invalid characters")
-	validationFunc(t, "/a/", "path cannot end with '/'")
-	validationFunc(t, "a/b", "path must start with '/'")
-	validationFunc(t, "a", "path must start with '/'")
-	validationFunc(t, "/a//b", "path parts cannot be empty")
-	validationFunc(t, "//a", "path parts cannot be empty")
-	validationFunc(t, "/a/{b", "path parameters must start with '{' and end with '}'")
-	validationFunc(t, "/a/b}", "path parameters must start with '{' and end with '}'")
-	validationFunc(t, "/a/{{b}", "path parameters must have only one '{' and '}'")
-	validationFunc(t, "/a/{b}}", "path parameters must have only one '{' and '}'")
-	validationFunc(t, "/a/{}", "path parameters cannot be empty")
-	validationFunc(t, "/a/{b}/{b}", "path parts must be unique")
-	validationFunc(t, "/a/a", "path parts must be unique")
-	validationFunc(t, "/a/b/a", "path parts must be unique")
-}
-
-func TestPathValidation_NonStringReferenceField_ReturnsError(t *testing.T) {
-	t.Parallel()
-	type testStruct struct {
-		Path int `validate:"api_path"`
-	}
-	test := testStruct{
-		Path: 1,
-	}
-	err := validation.Struct(&test)
-	assert.ErrorPart(t, err, "must be a string")
-}
-
-func TestPathValidation_NonStringPointerField_ReturnsError(t *testing.T) {
-	t.Parallel()
-	type testStruct struct {
-		Path *int `validate:"api_path"`
-	}
-	i := 0
-	test := testStruct{
-		Path: &i,
-	}
-	err := validation.Struct(&test)
-	assert.ErrorPart(t, err, "must be a string")
-}
-
-func TestPathValidation_NilPointerString_ReturnsError(t *testing.T) {
-	t.Parallel()
-	type testStruct struct {
-		Path *string `validate:"api_path"`
-	}
-	test := testStruct{
-		Path: nil,
-	}
-	err := validation.Struct(&test)
-	assert.ErrorPart(t, err, "value is nil")
 }
 
 func TestMustRegister_HandlerWithMiddleware_StoresMiddleware(t *testing.T) {
