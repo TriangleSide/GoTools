@@ -1,21 +1,205 @@
 package validation_test
 
 import (
+	"errors"
+	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestRegistry(t *testing.T) {
+func TestMustRegisterValidator_RegisteredValidator_CanBeUsedInVar(t *testing.T) {
 	t.Parallel()
 
-	t.Run("when a validation is registered twice it should panic", func(t *testing.T) {
-		t.Parallel()
-		assert.PanicPart(t, func() {
-			for range 2 {
-				validation.MustRegisterValidator("test_validator_name", func(parameters *validation.CallbackParameters) *validation.CallbackResult { return nil })
-			}
-		}, "named test_validator_name already exists")
+	validatorName := validation.Validator("registry_test_registered_can_be_used_in_var")
+	validation.MustRegisterValidator(validatorName, func(parameters *validation.CallbackParameters) *validation.CallbackResult { return nil })
+
+	err := validation.Var("anything", string(validatorName))
+	assert.NoError(t, err)
+}
+
+func TestMustRegisterValidator_DuplicateName_Panics(t *testing.T) {
+	t.Parallel()
+
+	validatorName := validation.Validator("registry_test_duplicate_panics")
+	validation.MustRegisterValidator(validatorName, func(parameters *validation.CallbackParameters) *validation.CallbackResult { return nil })
+
+	assert.PanicPart(t, func() {
+		validation.MustRegisterValidator(validatorName, func(parameters *validation.CallbackParameters) *validation.CallbackResult { return nil })
+	}, "already exists")
+}
+
+func TestNewCallbackResult_EmptyResult_ReturnsIncorrectlyFilledError(t *testing.T) {
+	t.Parallel()
+
+	validatorName := validation.Validator("registry_test_empty_callback_result")
+	validation.MustRegisterValidator(validatorName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+		return validation.NewCallbackResult()
 	})
+
+	err := validation.Var("anything", string(validatorName))
+	assert.ErrorPart(t, err, "callback response is not correctly filled")
+}
+
+func TestCallbackResult_WithError_PropagatesError(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name          string
+		validatorName validation.Validator
+		callback      validation.Callback
+		expectedError string
+		expectedAs    func(err error) bool
+	}
+
+	testCases := []testCase{
+		{
+			name:          "when a callback returns a normal error it should be returned directly",
+			validatorName: "registry_test_with_error_plain",
+			callback: func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+				return validation.NewCallbackResult().WithError(errors.New("some error"))
+			},
+			expectedError: "some error",
+		},
+		{
+			name:          "when a callback returns a violation it should be aggregated into violations",
+			validatorName: "registry_test_with_error_violation",
+			callback: func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+				return validation.NewCallbackResult().WithError(validation.NewViolation(parameters, errors.New("some violation")))
+			},
+			expectedError: "some violation",
+			expectedAs: func(err error) bool {
+				var violations *validation.Violations
+				return errors.As(err, &violations)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			validation.MustRegisterValidator(tc.validatorName, tc.callback)
+
+			err := validation.Var("anything", string(tc.validatorName))
+			assert.Error(t, err)
+			assert.ErrorPart(t, err, tc.expectedError)
+			if tc.expectedAs != nil {
+				assert.True(t, tc.expectedAs(err))
+			}
+		})
+	}
+}
+
+func TestCallbackResult_WithStop_SkipsRemainingValidators(t *testing.T) {
+	t.Parallel()
+
+	stopName := validation.Validator("registry_test_stop_skips_remaining_first")
+	panicName := validation.Validator("registry_test_stop_skips_remaining_second")
+
+	validation.MustRegisterValidator(stopName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+		return validation.NewCallbackResult().WithStop()
+	})
+	validation.MustRegisterValidator(panicName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+		panic("should not be called")
+	})
+
+	err := validation.Var("anything", string(stopName)+validation.ValidatorsSep+string(panicName))
+	assert.NoError(t, err)
+}
+
+func TestCallbackResult_WithStop_SkipsMalformedRemainingInstruction(t *testing.T) {
+	t.Parallel()
+
+	stopName := validation.Validator("registry_test_stop_skips_malformed_remaining_first")
+
+	validation.MustRegisterValidator(stopName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+		return validation.NewCallbackResult().WithStop()
+	})
+
+	err := validation.Var("anything", string(stopName)+validation.ValidatorsSep+"malformed=1=2")
+	assert.NoError(t, err)
+}
+
+func TestCallback_ReturnsNil_ContinuesToNextValidator(t *testing.T) {
+	t.Parallel()
+
+	firstName := validation.Validator("registry_test_callback_returns_nil_continues_first")
+	secondName := validation.Validator("registry_test_callback_returns_nil_continues_second")
+
+	validation.MustRegisterValidator(firstName, func(parameters *validation.CallbackParameters) *validation.CallbackResult { return nil })
+	validation.MustRegisterValidator(secondName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+		return validation.NewCallbackResult().WithError(errors.New("second validator error"))
+	})
+
+	err := validation.Var("anything", string(firstName)+validation.ValidatorsSep+string(secondName))
+	assert.ErrorPart(t, err, "second validator error")
+}
+
+func TestCallbackResult_AddValue_ValidatesRemainingInstructionsAgainstNewValues(t *testing.T) {
+	t.Parallel()
+
+	addValueName := validation.Validator("registry_test_add_value_validates_remaining")
+
+	validation.MustRegisterValidator(addValueName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+		if parameters.Value.Kind() != reflect.Slice && parameters.Value.Kind() != reflect.Array {
+			return validation.NewCallbackResult().WithError(fmt.Errorf("expected slice or array but got %s", parameters.Value.Kind()))
+		}
+
+		result := validation.NewCallbackResult()
+		for i := range parameters.Value.Len() {
+			result.AddValue(parameters.Value.Index(i))
+		}
+		return result
+	})
+
+	err := validation.Var([]int{1, 0, 2}, string(addValueName)+validation.ValidatorsSep+string(validation.RequiredValidatorName))
+	assert.Error(t, err)
+
+	var violations *validation.Violations
+	assert.True(t, errors.As(err, &violations))
+	assert.ErrorPart(t, err, "zero-value")
+}
+
+func TestCallbackResult_AddValue_NoRemainingInstructions_ReturnsEmptyInstructionsError(t *testing.T) {
+	t.Parallel()
+
+	addValueName := validation.Validator("registry_test_add_value_no_remaining_instructions")
+
+	validation.MustRegisterValidator(addValueName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+		return validation.NewCallbackResult().AddValue(reflect.ValueOf("anything"))
+	})
+
+	err := validation.Var("anything", string(addValueName))
+	assert.ErrorPart(t, err, "empty validate instructions")
+}
+
+func TestCallbackResult_AddValue_ValidatesRestAgainstElementsOnly(t *testing.T) {
+	t.Parallel()
+
+	addValueName := validation.Validator("registry_test_add_value_validates_elements_only_add")
+	expectIntName := validation.Validator("registry_test_add_value_validates_elements_only_expect_int")
+
+	validation.MustRegisterValidator(addValueName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+		if parameters.Value.Kind() != reflect.Slice && parameters.Value.Kind() != reflect.Array {
+			return validation.NewCallbackResult().WithError(fmt.Errorf("expected slice or array but got %s", parameters.Value.Kind()))
+		}
+
+		result := validation.NewCallbackResult()
+		for i := range parameters.Value.Len() {
+			result.AddValue(parameters.Value.Index(i))
+		}
+		return result
+	})
+	validation.MustRegisterValidator(expectIntName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+		if parameters.Value.Kind() != reflect.Int {
+			return validation.NewCallbackResult().WithError(fmt.Errorf("expected int but got %s", parameters.Value.Kind()))
+		}
+		return nil
+	})
+
+	err := validation.Var([]int{1, 2, 3}, string(addValueName)+validation.ValidatorsSep+string(expectIntName))
+	assert.NoError(t, err)
 }
