@@ -1,6 +1,7 @@
 package validation_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/ptr"
@@ -8,324 +9,563 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestRequiredIfValidator(t *testing.T) {
+func TestRequiredIfValidator_UsedWithVar_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	t.Run("required_if should fail if called with Var validation", func(t *testing.T) {
-		t.Parallel()
-		err := validation.Var("testValue", "required_if=Status active")
-		assert.ErrorPart(t, err, "required_if can only be used on struct fields")
-	})
+	testCases := []struct {
+		name              string
+		value             any
+		rule              string
+		expectedErrorPart string
+	}{
+		{
+			name:              "required_if used with Var",
+			value:             "testValue",
+			rule:              "required_if=Status active",
+			expectedErrorPart: "required_if can only be used on struct fields",
+		},
+	}
 
-	t.Run("when the condition field matches and the required field is set it should pass", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string `validate:"required"`
-			Field  string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(&TestStruct{
-			Status: "active",
-			Field:  "some value",
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validation.Var(testCase.value, testCase.rule)
+			assert.ErrorPart(t, err, testCase.expectedErrorPart)
 		})
+	}
+}
+
+func TestRequiredIfValidator_ConditionMatches_EnforcesRequired(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name              string
+		validate          func() error
+		expectedErrorPart string
+	}{
+		{
+			name: "string condition matches and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Status string `validate:"required"`
+					Field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "active",
+					Field:  "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name: "string condition matches with extra whitespace and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Status string `validate:"required"`
+					Field  string `validate:"required_if=Status   active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "active",
+					Field:  "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name: "non-string condition matches and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Count int
+					Field string `validate:"required_if=Count 10"`
+				}
+				return validation.Struct(TestStruct{
+					Count: 10,
+					Field: "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name: "non-string pointer condition matches and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Count *int
+					Field string `validate:"required_if=Count 10"`
+				}
+				return validation.Struct(TestStruct{
+					Count: ptr.Of(10),
+					Field: "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name: "pointer condition matches and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Status *string
+					Field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: ptr.Of("active"),
+					Field:  "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name: "any condition holds string that matches and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Status any
+					Field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: any("active"),
+					Field:  "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name: "any condition holds int that matches and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Status any
+					Field  string `validate:"required_if=Status 10"`
+				}
+				return validation.Struct(TestStruct{
+					Status: any(10),
+					Field:  "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name: "numeric condition matches and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Code  int    `validate:"required"`
+					Field string `validate:"required_if=Code 200"`
+				}
+				return validation.Struct(TestStruct{
+					Code:  200,
+					Field: "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name: "boolean condition matches and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Flag  bool   `validate:"required"`
+					Field string `validate:"required_if=Flag true"`
+				}
+				return validation.Struct(TestStruct{
+					Flag:  true,
+					Field: "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name: "field under validation is a pointer and nil",
+			validate: func() error {
+				type TestStruct struct {
+					Status string
+					Field  *string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "active",
+					Field:  nil,
+				})
+			},
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name: "field under validation is unexported and empty",
+			validate: func() error {
+				type TestStruct struct {
+					Status string `validate:"required"`
+					field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "active",
+					field:  "",
+				})
+			},
+			expectedErrorPart: "the value is the zero-value",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := testCase.validate()
+			assert.ErrorPart(t, err, testCase.expectedErrorPart)
+		})
+	}
+}
+
+func TestRequiredIfValidator_ConditionMatches_RequiredFieldPresent_Passes(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		validate func() error
+	}{
+		{
+			name: "string condition matches and required field is set",
+			validate: func() error {
+				type TestStruct struct {
+					Status string `validate:"required"`
+					Field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(&TestStruct{
+					Status: "active",
+					Field:  "some value",
+				})
+			},
+		},
+		{
+			name: "field under validation is a pointer and set",
+			validate: func() error {
+				type TestStruct struct {
+					Status string  `validate:"required"`
+					Field  *string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "active",
+					Field:  ptr.Of("some value"),
+				})
+			},
+		},
+		{
+			name: "condition field is unexported and matches",
+			validate: func() error {
+				type TestStruct struct {
+					status string
+					Field  string `validate:"required_if=status active"`
+				}
+				return validation.Struct(TestStruct{
+					status: "active",
+					Field:  "not-empty",
+				})
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := testCase.validate()
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestRequiredIfValidator_ConditionDoesNotMatch_DoesNotEnforceRequired(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		validate func() error
+	}{
+		{
+			name: "string condition does not match and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Status string `validate:"required"`
+					Field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "inactive",
+					Field:  "",
+				})
+			},
+		},
+		{
+			name: "string condition does not match and required field is set",
+			validate: func() error {
+				type TestStruct struct {
+					Status string `validate:"required"`
+					Field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "inactive",
+					Field:  "some value",
+				})
+			},
+		},
+		{
+			name: "non-string condition does not match and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Count int
+					Field string `validate:"required_if=Count 10"`
+				}
+				return validation.Struct(TestStruct{
+					Count: 5,
+					Field: "",
+				})
+			},
+		},
+		{
+			name: "boolean condition does not match and required field is zero",
+			validate: func() error {
+				type TestStruct struct {
+					Flag  bool
+					Field string `validate:"required_if=Flag true"`
+				}
+				return validation.Struct(TestStruct{
+					Flag:  false,
+					Field: "",
+				})
+			},
+		},
+		{
+			name: "condition field is any and does not match",
+			validate: func() error {
+				type TestStruct struct {
+					Status any
+					Field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: any("inactive"),
+					Field:  "",
+				})
+			},
+		},
+		{
+			name: "condition field is any and nil",
+			validate: func() error {
+				type TestStruct struct {
+					Status any
+					Field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: nil,
+					Field:  "",
+				})
+			},
+		},
+		{
+			name: "condition field is a pointer and nil",
+			validate: func() error {
+				type TestStruct struct {
+					Status *string
+					Field  string `validate:"required_if=Status active"`
+				}
+				return validation.Struct(TestStruct{
+					Status: nil,
+					Field:  "",
+				})
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := testCase.validate()
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestRequiredIfValidator_MissingConditionField_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	type TestStruct struct {
+		Field string `validate:"required_if=Status active"`
+	}
+	err := validation.Struct(TestStruct{
+		Field: "some value",
+	})
+	assert.ErrorPart(t, err, "field Status does not exist in the struct")
+}
+
+func TestRequiredIfValidator_InvalidParameters_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name              string
+		validate          func() error
+		expectedErrorPart string
+	}{
+		{
+			name: "missing comparison value",
+			validate: func() error {
+				type TestStruct struct {
+					Status string `validate:"required"`
+					Field  string `validate:"required_if=Status"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "active",
+					Field:  "",
+				})
+			},
+			expectedErrorPart: "required_if requires a field name and a value to compare",
+		},
+		{
+			name: "empty parameters",
+			validate: func() error {
+				type TestStruct struct {
+					Status string `validate:"required"`
+					Field  string `validate:"required_if="`
+				}
+				return validation.Struct(TestStruct{
+					Status: "active",
+					Field:  "",
+				})
+			},
+			expectedErrorPart: "required_if requires a field name and a value to compare",
+		},
+		{
+			name: "too many parts",
+			validate: func() error {
+				type TestStruct struct {
+					Status string `validate:"required"`
+					Field  string `validate:"required_if=Status active extra"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "active",
+					Field:  "",
+				})
+			},
+			expectedErrorPart: "required_if requires a field name and a value to compare",
+		},
+		{
+			name: "poorly formatted after dive",
+			validate: func() error {
+				type TestStruct struct {
+					Status string   `validate:"required"`
+					Field  []string `validate:"dive,required_if=Status"`
+				}
+				return validation.Struct(TestStruct{
+					Status: "active",
+					Field:  []string{""},
+				})
+			},
+			expectedErrorPart: "required_if requires a field name and a value to compare",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := testCase.validate()
+			assert.ErrorPart(t, err, testCase.expectedErrorPart)
+		})
+	}
+}
+
+func TestRequiredIfValidator_OmitemptyPresent_SkipsRequiredIf(t *testing.T) {
+	t.Parallel()
+
+	type TestStruct struct {
+		Status string `validate:"required"`
+		Field  string `validate:"omitempty,required_if=Status active"`
+	}
+	err := validation.Struct(TestStruct{
+		Status: "active",
+		Field:  "",
+	})
+	assert.NoError(t, err)
+}
+
+func TestRequiredIfValidator_MultipleConditionsAnyMatch_EnforcesRequired(t *testing.T) {
+	t.Parallel()
+
+	type TestStruct struct {
+		Status string `validate:"required"`
+		Type   string `validate:"required"`
+		Field  string `validate:"required_if=Type admin,required_if=Status active"`
+	}
+	err := validation.Struct(TestStruct{
+		Status: "active",
+		Type:   "user",
+		Field:  "",
+	})
+	assert.ErrorPart(t, err, "the value is the zero-value")
+}
+
+func TestRequiredIfValidator_AfterDive_ValidatesElements(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name              string
+		value             []string
+		expectedErrorPart string
+	}{
+		{
+			name:              "element is empty",
+			value:             []string{""},
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "element is not empty",
+			value:             []string{"value"},
+			expectedErrorPart: "",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			type TestStruct struct {
+				Status string   `validate:"required"`
+				Field  []string `validate:"dive,required_if=Status active"`
+			}
+
+			err := validation.Struct(TestStruct{
+				Status: "active",
+				Field:  testCase.value,
+			})
+
+			if testCase.expectedErrorPart != "" {
+				assert.ErrorPart(t, err, testCase.expectedErrorPart)
+				return
+			}
+
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestRequiredIfValidator_ConcurrentValidation_PassesConsistently(t *testing.T) {
+	t.Parallel()
+
+	type TestStruct struct {
+		Status string `validate:"required"`
+		Field  string `validate:"required_if=Status active"`
+	}
+
+	const goroutineCount = 50
+	errorsCh := make(chan error, goroutineCount)
+
+	wg := sync.WaitGroup{}
+	wg.Add(goroutineCount)
+	for range goroutineCount {
+		go func() {
+			defer wg.Done()
+			errorsCh <- validation.Struct(TestStruct{
+				Status: "active",
+				Field:  "some value",
+			})
+		}()
+	}
+	wg.Wait()
+	close(errorsCh)
+
+	for err := range errorsCh {
 		assert.NoError(t, err)
-	})
-
-	t.Run("when the condition field matches and the required field is zero it should fail", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string `validate:"required"`
-			Field  string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Field:  "",
-		})
-		assert.ErrorPart(t, err, "the value is the zero-value")
-	})
-
-	t.Run("when the condition field does not match and the required field is zero it should pass", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string `validate:"required"`
-			Field  string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "inactive",
-			Field:  "",
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when the condition field does not match and the required field is set it should pass", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string `validate:"required"`
-			Field  string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "inactive",
-			Field:  "some value",
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when the condition field is missing it should return an error", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Field string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Field: "some value",
-		})
-		assert.ErrorPart(t, err, "field Status does not exist in the struct")
-	})
-
-	t.Run("when the validator has invalid parameters it should return an error", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string `validate:"required"`
-			Field  string `validate:"required_if=Status"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Field:  "",
-		})
-		assert.ErrorPart(t, err, "required_if requires a field name and a value to compare")
-	})
-
-	t.Run("when the condition field is a non-string and matches the value it should enforce required", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Count int
-			Field string `validate:"required_if=Count 10"`
-		}
-		err := validation.Struct(TestStruct{
-			Count: 10,
-			Field: "",
-		})
-		assert.ErrorPart(t, err, "the value is the zero-value")
-	})
-
-	t.Run("when the condition field is a non-string and does not match the value it should not enforce required", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Count int
-			Field string `validate:"required_if=Count 10"`
-		}
-		err := validation.Struct(TestStruct{
-			Count: 5,
-			Field: "",
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when the condition field is a pointer and matches the value it should enforce required", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status *string
-			Field  string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: ptr.Of("active"),
-			Field:  "",
-		})
-		assert.ErrorPart(t, err, "the value is the zero-value")
-	})
-
-	t.Run("when the condition field is any and nil it should fail to check it", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status any
-			Field  string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: nil,
-			Field:  "",
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when the condition field is nil it should not enforce required", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status *string
-			Field  string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: nil,
-			Field:  "",
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when the field under validation is a pointer and required it should enforce required", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string
-			Field  *string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Field:  nil,
-		})
-		assert.ErrorPart(t, err, "value is nil")
-	})
-
-	t.Run("when the field under validation is a pointer and set it should pass", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string  `validate:"required"`
-			Field  *string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Field:  ptr.Of("some value"),
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when the validator is used with parameters missing it should return an error", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string `validate:"required"`
-			Field  string `validate:"required_if="`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Field:  "",
-		})
-		assert.ErrorPart(t, err, "required_if requires a field name and a value to compare")
-	})
-
-	t.Run("when the condition field value is numeric and matches it should enforce required", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Code  int    `validate:"required"`
-			Field string `validate:"required_if=Code 200"`
-		}
-		err := validation.Struct(TestStruct{
-			Code:  200,
-			Field: "",
-		})
-		assert.ErrorPart(t, err, "the value is the zero-value")
-	})
-
-	t.Run("when the condition field value is boolean and matches it should enforce required", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Flag  bool   `validate:"required"`
-			Field string `validate:"required_if=Flag true"`
-		}
-		err := validation.Struct(TestStruct{
-			Flag:  true,
-			Field: "",
-		})
-		assert.ErrorPart(t, err, "the value is the zero-value")
-	})
-
-	t.Run("when the condition field value is boolean and does not match it should not enforce required", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Flag  bool
-			Field string `validate:"required_if=Flag true"`
-		}
-		err := validation.Struct(TestStruct{
-			Flag:  false,
-			Field: "",
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when the condition field is an unexported field it should succeed", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			status string
-			Field  string `validate:"required_if=status active"`
-		}
-		err := validation.Struct(TestStruct{
-			status: "active",
-			Field:  "not-empty",
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when the field under validation is unexported it should perform the check", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string `validate:"required"`
-			field  string `validate:"required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			field:  "",
-		})
-		assert.ErrorPart(t, err, "the value is the zero-value")
-	})
-
-	t.Run("when using 'omitempty' with 'required_if' and the omitempty matches it should ignore the required_if", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string `validate:"required"`
-			Field  string `validate:"omitempty,required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Field:  "",
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when multiple conditions are specified and any match it should enforce required", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string `validate:"required"`
-			Type   string `validate:"required"`
-			Field  string `validate:"required_if=Type admin,required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Type:   "user",
-			Field:  "",
-		})
-		assert.ErrorPart(t, err, "the value is the zero-value")
-	})
-
-	t.Run("when required_if is after a dive it should fail if it's the zero value", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string   `validate:"required"`
-			Field  []string `validate:"dive,required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Field:  []string{""},
-		})
-		assert.ErrorPart(t, err, "the value is the zero-value")
-	})
-
-	t.Run("when required_if is after a dive it should succeed if the value is not empty", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string   `validate:"required"`
-			Field  []string `validate:"dive,required_if=Status active"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Field:  []string{"value"},
-		})
-		assert.NoError(t, err)
-	})
-
-	t.Run("when required_if is poorly formatted after a dive it should return an error", func(t *testing.T) {
-		t.Parallel()
-		type TestStruct struct {
-			Status string   `validate:"required"`
-			Field  []string `validate:"dive,required_if=Status"`
-		}
-		err := validation.Struct(TestStruct{
-			Status: "active",
-			Field:  []string{""},
-		})
-		assert.ErrorPart(t, err, "required_if requires a field name and a value to compare")
-	})
+	}
 }
