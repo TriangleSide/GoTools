@@ -8,15 +8,17 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestOmitemptyValidator(t *testing.T) {
+func TestOmitemptyValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	type testCase struct {
 		name          string
 		value         any
 		validation    string
 		expectedError string
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			name:          "when the value is empty and 'omitempty' is used, it should pass and stop further validation",
 			value:         "",

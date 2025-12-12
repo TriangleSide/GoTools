@@ -8,7 +8,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestOneOfValidator(t *testing.T) {
+func TestOneOfValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {

@@ -9,7 +9,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestGtGteLtLteValidators(t *testing.T) {
+func TestGtGteLtLteValidators_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
 	t.Parallel()
 
 	type testCaseDefinition struct {

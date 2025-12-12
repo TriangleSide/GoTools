@@ -12,12 +12,14 @@ import (
 func TestRequiredIfValidator_UsedWithVar_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	type testCase struct {
 		name              string
 		value             any
 		rule              string
 		expectedErrorPart string
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			name:              "required_if used with Var",
 			value:             "testValue",
@@ -39,11 +41,13 @@ func TestRequiredIfValidator_UsedWithVar_ReturnsError(t *testing.T) {
 func TestRequiredIfValidator_ConditionMatches_EnforcesRequired(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	type testCase struct {
 		name              string
 		validate          func() error
 		expectedErrorPart string
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			name: "string condition matches and required field is zero",
 			validate: func() error {
@@ -213,10 +217,12 @@ func TestRequiredIfValidator_ConditionMatches_EnforcesRequired(t *testing.T) {
 func TestRequiredIfValidator_ConditionMatches_RequiredFieldPresent_Passes(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	type testCase struct {
 		name     string
 		validate func() error
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			name: "string condition matches and required field is set",
 			validate: func() error {
@@ -271,10 +277,12 @@ func TestRequiredIfValidator_ConditionMatches_RequiredFieldPresent_Passes(t *tes
 func TestRequiredIfValidator_ConditionDoesNotMatch_DoesNotEnforceRequired(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	type testCase struct {
 		name     string
 		validate func() error
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			name: "string condition does not match and required field is zero",
 			validate: func() error {
@@ -393,11 +401,13 @@ func TestRequiredIfValidator_MissingConditionField_ReturnsError(t *testing.T) {
 func TestRequiredIfValidator_InvalidParameters_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	type testCase struct {
 		name              string
 		validate          func() error
 		expectedErrorPart string
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			name: "missing comparison value",
 			validate: func() error {
@@ -499,11 +509,13 @@ func TestRequiredIfValidator_MultipleConditionsAnyMatch_EnforcesRequired(t *test
 func TestRequiredIfValidator_AfterDive_ValidatesElements(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
+	type testCase struct {
 		name              string
 		value             []string
 		expectedErrorPart string
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			name:              "element is empty",
 			value:             []string{""},

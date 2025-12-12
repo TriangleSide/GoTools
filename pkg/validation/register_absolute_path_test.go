@@ -10,7 +10,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestAbsolutePathValidator(t *testing.T) {
+func TestAbsolutePathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
 	t.Parallel()
 
 	type testCaseDefinition struct {
