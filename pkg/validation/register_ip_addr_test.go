@@ -30,7 +30,7 @@ func TestIPAddrValidator_StructField(t *testing.T) {
 	})
 }
 
-func TestIPAddrValidator(t *testing.T) {
+func TestIPAddrValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
 	t.Parallel()
 
 	type testCaseDefinition struct {

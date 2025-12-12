@@ -8,7 +8,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestDiveValidator(t *testing.T) {
+func TestDiveValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
 	t.Parallel()
 
 	type testCaseDefinition struct {
