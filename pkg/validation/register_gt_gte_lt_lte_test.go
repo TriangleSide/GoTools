@@ -9,7 +9,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestComparisonValidations(t *testing.T) {
+func TestGtGteLtLteValidators(t *testing.T) {
 	t.Parallel()
 
 	type testCaseDefinition struct {
@@ -259,6 +259,282 @@ func TestComparisonValidations(t *testing.T) {
 			Value:            "test",
 			Validation:       "lte=5",
 			ExpectedErrorMsg: "lte validation not supported for kind string",
+		},
+		{
+			Name:             "gt with negative threshold and positive value",
+			Value:            5,
+			Validation:       "gt=-10",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "gt with negative threshold and negative value above",
+			Value:            -5,
+			Validation:       "gt=-10",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "gt with negative threshold and negative value below",
+			Value:            -15,
+			Validation:       "gt=-10",
+			ExpectedErrorMsg: "value -15 must be greater than -10",
+		},
+		{
+			Name:             "gt with negative threshold and equal value",
+			Value:            -10,
+			Validation:       "gt=-10",
+			ExpectedErrorMsg: "value -10 must be greater than -10",
+		},
+		{
+			Name:             "gte with negative threshold and equal value",
+			Value:            -10,
+			Validation:       "gte=-10",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "lt with negative threshold and value below",
+			Value:            -15,
+			Validation:       "lt=-10",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "lt with negative threshold and value above",
+			Value:            -5,
+			Validation:       "lt=-10",
+			ExpectedErrorMsg: "value -5 must be less than -10",
+		},
+		{
+			Name:             "lte with negative threshold and equal value",
+			Value:            -10,
+			Validation:       "lte=-10",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "gt with zero threshold and positive value",
+			Value:            1,
+			Validation:       "gt=0",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "gt with zero threshold and zero value",
+			Value:            0,
+			Validation:       "gt=0",
+			ExpectedErrorMsg: "value 0 must be greater than 0",
+		},
+		{
+			Name:             "gt with zero threshold and negative value",
+			Value:            -1,
+			Validation:       "gt=0",
+			ExpectedErrorMsg: "value -1 must be greater than 0",
+		},
+		{
+			Name:             "gte with zero threshold and zero value",
+			Value:            0,
+			Validation:       "gte=0",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "lt with zero threshold and negative value",
+			Value:            -1,
+			Validation:       "lt=0",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "lt with zero threshold and zero value",
+			Value:            0,
+			Validation:       "lt=0",
+			ExpectedErrorMsg: "value 0 must be less than 0",
+		},
+		{
+			Name:             "lte with zero threshold and zero value",
+			Value:            0,
+			Validation:       "lte=0",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "gt with float threshold and value above",
+			Value:            5.6,
+			Validation:       "gt=5.5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "gt with float threshold and value equal",
+			Value:            5.5,
+			Validation:       "gt=5.5",
+			ExpectedErrorMsg: "value 5.5 must be greater than 5.5",
+		},
+		{
+			Name:             "gt with float threshold and value below",
+			Value:            5.4,
+			Validation:       "gt=5.5",
+			ExpectedErrorMsg: "value 5.4 must be greater than 5.5",
+		},
+		{
+			Name:             "gte with float threshold and value equal",
+			Value:            5.5,
+			Validation:       "gte=5.5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "lt with float threshold and value below",
+			Value:            5.4,
+			Validation:       "lt=5.5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "lt with float threshold and value equal",
+			Value:            5.5,
+			Validation:       "lt=5.5",
+			ExpectedErrorMsg: "value 5.5 must be less than 5.5",
+		},
+		{
+			Name:             "lte with float threshold and value equal",
+			Value:            5.5,
+			Validation:       "lte=5.5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "int8 value greater than threshold",
+			Value:            int8(10),
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "int8 value less than threshold",
+			Value:            int8(4),
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "value 4 must be greater than 5",
+		},
+		{
+			Name:             "int16 value greater than threshold",
+			Value:            int16(1000),
+			Validation:       "gt=500",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "int32 value greater than threshold",
+			Value:            int32(100000),
+			Validation:       "gt=50000",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "int64 value greater than threshold",
+			Value:            int64(1000000000),
+			Validation:       "gt=500000000",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "uint8 value greater than threshold",
+			Value:            uint8(200),
+			Validation:       "gt=100",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "uint16 value greater than threshold",
+			Value:            uint16(60000),
+			Validation:       "gt=50000",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "uint32 value greater than threshold",
+			Value:            uint32(4000000000),
+			Validation:       "gt=3000000000",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "uint64 value greater than threshold",
+			Value:            uint64(10000000000),
+			Validation:       "gt=5000000000",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "float64 value equal to threshold for gte",
+			Value:            float64(5.0),
+			Validation:       "gte=5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "float64 value less than threshold for lt",
+			Value:            float64(4.9),
+			Validation:       "lt=5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "float64 value equal to threshold for lte",
+			Value:            float64(5.0),
+			Validation:       "lte=5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "pointer to float32 greater than threshold",
+			Value:            ptr.Of(float32(10.5)),
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "pointer to float64 greater than threshold",
+			Value:            ptr.Of(float64(10.5)),
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "nil pointer to float32",
+			Value:            (*float32)(nil),
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "value is nil",
+		},
+		{
+			Name:             "nil pointer to float64",
+			Value:            (*float64)(nil),
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "value is nil",
+		},
+		{
+			Name:             "unsupported kind bool",
+			Value:            true,
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "gt validation not supported for kind bool",
+		},
+		{
+			Name:             "unsupported kind slice",
+			Value:            []int{1, 2, 3},
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "gt validation not supported for kind slice",
+		},
+		{
+			Name:             "unsupported kind map",
+			Value:            map[string]int{"a": 1},
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "gt validation not supported for kind map",
+		},
+		{
+			Name:             "unsupported kind struct",
+			Value:            struct{ X int }{X: 5},
+			Validation:       "gt=5",
+			ExpectedErrorMsg: "gt validation not supported for kind struct",
+		},
+		{
+			Name:             "gt with empty parameter",
+			Value:            10,
+			Validation:       "gt=",
+			ExpectedErrorMsg: "invalid parameters '' for gt",
+		},
+		{
+			Name:             "uint value equal to threshold for gte",
+			Value:            uint(5),
+			Validation:       "gte=5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "uint value less than threshold for lt",
+			Value:            uint(4),
+			Validation:       "lt=5",
+			ExpectedErrorMsg: "",
+		},
+		{
+			Name:             "uint value equal to threshold for lte",
+			Value:            uint(5),
+			Validation:       "lte=5",
+			ExpectedErrorMsg: "",
 		},
 	}
 
