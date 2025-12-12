@@ -20,85 +20,122 @@ func createTempFile(t *testing.T) string {
 	return tempFile
 }
 
+func TestFilepathValidator_StructField(t *testing.T) {
+	t.Parallel()
+
+	type Config struct {
+		Path string `validate:"filepath"`
+	}
+
+	t.Run("when struct field has valid file path it should succeed", func(t *testing.T) {
+		t.Parallel()
+		cfg := Config{Path: createTempFile(t)}
+		err := validation.Struct(&cfg)
+		assert.NoError(t, err)
+	})
+
+	t.Run("when struct field has invalid file path it should fail", func(t *testing.T) {
+		t.Parallel()
+		cfg := Config{Path: "/non/existing/path"}
+		err := validation.Struct(&cfg)
+		assert.ErrorPart(t, err, "file '/non/existing/path' is not accessible")
+	})
+}
+
 func TestFilepathValidator(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name          string
-		value         any
-		setup         func(t *testing.T) any
-		expectedError string
-	}{
+	type testCaseDefinition struct {
+		Name          string
+		Value         any
+		Setup         func(t *testing.T) any
+		ExpectedError string
+	}
+
+	testCases := []testCaseDefinition{
 		{
-			name: "when value is a string with existing file it should succeed",
-			setup: func(t *testing.T) any {
+			Name: "when value is a string with existing file it should succeed",
+			Setup: func(t *testing.T) any {
 				t.Helper()
 				return createTempFile(t)
 			},
-			expectedError: "",
+			ExpectedError: "",
 		},
 		{
-			name:          "when value is a string with non-existing file it should return an error",
-			value:         "/non/existing/path/that/does/not/exist",
-			expectedError: "file '/non/existing/path/that/does/not/exist' is not accessible",
+			Name:          "when value is a string with non-existing file it should return an error",
+			Value:         "/non/existing/path/that/does/not/exist",
+			ExpectedError: "file '/non/existing/path/that/does/not/exist' is not accessible",
 		},
 		{
-			name:          "when value is a non-string value, it should return an error",
-			value:         123,
-			expectedError: "value must be a string for the filepath validator",
+			Name:          "when value is a non-string value, it should return an error",
+			Value:         123,
+			ExpectedError: "value must be a string for the filepath validator",
 		},
 		{
-			name:          "when value is a nil pointer, it should fail",
-			value:         (*string)(nil),
-			expectedError: "value is nil",
+			Name:          "when value is a nil pointer, it should fail",
+			Value:         (*string)(nil),
+			ExpectedError: "value is nil",
 		},
 		{
-			name: "when value is a pointer to string with existing file it should succeed",
-			setup: func(t *testing.T) any {
+			Name: "when value is a pointer to string with existing file it should succeed",
+			Setup: func(t *testing.T) any {
 				t.Helper()
 				return ptr.Of(createTempFile(t))
 			},
-			expectedError: "",
+			ExpectedError: "",
 		},
 		{
-			name:          "when value is a pointer to string with non-existing file, it should return an error",
-			value:         ptr.Of("/non/existing/path/that/does/not/exist"),
-			expectedError: "file '/non/existing/path/that/does/not/exist' is not accessible",
+			Name:          "when value is a pointer to string with non-existing file, it should return an error",
+			Value:         ptr.Of("/non/existing/path/that/does/not/exist"),
+			ExpectedError: "file '/non/existing/path/that/does/not/exist' is not accessible",
 		},
 		{
-			name: "when value is an interface with string value and existing file it should succeed",
-			setup: func(t *testing.T) any {
+			Name: "when value is an interface with string value and existing file it should succeed",
+			Setup: func(t *testing.T) any {
 				t.Helper()
 				return any(createTempFile(t))
 			},
-			expectedError: "",
+			ExpectedError: "",
 		},
 		{
-			name:          "when value is an interface with string value and non-existing file it should return an error",
-			value:         any("/non/existing/path/that/does/not/exist"),
-			expectedError: "file '/non/existing/path/that/does/not/exist' is not accessible",
+			Name:          "when value is an interface with string value and non-existing file it should return an error",
+			Value:         any("/non/existing/path/that/does/not/exist"),
+			ExpectedError: "file '/non/existing/path/that/does/not/exist' is not accessible",
 		},
 		{
-			name:          "when value is a nil interface it should fail",
-			value:         any(nil),
-			expectedError: "the value is nil",
+			Name:          "when value is a nil interface it should fail",
+			Value:         any(nil),
+			ExpectedError: "the value is nil",
+		},
+		{
+			Name:          "when value is an empty string it should return an error",
+			Value:         "",
+			ExpectedError: "file '' is not accessible",
+		},
+		{
+			Name: "when value is a directory path it should succeed",
+			Setup: func(t *testing.T) any {
+				t.Helper()
+				return t.TempDir()
+			},
+			ExpectedError: "",
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.Name, func(t *testing.T) {
 			t.Parallel()
 
 			var value any
-			if tc.setup != nil {
-				value = tc.setup(t)
+			if tc.Setup != nil {
+				value = tc.Setup(t)
 			} else {
-				value = tc.value
+				value = tc.Value
 			}
 
 			err := validation.Var(value, "filepath")
-			if tc.expectedError != "" {
-				assert.ErrorPart(t, err, tc.expectedError)
+			if tc.ExpectedError != "" {
+				assert.ErrorPart(t, err, tc.ExpectedError)
 			} else {
 				assert.NoError(t, err)
 			}
