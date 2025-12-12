@@ -1,6 +1,7 @@
 package validation_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/ptr"
@@ -8,224 +9,362 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestRequiredValidator(t *testing.T) {
+func TestRequiredValidator_ValidValues_PassesValidation(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name          string
-		value         any
-		validation    string
-		expectedError string
-	}{
+	type testCase struct {
+		name  string
+		value any
+		rule  string
+	}
+
+	testCases := []testCase{
 		{
-			name:          "when the value is a non-zero integer it should pass",
-			value:         42,
-			validation:    "required",
-			expectedError: "",
+			name:  "non-zero integer",
+			value: 42,
+			rule:  "required",
 		},
 		{
-			name:          "when the value is zero integer it should fail",
-			value:         0,
-			validation:    "required",
-			expectedError: "the value is the zero-value",
+			name:  "non-empty string",
+			value: "hello",
+			rule:  "required",
 		},
 		{
-			name:          "when the value is a non-empty string it should pass",
-			value:         "hello",
-			validation:    "required",
-			expectedError: "",
+			name:  "non-zero float",
+			value: 3.14,
+			rule:  "required",
 		},
 		{
-			name:          "when the value is an empty string it should fail",
-			value:         "",
-			validation:    "required",
-			expectedError: "the value is the zero-value",
+			name:  "non-empty slice",
+			value: []int{1, 2, 3},
+			rule:  "required",
 		},
 		{
-			name:          "when the value is a non-zero float it should pass",
-			value:         3.14,
-			validation:    "required",
-			expectedError: "",
+			name:  "empty slice",
+			value: []int{},
+			rule:  "required",
 		},
 		{
-			name:          "when the value is zero float it should fail",
-			value:         0.0,
-			validation:    "required",
-			expectedError: "the value is the zero-value",
+			name:  "pointer to empty slice",
+			value: ptr.Of([]int{}),
+			rule:  "required",
 		},
 		{
-			name:          "when the value is a non-empty slice it should pass",
-			value:         []int{1, 2, 3},
-			validation:    "required",
-			expectedError: "",
+			name:  "non-empty map",
+			value: map[string]int{"a": 1},
+			rule:  "required",
 		},
 		{
-			name:          "when the value is an empty slice it should pass",
-			value:         []int{},
-			validation:    "required",
-			expectedError: "",
+			name:  "empty map",
+			value: map[string]int{},
+			rule:  "required",
 		},
 		{
-			name:          "when the value is a non-empty map it should pass",
-			value:         map[string]int{"a": 1},
-			validation:    "required",
-			expectedError: "",
+			name:  "pointer to empty map",
+			value: ptr.Of(map[string]int{}),
+			rule:  "required",
 		},
 		{
-			name:          "when the value is an empty map it should pass",
-			value:         map[string]int{},
-			validation:    "required",
-			expectedError: "",
+			name:  "pointer to non-zero value",
+			value: ptr.Of(1),
+			rule:  "required",
 		},
 		{
-			name:          "when the value is a nil pointer it should fail",
-			value:         (*int)(nil),
-			validation:    "required",
-			expectedError: "value is nil",
+			name:  "pointer to pointer to non-zero value",
+			value: ptr.Of(ptr.Of(1)),
+			rule:  "required",
 		},
 		{
-			name:          "when the value is a pointer to zero value it should fail",
-			value:         ptr.Of(0),
-			validation:    "required",
-			expectedError: "the value is the zero-value",
+			name:  "array with non-zero element",
+			value: [1]int{1},
+			rule:  "required",
 		},
 		{
-			name:          "when the value is a pointer to non-zero value it should pass",
-			value:         ptr.Of(1),
-			validation:    "required",
-			expectedError: "",
+			name:  "struct with non-zero field",
+			value: struct{ A int }{A: 1},
+			rule:  "required",
 		},
 		{
-			name:          "when the value is a struct with zero fields it should fail",
-			value:         struct{ A int }{},
-			validation:    "required",
-			expectedError: "the value is the zero-value",
+			name:  "interface holding non-zero value",
+			value: any("non-empty"),
+			rule:  "required",
 		},
 		{
-			name:          "when the value is a struct with non-zero fields it should pass",
-			value:         struct{ A int }{A: 1},
-			validation:    "required",
-			expectedError: "",
+			name:  "boolean true",
+			value: true,
+			rule:  "required",
 		},
 		{
-			name:          "when the value is an interface holding zero value it should fail",
-			value:         any(""),
-			validation:    "required",
-			expectedError: "the value is the zero-value",
+			name:  "non-nil channel",
+			value: make(chan int),
+			rule:  "required",
 		},
 		{
-			name:          "when the value is an interface holding non-zero value it should pass",
-			value:         any("non-empty"),
-			validation:    "required",
-			expectedError: "",
+			name:  "non-nil function",
+			value: func() {},
+			rule:  "required",
 		},
 		{
-			name:          "when the an interface is nil it should fail",
-			value:         any(nil),
-			validation:    "required",
-			expectedError: "value is nil",
+			name:  "non-zero complex number",
+			value: complex(1, 1),
+			rule:  "required",
 		},
 		{
-			name:          "when using 'dive' on a slice with all non-zero elements it should pass",
-			value:         []int{1, 2, 3},
-			validation:    "dive,required",
-			expectedError: "",
+			name:  "non-zero uintptr",
+			value: uintptr(12345),
+			rule:  "required",
 		},
 		{
-			name:          "when using 'dive' on a slice with zero elements it should fail",
-			value:         []int{1, 0, 3},
-			validation:    "dive,required",
-			expectedError: "the value is the zero-value",
-		},
-		{
-			name:          "when using 'dive' on a slice with nil pointers it should fail",
-			value:         []*int{ptr.Of(1), nil, ptr.Of(3)},
-			validation:    "dive,required",
-			expectedError: "value is nil",
-		},
-		{
-			name:          "when the value is boolean true it should pass",
-			value:         true,
-			validation:    "required",
-			expectedError: "",
-		},
-		{
-			name:          "when the value is boolean false it should fail",
-			value:         false,
-			validation:    "required",
-			expectedError: "the value is the zero-value",
-		},
-		{
-			name:          "when the value is a non-nil channel it should pass",
-			value:         make(chan int),
-			validation:    "required",
-			expectedError: "",
-		},
-		{
-			name:          "when the value is a nil channel it should fail",
-			value:         (chan int)(nil),
-			validation:    "required",
-			expectedError: "value is nil",
-		},
-		{
-			name:          "when the value is a non-nil function it should pass",
-			value:         func() {},
-			validation:    "required",
-			expectedError: "",
-		},
-		{
-			name:          "when the value is a nil function it should fail",
-			value:         (func())(nil),
-			validation:    "required",
-			expectedError: "value is nil",
-		},
-		{
-			name:          "when the value is a zero complex number it should fail",
-			value:         complex(0, 0),
-			validation:    "required",
-			expectedError: "the value is the zero-value",
-		},
-		{
-			name:          "when the value is a non-zero complex number it should pass",
-			value:         complex(1, 1),
-			validation:    "required",
-			expectedError: "",
-		},
-		{
-			name:          "when the value is zero uintptr it should fail",
-			value:         uintptr(0),
-			validation:    "required",
-			expectedError: "the value is the zero-value",
-		},
-		{
-			name:          "when the value is non-zero uintptr it should pass",
-			value:         uintptr(12345),
-			validation:    "required",
-			expectedError: "",
-		},
-		{
-			name:          "when the value is zero rune it should fail",
-			value:         rune(0),
-			validation:    "required",
-			expectedError: "the value is the zero-value",
-		},
-		{
-			name:          "when the value is non-zero rune it should pass",
-			value:         rune('a'),
-			validation:    "required",
-			expectedError: "",
+			name:  "non-zero rune",
+			value: rune('a'),
+			rule:  "required",
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			err := validation.Var(tc.value, tc.validation)
-			if tc.expectedError != "" {
-				assert.ErrorPart(t, err, tc.expectedError)
-			} else {
-				assert.NoError(t, err)
-			}
+
+			err := validation.Var(testCase.value, testCase.rule)
+			assert.NoError(t, err)
 		})
+	}
+}
+
+func TestRequiredValidator_NilOrZeroValues_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name              string
+		value             any
+		rule              string
+		expectedErrorPart string
+	}
+
+	testCases := []testCase{
+		{
+			name:              "zero integer",
+			value:             0,
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "empty string",
+			value:             "",
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "zero float",
+			value:             0.0,
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "nil pointer",
+			value:             (*int)(nil),
+			rule:              "required",
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name:              "pointer to zero value",
+			value:             ptr.Of(0),
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "nil slice",
+			value:             ([]int)(nil),
+			rule:              "required",
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name:              "pointer to nil slice",
+			value:             ptr.Of(([]int)(nil)),
+			rule:              "required",
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name:              "nil map",
+			value:             (map[string]int)(nil),
+			rule:              "required",
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name:              "pointer to nil map",
+			value:             ptr.Of((map[string]int)(nil)),
+			rule:              "required",
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name:              "nil pointer to pointer",
+			value:             (**int)(nil),
+			rule:              "required",
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name:              "pointer to pointer to zero value",
+			value:             ptr.Of(ptr.Of(0)),
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "array with zero element",
+			value:             [1]int{0},
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "struct with zero fields",
+			value:             struct{ A int }{},
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "interface holding zero value",
+			value:             any(""),
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "nil interface",
+			value:             any(nil),
+			rule:              "required",
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name:              "boolean false",
+			value:             false,
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "nil channel",
+			value:             (chan int)(nil),
+			rule:              "required",
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name:              "nil function",
+			value:             (func())(nil),
+			rule:              "required",
+			expectedErrorPart: "value is nil",
+		},
+		{
+			name:              "zero complex number",
+			value:             complex(0, 0),
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "zero uintptr",
+			value:             uintptr(0),
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "zero rune",
+			value:             rune(0),
+			rule:              "required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validation.Var(testCase.value, testCase.rule)
+			assert.ErrorPart(t, err, testCase.expectedErrorPart)
+		})
+	}
+}
+
+func TestRequiredValidator_DiveWithValidSlice_PassesValidation(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name  string
+		value any
+		rule  string
+	}
+
+	testCases := []testCase{
+		{
+			name:  "slice with non-zero elements",
+			value: []int{1, 2, 3},
+			rule:  "dive,required",
+		},
+		{
+			name:  "empty slice",
+			value: []int{},
+			rule:  "dive,required",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validation.Var(testCase.value, testCase.rule)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestRequiredValidator_DiveWithInvalidSlice_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name              string
+		value             any
+		rule              string
+		expectedErrorPart string
+	}
+
+	testCases := []testCase{
+		{
+			name:              "slice with zero element",
+			value:             []int{1, 0, 3},
+			rule:              "dive,required",
+			expectedErrorPart: "the value is the zero-value",
+		},
+		{
+			name:              "slice with nil pointer element",
+			value:             []*int{ptr.Of(1), nil, ptr.Of(3)},
+			rule:              "dive,required",
+			expectedErrorPart: "value is nil",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validation.Var(testCase.value, testCase.rule)
+			assert.ErrorPart(t, err, testCase.expectedErrorPart)
+		})
+	}
+}
+
+func TestRequiredValidator_ConcurrentValidation_PassesConsistently(t *testing.T) {
+	t.Parallel()
+
+	const goroutineCount = 50
+	errorsCh := make(chan error, goroutineCount)
+
+	wg := sync.WaitGroup{}
+	wg.Add(goroutineCount)
+	for range goroutineCount {
+		go func() {
+			defer wg.Done()
+			errorsCh <- validation.Var(1, "required")
+		}()
+	}
+	wg.Wait()
+	close(errorsCh)
+
+	for err := range errorsCh {
+		assert.NoError(t, err)
 	}
 }
