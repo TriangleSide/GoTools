@@ -42,7 +42,7 @@ func TestFilepathValidator_StructField(t *testing.T) {
 	})
 }
 
-func TestFilepathValidator(t *testing.T) {
+func TestFilepathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
 	t.Parallel()
 
 	type testCaseDefinition struct {

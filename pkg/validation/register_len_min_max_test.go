@@ -9,7 +9,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestLenMinMaxValidators(t *testing.T) {
+func TestLenMinMaxValidators_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
@@ -163,7 +163,7 @@ func TestLenMinMaxValidators(t *testing.T) {
 			name:          "when using len validator with a Unicode string and expected rune length it should fail",
 			validator:     "len",
 			param:         "5",
-			value:         "héllo", // 'é' is two bytes in UTF-8
+			value:         "héllo",
 			expectedError: "length 6 must be exactly 5",
 		},
 		{
