@@ -2,15 +2,24 @@
 - Follow Go best practices.
 - Write idiomatic Go code.
 - This repository is intended to be used as a library.
-
-## Development
-- Every function, struct, variable in a package block, and every const at package level must have a terse one or two line comment describing its purpose.
-- Ensure existing comments remain accurate after making changes.
-- Code must be compatible with Linux or macOS only.
 - No external dependencies beyond the Go standard library.
+
+## Compatibility
+- Code must be compatible with Linux or macOS only.
+
+## Errors
 - Wrap errors with contextual information using `fmt.Errorf("... (%w)", err)`.
 - Use `errors.New("...")` for errors that do not require formatting.
+
+## Style
 - Write early exit guards to reduce nesting.
+
+## Comments
+- Below is a list of areas that must have a terse one or two line comment. The comment should only describe purpose.
+  - Functions.
+  - Structs.
+  - Variables and constants in a package level block.
+- Ensure existing comments remain accurate after making changes.
 
 ## Testing
 - Run the entire test suite with: `make test`
@@ -29,7 +38,7 @@
 ## Linting
 - Check lints with: `make lint` and fix lints related to modified code.
 
-## Creating a Pull Request
+## Pull Requests
 - Before creating a new branch, follow these steps one at a time:
   1. `git add -A`
   2. `git stash`

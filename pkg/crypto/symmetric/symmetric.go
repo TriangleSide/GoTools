@@ -33,20 +33,14 @@ func WithRandomDataFunc(randomDataFunc func(buffer []byte) error) Option {
 	}
 }
 
-// Encryptor does symmetric encryption and decryption.
-type Encryptor interface {
-	Encrypt(plaintext []byte) ([]byte, error)
-	Decrypt(ciphertext []byte) ([]byte, error)
-}
-
-// aesEncryptor holds the data needed to do AES symmetric encryption.
-type aesEncryptor struct {
+// Cipher provides AES-GCM encryption and decryption.
+type Cipher struct {
 	aead           cipher.AEAD
 	randomDataFunc func(buffer []byte) error
 }
 
-// New allocates and configures an Encryptor.
-func New(key string, opts ...Option) (Encryptor, error) {
+// New allocates and configures an Cipher.
+func New(key string, opts ...Option) (*Cipher, error) {
 	cfg := &config{
 		blockCipherProvider: aes.NewCipher,
 		randomDataFunc: func(buffer []byte) error {
@@ -74,27 +68,27 @@ func New(key string, opts ...Option) (Encryptor, error) {
 		return nil, fmt.Errorf("failed to configure AEAD mode (%w)", err)
 	}
 
-	return &aesEncryptor{
+	return &Cipher{
 		aead:           aead,
 		randomDataFunc: cfg.randomDataFunc,
 	}, nil
 }
 
-// Encrypt takes a slice of data and returns an encrypted version using AES-GCM with a unique nonce.
+// Encrypt takes a slice of data and returns an encrypted version using Cipher-GCM with a unique nonce.
 // It returns the nonce-prefixed ciphertext and an error if any occurs during the encryption process.
-func (encryptor *aesEncryptor) Encrypt(data []byte) ([]byte, error) {
-	nonce := make([]byte, encryptor.aead.NonceSize())
-	if err := encryptor.randomDataFunc(nonce); err != nil {
+func (cipher *Cipher) Encrypt(data []byte) ([]byte, error) {
+	nonce := make([]byte, cipher.aead.NonceSize())
+	if err := cipher.randomDataFunc(nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce (%w)", err)
 	}
 
-	return encryptor.aead.Seal(nonce, nonce, data, nil), nil
+	return cipher.aead.Seal(nonce, nonce, data, nil), nil
 }
 
-// Decrypt performs AES-GCM decryption on a nonce-prefixed ciphertext.
+// Decrypt performs Cipher-GCM decryption on a nonce-prefixed ciphertext.
 // It returns the recovered plaintext and an error if any occurs during the decryption process.
-func (encryptor *aesEncryptor) Decrypt(encryptedData []byte) ([]byte, error) {
-	nonceSize := encryptor.aead.NonceSize()
+func (cipher *Cipher) Decrypt(encryptedData []byte) ([]byte, error) {
+	nonceSize := cipher.aead.NonceSize()
 	if len(encryptedData) < nonceSize {
 		return nil, fmt.Errorf("cipher-text of len %d is shorter than the minimum length of %d", len(encryptedData), nonceSize)
 	}
@@ -102,7 +96,7 @@ func (encryptor *aesEncryptor) Decrypt(encryptedData []byte) ([]byte, error) {
 	nonce := encryptedData[:nonceSize]
 	ciphertext := encryptedData[nonceSize:]
 
-	plaintext, err := encryptor.aead.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := cipher.aead.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt cipher-text (%w)", err)
 	}
