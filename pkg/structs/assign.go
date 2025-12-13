@@ -3,10 +3,135 @@ package structs
 import (
 	"encoding"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 )
+
+// setStringIntoTextUnmarshaller parses a string-encoded value and sets it into an interface that implements encoding.TextUnmarshaler.
+// It handles types implementing encoding.TextUnmarshaler, basic types, and complex types (via JSON).
+func setStringIntoTextUnmarshaller(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
+	if reflect.PointerTo(fieldType).Implements(reflect.TypeFor[encoding.TextUnmarshaler]()) {
+		unmarshaler := fieldPtr.Interface().(encoding.TextUnmarshaler)
+		if err := unmarshaler.UnmarshalText([]byte(stringEncodedValue)); err != nil {
+			return false, fmt.Errorf("text unmarshal error (%w)", err)
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+// setStringIntoJsonType handles Map, Slice, and Struct types by JSON unmarshaling.
+func setStringIntoJsonType(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
+	switch fieldType.Kind() {
+	case reflect.Map, reflect.Slice, reflect.Struct:
+		if err := json.Unmarshal([]byte(stringEncodedValue), fieldPtr.Interface()); err != nil {
+			return false, fmt.Errorf("json unmarshal error (%w)", err)
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+// setStringIntoString handles string types.
+func setStringIntoString(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
+	if fieldType.Kind() == reflect.String {
+		fieldPtr.Elem().SetString(stringEncodedValue)
+		return true, nil
+	}
+	return false, nil
+}
+
+// setStringIntoInt handles signed integer types (Int, Int8, Int16, Int32, Int64).
+func setStringIntoInt(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
+	switch fieldType.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		parsed, err := strconv.ParseInt(stringEncodedValue, 10, fieldType.Bits())
+		if err != nil {
+			return false, fmt.Errorf("int parsing error (%w)", err)
+		}
+		fieldPtr.Elem().SetInt(parsed)
+		return true, nil
+	}
+	return false, nil
+}
+
+// setStringIntoUint handles unsigned integer types (Uint, Uint8, Uint16, Uint32, Uint64).
+func setStringIntoUint(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
+	switch fieldType.Kind() {
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		parsed, err := strconv.ParseUint(stringEncodedValue, 10, fieldType.Bits())
+		if err != nil {
+			return false, fmt.Errorf("unsigned int parsing error (%w)", err)
+		}
+		fieldPtr.Elem().SetUint(parsed)
+		return true, nil
+	}
+	return false, nil
+}
+
+// setStringIntoFloat handles floating point types (Float32, Float64).
+func setStringIntoFloat(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
+	switch fieldType.Kind() {
+	case reflect.Float32, reflect.Float64:
+		parsed, err := strconv.ParseFloat(stringEncodedValue, fieldType.Bits())
+		if err != nil {
+			return false, fmt.Errorf("float parsing error (%w)", err)
+		}
+		fieldPtr.Elem().SetFloat(parsed)
+		return true, nil
+	}
+	return false, nil
+}
+
+// setStringIntoBool handles boolean types.
+func setStringIntoBool(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
+	if fieldType.Kind() == reflect.Bool {
+		parsed, err := strconv.ParseBool(stringEncodedValue)
+		if err != nil {
+			return false, fmt.Errorf("bool parsing error (%w)", err)
+		}
+		fieldPtr.Elem().SetBool(parsed)
+		return true, nil
+	}
+	return false, nil
+}
+
+// setStringIntoField parses a string-encoded value and sets it into the provided fieldPtr based on its type.
+func setStringIntoField(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) error {
+	handlers := []func(reflect.Value, reflect.Type, string) (bool, error){
+		setStringIntoTextUnmarshaller,
+		setStringIntoJsonType,
+		setStringIntoString,
+		setStringIntoInt,
+		setStringIntoUint,
+		setStringIntoFloat,
+		setStringIntoBool,
+	}
+	for _, handler := range handlers {
+		handled, err := handler(fieldPtr, fieldType, stringEncodedValue)
+		if err != nil {
+			return err
+		}
+		if handled {
+			return nil
+		}
+	}
+	return fmt.Errorf("unsupported field type: %s", fieldType)
+}
+
+// getStructFieldValue retrieves the reflect.Value of a field, accounting for embedded anonymous structs.
+func getStructFieldValue(structValue reflect.Value, fieldName string, fieldMetadata *FieldMetadata) reflect.Value {
+	if fieldMetadata.Anonymous().Size() != 0 {
+		anonValue := structValue.Elem()
+		for _, anonymousName := range fieldMetadata.Anonymous().All() {
+			anonValue = anonValue.FieldByName(anonymousName)
+		}
+		return anonValue.FieldByName(fieldName)
+	}
+	return structValue.Elem().FieldByName(fieldName)
+}
 
 // AssignToField sets a struct field specified by its name to a provided value encoded as a string.
 // The function handles various data types including basic types (string, int, etc.),
@@ -16,89 +141,28 @@ import (
 func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) error {
 	structValue := reflect.ValueOf(obj)
 	if structValue.Kind() != reflect.Ptr || structValue.Elem().Kind() != reflect.Struct {
-		panic("obj must be a pointer to a struct")
+		return errors.New("obj must be a pointer to a struct")
 	}
 
-	// Get the field metadata for all the struct's fields.
 	fieldsToMetadata := Metadata[T]()
 	fieldMetadata, foundFieldMetadata := fieldsToMetadata.Fetch(fieldName)
 	if !foundFieldMetadata {
-		panic(fmt.Sprintf("no field '%s' in struct '%s'", fieldName, structValue.Type().String()))
+		return fmt.Errorf("no field '%s' in struct '%s'", fieldName, structValue.Type().String())
 	}
 
-	// Get the value of the specified field in the struct.
-	// This accounts for fields in embedded anonymous structs.
-	var structFieldValue reflect.Value
-	if fieldMetadata.Anonymous().Size() != 0 {
-		anonValue := structValue.Elem()
-		for _, anonymousName := range fieldMetadata.Anonymous().All() {
-			anonValue = anonValue.FieldByName(anonymousName)
-		}
-		structFieldValue = anonValue.FieldByName(fieldName)
-	} else {
-		structFieldValue = structValue.Elem().FieldByName(fieldName)
-	}
+	structFieldValue := getStructFieldValue(structValue, fieldName, fieldMetadata)
 
-	// Get the struct field type. This is needed to determine how to set the value.
 	originalFieldType := structFieldValue.Type()
-	var fieldType reflect.Type
+	fieldType := originalFieldType
 	if originalFieldType.Kind() == reflect.Ptr {
 		fieldType = originalFieldType.Elem()
-	} else {
-		fieldType = originalFieldType
 	}
 
-	// fieldPtr is an allocated ptr to the raw type of the field to set the encoded value into.
 	fieldPtr := reflect.New(fieldType)
-
-	// Switch on how to set the value.
-	if reflect.PointerTo(fieldType).Implements(reflect.TypeFor[encoding.TextUnmarshaler]()) {
-		// If the field type implements encoding.TextUnmarshaler, the interface is used parse the value.
-		unmarshaler := fieldPtr.Interface().(encoding.TextUnmarshaler)
-		if err := unmarshaler.UnmarshalText([]byte(stringEncodedValue)); err != nil {
-			return fmt.Errorf("text unmarshal error (%w)", err)
-		}
-	} else {
-		// If the field type is basic, the value is set directly.
-		// If the field type is map, slice, or struct, it is assumed that the value is a json object.
-		switch fieldType.Kind() {
-		case reflect.Map, reflect.Slice, reflect.Struct:
-			if err := json.Unmarshal([]byte(stringEncodedValue), fieldPtr.Interface()); err != nil {
-				return fmt.Errorf("json unmarshal error (%w)", err)
-			}
-		case reflect.String:
-			fieldPtr.Elem().SetString(stringEncodedValue)
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			parsed, err := strconv.ParseInt(stringEncodedValue, 10, fieldType.Bits())
-			if err != nil {
-				return fmt.Errorf("int parsing error (%w)", err)
-			}
-			fieldPtr.Elem().SetInt(parsed)
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			parsed, err := strconv.ParseUint(stringEncodedValue, 10, fieldType.Bits())
-			if err != nil {
-				return fmt.Errorf("unsigned int parsing error (%w)", err)
-			}
-			fieldPtr.Elem().SetUint(parsed)
-		case reflect.Float32, reflect.Float64:
-			parsed, err := strconv.ParseFloat(stringEncodedValue, fieldType.Bits())
-			if err != nil {
-				return fmt.Errorf("float parsing error (%w)", err)
-			}
-			fieldPtr.Elem().SetFloat(parsed)
-		case reflect.Bool:
-			parsed, err := strconv.ParseBool(stringEncodedValue)
-			if err != nil {
-				return fmt.Errorf("bool parsing error (%w)", err)
-			}
-			fieldPtr.Elem().SetBool(parsed)
-		default:
-			return fmt.Errorf("unsupported field type: %s", fieldType)
-		}
+	if err := setStringIntoField(fieldPtr, fieldType, stringEncodedValue); err != nil {
+		return err
 	}
 
-	// If the field is a ptr, set the ptr to the newly allocated value in fieldPtr.
-	// If the field is not a ptr, copy the contents of fieldPtr into it.
 	if originalFieldType.Kind() == reflect.Ptr {
 		structFieldValue.Set(fieldPtr)
 	} else {
