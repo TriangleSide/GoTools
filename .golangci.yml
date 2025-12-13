@@ -25,6 +25,7 @@ linters:
     - gochecksumtype
     - goconst
     - gocritic
+    - godoclint
     - godot
     - godox
     - gosec

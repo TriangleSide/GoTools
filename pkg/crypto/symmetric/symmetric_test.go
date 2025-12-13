@@ -30,7 +30,7 @@ func getRandomInt(t *testing.T) int {
 	return int(randomValueBig.Int64())
 }
 
-func newEncryptor(t *testing.T) symmetric.Encryptor {
+func newEncryptor(t *testing.T) *symmetric.Cipher {
 	t.Helper()
 	encryptor, err := symmetric.New("encryptionKey" + strconv.Itoa(getRandomInt(t)))
 	assert.NoError(t, err)
