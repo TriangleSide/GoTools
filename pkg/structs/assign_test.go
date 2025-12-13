@@ -97,19 +97,17 @@ type testStruct struct {
 	UnhandledValue uintptr
 }
 
-func TestAssignToField_NonStructPointer_Panics(t *testing.T) {
+func TestAssignToField_NonStructPointer_ReturnsError(t *testing.T) {
 	t.Parallel()
-	assert.PanicPart(t, func() {
-		_ = structs.AssignToField(new(int), "StringValue", "test")
-	}, "obj must be a pointer to a struct")
+	err := structs.AssignToField(new(int), "StringValue", "test")
+	assert.ErrorPart(t, err, "obj must be a pointer to a struct")
 }
 
-func TestAssignToField_UnknownField_Panics(t *testing.T) {
+func TestAssignToField_UnknownField_ReturnsError(t *testing.T) {
 	t.Parallel()
 	values := &testStruct{}
-	assert.PanicPart(t, func() {
-		_ = structs.AssignToField(values, "NonExistentField", "some value")
-	}, "no field 'NonExistentField' in struct")
+	err := structs.AssignToField(values, "NonExistentField", "some value")
+	assert.ErrorPart(t, err, "no field 'NonExistentField' in struct")
 }
 
 func TestAssignToField_TimeField_SetsValue(t *testing.T) {
