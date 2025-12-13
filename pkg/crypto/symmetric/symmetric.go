@@ -39,7 +39,7 @@ type Cipher struct {
 	randomDataFunc func(buffer []byte) error
 }
 
-// New allocates and configures an Cipher.
+// New allocates and configures a Cipher.
 func New(key string, opts ...Option) (*Cipher, error) {
 	cfg := &config{
 		blockCipherProvider: aes.NewCipher,

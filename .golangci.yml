@@ -18,6 +18,7 @@ linters:
     - dupl
     - dupword
     - durationcheck
+    - embeddedstructfieldcheck
     - errcheck
     - errchkjson
     - errorlint
@@ -37,8 +38,8 @@ linters:
     - makezero
     - misspell
     - mnd
-    - musttag
     - modernize
+    - musttag
     - nilerr
     - noctx
     - perfsprint

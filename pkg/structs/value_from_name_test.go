@@ -72,6 +72,7 @@ func TestValueFromName_EmbeddedFields_ReturnsFieldValues(t *testing.T) {
 
 	type embedded struct {
 		deepEmbedded
+
 		EmbeddedField string
 	}
 
@@ -81,6 +82,7 @@ func TestValueFromName_EmbeddedFields_ReturnsFieldValues(t *testing.T) {
 
 	type testStruct struct {
 		embedded
+
 		StructValue structValue
 		Value       string
 	}

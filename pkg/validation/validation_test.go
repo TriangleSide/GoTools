@@ -87,6 +87,7 @@ func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {
 
 	type embedded struct {
 		deepEmbedded
+
 		EmbeddedField string `validate:"required"`
 	}
 
@@ -96,6 +97,7 @@ func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {
 
 	type testStruct struct {
 		embedded
+
 		StructValue structValue
 		Value       string `validate:"required"`
 	}

@@ -25,8 +25,9 @@ func (e *testUnmarshalableError) Error() string {
 }
 
 type errorWriter struct {
-	WriteFailed bool
 	http.ResponseWriter
+
+	WriteFailed bool
 }
 
 func (w *errorWriter) Write([]byte) (int, error) {

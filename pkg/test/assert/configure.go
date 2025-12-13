@@ -10,6 +10,7 @@ type Testing interface {
 // testContext implements the Testing interface. It can be configured using options.
 type testContext struct {
 	Testing
+
 	failFunc func(args ...any)
 }
 

@@ -32,6 +32,7 @@ type testDeepEmbeddedStruct struct {
 
 type testEmbeddedStruct struct {
 	testDeepEmbeddedStruct
+
 	EmbeddedValue string
 }
 
