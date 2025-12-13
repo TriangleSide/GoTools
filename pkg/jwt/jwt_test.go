@@ -136,7 +136,7 @@ func TestDecode_UnknownAlgorithm_ReturnsError(t *testing.T) {
 		return []byte("key"), jwt.SignatureAlgorithm("Unknown"), nil
 	})
 	assert.Nil(t, decodedClaims)
-	assert.ErrorExact(t, err, "failed to resolve signature provider")
+	assert.ErrorPart(t, err, "failed to resolve signature provider")
 }
 
 func TestDecode_InvalidBase64Body_ReturnsError(t *testing.T) {

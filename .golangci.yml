@@ -13,6 +13,7 @@ linters:
     - containedctx
     - contextcheck
     - copyloopvar
+    - cyclop
     - dupl
     - dupword
     - durationcheck
