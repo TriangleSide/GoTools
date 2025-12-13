@@ -138,7 +138,7 @@ func TestProcessAndValidate_CustomProcessor_UsesCustomProcessor(t *testing.T) {
 	}
 
 	var called bool
-	config.MustRegisterProcessor("CUSTOM", func(fieldName string, _ *structs.FieldMetadata) (string, bool, error) {
+	config.MustRegisterProcessor("CUSTOM", func(string, *structs.FieldMetadata) (string, bool, error) {
 		called = true
 		return "custom", true, nil
 	})
@@ -157,7 +157,7 @@ func TestProcessAndValidate_MultipleProcessors_UsesAllProcessors(t *testing.T) {
 	}
 
 	var called bool
-	config.MustRegisterProcessor("OTHER", func(fieldName string, _ *structs.FieldMetadata) (string, bool, error) {
+	config.MustRegisterProcessor("OTHER", func(string, *structs.FieldMetadata) (string, bool, error) {
 		called = true
 		return "OtherValue", true, nil
 	})

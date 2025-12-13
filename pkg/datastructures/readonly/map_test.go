@@ -219,7 +219,7 @@ func TestMap_WhenIteratingWithFalseYield_ShouldHandleFalseYield(t *testing.T) {
 	builder.SetMap(iteratingMap)
 	roMap := builder.Build()
 	count := 0
-	roMap.All()(func(key string, value string) bool {
+	roMap.All()(func(string, string) bool {
 		count++
 		return false
 	})

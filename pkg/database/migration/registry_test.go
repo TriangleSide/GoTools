@@ -15,7 +15,7 @@ func TestMustRegister_DuplicateOrder_Panics(t *testing.T) {
 	registrationOrder := migration.Order(1)
 	reggy := &migration.Registration{
 		Order:   registrationOrder,
-		Migrate: func(ctx context.Context, _ migration.Status) error { return nil },
+		Migrate: func(context.Context, migration.Status) error { return nil },
 		Enabled: true,
 	}
 	reg.MustRegister(reggy)
@@ -45,7 +45,7 @@ func TestOrderedRegistrations_MultipleRegistrations_ReturnsInOrder(t *testing.T)
 		registrationOrder := migration.Order(count - i)
 		reg.MustRegister(&migration.Registration{
 			Order:   registrationOrder,
-			Migrate: func(ctx context.Context, _ migration.Status) error { return nil },
+			Migrate: func(context.Context, migration.Status) error { return nil },
 			Enabled: true,
 		})
 	}

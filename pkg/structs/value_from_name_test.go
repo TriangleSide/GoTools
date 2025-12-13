@@ -12,7 +12,7 @@ func TestValueFromName_NilStructInstance_ReturnsError(t *testing.T) {
 	type testStruct struct {
 		Value string
 	}
-	var myStructPointer *testStruct = nil
+	var myStructPointer *testStruct
 	_, err := structs.ValueFromName(myStructPointer, "Value")
 	assert.ErrorExact(t, err, "struct instance cannot be nil")
 }

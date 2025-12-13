@@ -118,7 +118,7 @@ func TestJSON_CallbackReturnsError_RespondsWithErrorJSONAndBadRequestStatus(t *t
 func TestJSON_UnencodableResponse_ReturnsInternalServerError(t *testing.T) {
 	t.Parallel()
 
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonUnmarshalableResponse](t, func(params *jsonRequestParams) (*jsonUnmarshalableResponse, int, error) {
+	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonUnmarshalableResponse](t, func(*jsonRequestParams) (*jsonUnmarshalableResponse, int, error) {
 		return &jsonUnmarshalableResponse{}, http.StatusOK, nil
 	})
 	defer cleanup()
@@ -144,7 +144,7 @@ func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		responders.JSON[jsonRequestParams, jsonResponseBody](ew, r, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
@@ -168,7 +168,7 @@ func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
 func TestJSON_NilResponseBody_RespondsWithNullJSON(t *testing.T) {
 	t.Parallel()
 
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonResponseBody](t, func(params *jsonRequestParams) (*jsonResponseBody, int, error) {
+	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonResponseBody](t, func(*jsonRequestParams) (*jsonResponseBody, int, error) {
 		return nil, http.StatusOK, nil
 	})
 	defer cleanup()

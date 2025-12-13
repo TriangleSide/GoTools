@@ -84,7 +84,7 @@ func defaultHandler(t *testing.T) *testHandler {
 		Path:       "/",
 		Method:     http.MethodGet,
 		Middleware: nil,
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
+		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 			_, err := io.WriteString(writer, "PONG")
 			assert.NoError(t, err)
@@ -396,7 +396,7 @@ func TestRun_ListenerClosedUnexpectedly_ReturnsError(t *testing.T) {
 	t.Parallel()
 	listener, err := net.ListenTCP("tcp6", &net.TCPAddr{IP: net.ParseIP("::1"), Port: 0})
 	waitUntilReady := make(chan bool)
-	srv, err := server.New(server.WithListenerProvider(func(bindIP string, bindPort uint16) (*net.TCPListener, error) {
+	srv, err := server.New(server.WithListenerProvider(func(string, uint16) (*net.TCPListener, error) {
 		return listener, err
 	}), server.WithBoundCallback(func(*net.TCPAddr) {
 		close(waitUntilReady)
@@ -417,7 +417,7 @@ func TestRun_ListenerClosedUnexpectedly_ReturnsError(t *testing.T) {
 
 func TestRun_ListenerProviderError_ReturnsError(t *testing.T) {
 	t.Parallel()
-	srv, err := server.New(server.WithListenerProvider(func(bindIP string, bindPort uint16) (*net.TCPListener, error) {
+	srv, err := server.New(server.WithListenerProvider(func(string, uint16) (*net.TCPListener, error) {
 		return nil, errors.New("listener error")
 	}), server.WithConfigProvider(func() (*server.Config, error) {
 		return getDefaultConfig(t), nil
@@ -481,7 +481,7 @@ func TestRun_WithCommonMiddleware_ExecutesInOrder(t *testing.T) {
 				}
 			},
 		},
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
+		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			seq = append(seq, "4")
 			writer.WriteHeader(http.StatusOK)
 		},
@@ -507,7 +507,7 @@ func TestRun_MultipleMethodsOnSamePath_EnforcesMethodRouting(t *testing.T) {
 		&testHandler{
 			Path:   "/resource",
 			Method: http.MethodGet,
-			Handler: func(writer http.ResponseWriter, request *http.Request) {
+			Handler: func(writer http.ResponseWriter, _ *http.Request) {
 				writer.WriteHeader(http.StatusOK)
 				_, err := writer.Write([]byte("get"))
 				assert.NoError(t, err)
@@ -516,7 +516,7 @@ func TestRun_MultipleMethodsOnSamePath_EnforcesMethodRouting(t *testing.T) {
 		&testHandler{
 			Path:   "/resource",
 			Method: http.MethodPost,
-			Handler: func(writer http.ResponseWriter, request *http.Request) {
+			Handler: func(writer http.ResponseWriter, _ *http.Request) {
 				writer.WriteHeader(http.StatusCreated)
 				_, err := writer.Write([]byte("post"))
 				assert.NoError(t, err)
@@ -882,7 +882,7 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 		&testHandler{
 			Path:   "/error",
 			Method: http.MethodGet,
-			Handler: func(writer http.ResponseWriter, request *http.Request) {
+			Handler: func(writer http.ResponseWriter, _ *http.Request) {
 				responders.Error(writer, &testErrorResponse{})
 			},
 		},
@@ -891,15 +891,15 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 			Method: http.MethodPost,
 			Handler: func(writer http.ResponseWriter, request *http.Request) {
 				type requestParams struct {
-					Id   string `json:"-"    urlPath:"id"        validate:"required"`
+					ID   string `json:"-"    urlPath:"id"        validate:"required"`
 					Data string `json:"data" validate:"required"`
 				}
 				type response struct {
-					Id string
+					ID string
 				}
 				responders.JSON(writer, request, func(params *requestParams) (*response, int, error) {
 					return &response{
-						Id: params.Id,
+						ID: params.ID,
 					}, http.StatusOK, nil
 				})
 			},
@@ -910,15 +910,15 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 			Handler: func(writer http.ResponseWriter, request *http.Request) {
 				type requestParams struct{}
 				type response struct {
-					Id string
+					ID string
 				}
-				responders.JSONStream(writer, request, func(params *requestParams) (<-chan *response, int, error) {
+				responders.JSONStream(writer, request, func(*requestParams) (<-chan *response, int, error) {
 					responseChan := make(chan *response)
 					go func() {
 						defer close(responseChan)
-						responseChan <- &response{Id: "1"}
-						responseChan <- &response{Id: "2"}
-						responseChan <- &response{Id: "3"}
+						responseChan <- &response{ID: "1"}
+						responseChan <- &response{ID: "2"}
+						responseChan <- &response{ID: "3"}
 					}()
 					return responseChan, http.StatusOK, nil
 				})

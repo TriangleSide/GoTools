@@ -43,17 +43,17 @@ func Encode(claims Claims, algorithm SignatureAlgorithm) (string, []byte, string
 		return "", nil, "", errors.New("failed to resolve signature provider")
 	}
 
-	key, keyId, err := keyGen(provider)
+	key, keyID, err := keyGen(provider)
 	if err != nil {
 		return "", nil, "", fmt.Errorf("failed to generate signing key (%w)", err)
 	}
 
-	header := Header{Algorithm: string(algorithm), Type: jwtHeaderType, KeyID: keyId}
-	headerJson := marshalToStableJSON(header)
-	encodedHeader := base64.RawURLEncoding.EncodeToString([]byte(headerJson))
+	header := Header{Algorithm: string(algorithm), Type: jwtHeaderType, KeyID: keyID}
+	headerJSON := marshalToStableJSON(header)
+	encodedHeader := base64.RawURLEncoding.EncodeToString([]byte(headerJSON))
 
-	bodyJson := marshalToStableJSON(claims)
-	encodedBody := base64.RawURLEncoding.EncodeToString([]byte(bodyJson))
+	bodyJSON := marshalToStableJSON(claims)
+	encodedBody := base64.RawURLEncoding.EncodeToString([]byte(bodyJSON))
 
 	signatureBytes, err := provider.Sign([]byte(encodedHeader+"."+encodedBody), key)
 	if err != nil {
@@ -63,7 +63,7 @@ func Encode(claims Claims, algorithm SignatureAlgorithm) (string, []byte, string
 	encodedSignature := base64.RawURLEncoding.EncodeToString(signatureBytes)
 	jwt := strings.Join([]string{encodedHeader, encodedBody, encodedSignature}, ".")
 
-	return jwt, key, keyId, nil
+	return jwt, key, keyID, nil
 }
 
 // KeyProvider is a function type that retrieves the signing key and algorithm based on the provided context and key ID.
@@ -80,12 +80,12 @@ func Decode(ctx context.Context, token string, keyProvider KeyProvider) (*Claims
 		return nil, errors.New("token must contain header, body, and signature")
 	}
 
-	headerJson, err := base64.RawURLEncoding.DecodeString(parts[0])
+	headerJSON, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode header (%w)", err)
 	}
 	var header Header
-	if err := json.Unmarshal(headerJson, &header); err != nil {
+	if err := json.Unmarshal(headerJSON, &header); err != nil {
 		return nil, fmt.Errorf("json unmarshal error (%w)", err)
 	}
 
@@ -102,12 +102,12 @@ func Decode(ctx context.Context, token string, keyProvider KeyProvider) (*Claims
 		return nil, fmt.Errorf("signature validation failed (%w)", err)
 	}
 
-	bodyJson, err := base64.RawURLEncoding.DecodeString(parts[1])
+	bodyJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode body (%w)", err)
 	}
 	var claims Claims
-	if err := json.Unmarshal(bodyJson, &claims); err != nil {
+	if err := json.Unmarshal(bodyJSON, &claims); err != nil {
 		return nil, fmt.Errorf("json unmarshal error (%w)", err)
 	}
 
