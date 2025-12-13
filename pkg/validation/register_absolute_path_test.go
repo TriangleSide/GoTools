@@ -227,16 +227,16 @@ func TestAbsolutePathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T)
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.Name, func(t *testing.T) {
 			t.Parallel()
-			value := tc.Value
-			if tc.Setup != nil {
-				value = tc.Setup(t)
+			value := testCase.Value
+			if testCase.Setup != nil {
+				value = testCase.Setup(t)
 			}
 			err := validation.Var(value, "absolute_path")
-			if tc.ExpectedErrorMsg != "" {
-				assert.ErrorPart(t, err, tc.ExpectedErrorMsg)
+			if testCase.ExpectedErrorMsg != "" {
+				assert.ErrorPart(t, err, testCase.ExpectedErrorMsg)
 			} else {
 				assert.NoError(t, err)
 			}

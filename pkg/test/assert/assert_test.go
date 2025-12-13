@@ -43,15 +43,15 @@ func newTestRecorder(t *testing.T) *testRecorder {
 	}
 }
 
-func checkRecorder(t *testing.T, tr *testRecorder, errorCount int, fatalCount int, expectedLogs []string) {
+func checkRecorder(t *testing.T, recorder *testRecorder, errorCount int, fatalCount int, expectedLogs []string) {
 	t.Helper()
-	if tr.errorCount != errorCount {
-		t.Fatalf("Incorrect error count. Wanted %d but got %d.", errorCount, tr.errorCount)
+	if recorder.errorCount != errorCount {
+		t.Fatalf("Incorrect error count. Wanted %d but got %d.", errorCount, recorder.errorCount)
 	}
-	if tr.fatalCount != fatalCount {
-		t.Fatalf("Incorrect fatal count. Wanted %d but got %d.", fatalCount, tr.fatalCount)
+	if recorder.fatalCount != fatalCount {
+		t.Fatalf("Incorrect fatal count. Wanted %d but got %d.", fatalCount, recorder.fatalCount)
 	}
-	aggregatedLogs := strings.Join(tr.logs, "\n")
+	aggregatedLogs := strings.Join(recorder.logs, "\n")
 	for _, log := range expectedLogs {
 		if !strings.Contains(aggregatedLogs, log) {
 			t.Fatalf("Incorrect error message. Wanted '%s' to contain '%s'.", aggregatedLogs, log)
@@ -615,19 +615,19 @@ func TestAssert_DifferentCases_ShouldWorkCorrectly(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			tr := newTestRecorder(t)
-			testCase.callback(tr)
+			recorder := newTestRecorder(t)
+			testCase.callback(recorder)
 			if len(testCase.expectLogs) > 0 {
-				checkRecorder(t, tr, 0, 1, testCase.expectLogs)
+				checkRecorder(t, recorder, 0, 1, testCase.expectLogs)
 			} else {
-				checkRecorder(t, tr, 0, 0, []string{})
+				checkRecorder(t, recorder, 0, 0, []string{})
 			}
-			tr = newTestRecorder(t)
-			testCase.callback(tr, assert.Continue())
+			recorder = newTestRecorder(t)
+			testCase.callback(recorder, assert.Continue())
 			if len(testCase.expectLogs) > 0 {
-				checkRecorder(t, tr, 1, 0, testCase.expectLogs)
+				checkRecorder(t, recorder, 1, 0, testCase.expectLogs)
 			} else {
-				checkRecorder(t, tr, 0, 0, []string{})
+				checkRecorder(t, recorder, 0, 0, []string{})
 			}
 		})
 	}
@@ -637,11 +637,11 @@ func TestAssert_ConcurrentUsage_ShouldWorkCorrectly(t *testing.T) {
 	t.Parallel()
 	const goroutines = 8
 	const iterations = 1000
-	wg := sync.WaitGroup{}
-	wg.Add(goroutines)
+	waitGroup := sync.WaitGroup{}
+	waitGroup.Add(goroutines)
 	for range goroutines {
 		go func() {
-			defer wg.Done()
+			defer waitGroup.Done()
 			for range iterations {
 				assert.Equals(t, 1, 1)
 				assert.NotEquals(t, 1, 2)
@@ -656,5 +656,5 @@ func TestAssert_ConcurrentUsage_ShouldWorkCorrectly(t *testing.T) {
 			}
 		}()
 	}
-	wg.Wait()
+	waitGroup.Wait()
 }

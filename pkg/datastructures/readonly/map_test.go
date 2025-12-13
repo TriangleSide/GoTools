@@ -243,7 +243,7 @@ func TestMap_WhenManyThreadsUseMap_ShouldHaveNoIssues(t *testing.T) {
 
 	const entryCount = 1000
 	const goRoutineCount = 8
-	wg := sync.WaitGroup{}
+	waitGroup := sync.WaitGroup{}
 	waitToStart := make(chan struct{})
 
 	builder := readonly.NewMapBuilder[int, int]()
@@ -253,7 +253,7 @@ func TestMap_WhenManyThreadsUseMap_ShouldHaveNoIssues(t *testing.T) {
 	roMap := builder.Build()
 
 	for range goRoutineCount {
-		wg.Go(func() {
+		waitGroup.Go(func() {
 			<-waitToStart
 			for k := range entryCount {
 				expected := k * 10
@@ -263,7 +263,7 @@ func TestMap_WhenManyThreadsUseMap_ShouldHaveNoIssues(t *testing.T) {
 	}
 
 	close(waitToStart)
-	wg.Wait()
+	waitGroup.Wait()
 }
 
 func TestMap_WhenHasCalledOnNonExistingKey_ShouldReturnFalse(t *testing.T) {

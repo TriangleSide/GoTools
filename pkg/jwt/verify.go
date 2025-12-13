@@ -23,7 +23,7 @@ type VerifierOption func(*ClaimsVerifier)
 
 // NewClaimsVerifier creates a new ClaimsVerifier with the provided options.
 func NewClaimsVerifier(opts ...VerifierOption) *ClaimsVerifier {
-	v := &ClaimsVerifier{
+	verifier := &ClaimsVerifier{
 		clockSkew:       0,
 		timeFunc:        time.Now,
 		verifyExpiresAt: true,
@@ -31,9 +31,9 @@ func NewClaimsVerifier(opts ...VerifierOption) *ClaimsVerifier {
 		verifyIssuedAt:  false,
 	}
 	for _, opt := range opts {
-		opt(v)
+		opt(verifier)
 	}
-	return v
+	return verifier
 }
 
 // WithExpectedIssuer configures the verifier to require the claim's issuer to match the expected value.

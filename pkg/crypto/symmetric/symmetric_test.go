@@ -245,9 +245,9 @@ func TestEncryptDecrypt_Concurrent_HandlesMultipleGoroutines(t *testing.T) {
 		iterations = 4096
 	)
 	encryptor := newEncryptor(t)
-	var wg sync.WaitGroup
+	var waitGroup sync.WaitGroup
 	for range goroutines {
-		wg.Go(func() {
+		waitGroup.Go(func() {
 			for range iterations {
 				data := []byte("payload-" + strconv.Itoa(getRandomInt(t)))
 				encrypted, err := encryptor.Encrypt(data)
@@ -258,5 +258,5 @@ func TestEncryptDecrypt_Concurrent_HandlesMultipleGoroutines(t *testing.T) {
 			}
 		})
 	}
-	wg.Wait()
+	waitGroup.Wait()
 }
