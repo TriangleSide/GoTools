@@ -13,25 +13,25 @@ type Violation struct {
 
 // NewViolation instantiates a *Violation.
 func NewViolation(params *CallbackParameters, err error) *Violation {
-	sb := strings.Builder{}
-	sb.WriteString("validation failed")
+	builder := strings.Builder{}
+	builder.WriteString("validation failed")
 	if params.IsStructValidation {
-		sb.WriteString(" on field '")
-		sb.WriteString(params.StructFieldName)
-		sb.WriteString("'")
+		builder.WriteString(" on field '")
+		builder.WriteString(params.StructFieldName)
+		builder.WriteString("'")
 	}
-	sb.WriteString(" with validator '")
-	sb.WriteString(string(params.Validator))
-	sb.WriteString("'")
+	builder.WriteString(" with validator '")
+	builder.WriteString(string(params.Validator))
+	builder.WriteString("'")
 	if params.Parameters != "" {
-		sb.WriteString(" and parameters '")
-		sb.WriteString(params.Parameters)
-		sb.WriteString("'")
+		builder.WriteString(" and parameters '")
+		builder.WriteString(params.Parameters)
+		builder.WriteString("'")
 	}
-	sb.WriteString(" because %w")
+	builder.WriteString(" because %w")
 	return &Violation{
 		parameters: params,
-		err:        fmt.Errorf(sb.String(), err),
+		err:        fmt.Errorf(builder.String(), err),
 	}
 }
 

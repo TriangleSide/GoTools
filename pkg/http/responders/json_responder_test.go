@@ -134,7 +134,7 @@ func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
 	t.Parallel()
 
 	recorder := httptest.NewRecorder()
-	ew := &errorWriter{
+	errWriter := &errorWriter{
 		WriteFailed:    false,
 		ResponseWriter: recorder,
 	}
@@ -145,7 +145,7 @@ func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		responders.JSON[jsonRequestParams, jsonResponseBody](ew, r, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSON[jsonRequestParams, jsonResponseBody](errWriter, r, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
@@ -160,7 +160,7 @@ func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
 	client := &http.Client{}
 	response, err := client.Do(req)
 	assert.NoError(t, err)
-	assert.True(t, ew.WriteFailed)
+	assert.True(t, errWriter.WriteFailed)
 	assert.ErrorPart(t, writeError, "simulated write failure")
 	assert.NoError(t, response.Body.Close())
 }

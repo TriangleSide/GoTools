@@ -71,8 +71,8 @@ func (c *Cache[Key, Value]) Get(key Key) (Value, bool) {
 	return itemValue.value, true
 }
 
-// GetOrSet tries to get the value, and if not present, it calls fn to fetch and set the value.
-func (c *Cache[Key, Value]) GetOrSet(key Key, fn GetOrSetFn[Key, Value]) (Value, error) {
+// GetOrSet tries to get the value, and if not present, it calls getOrSetFn to fetch and set the value.
+func (c *Cache[Key, Value]) GetOrSet(key Key, getOrSetFn GetOrSetFn[Key, Value]) (Value, error) {
 	keyLockUncast, keyLockFound := c.getOrSetKeyLocks.LoadOrStore(key, &getOrSetKeyLock[Value]{
 		WaitChan: make(chan struct{}),
 	})
@@ -99,7 +99,7 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, fn GetOrSetFn[Key, Value]) (Value,
 	}
 
 	var ttl *time.Duration
-	keyLock.FnValue, ttl, keyLock.FnError = fn(key)
+	keyLock.FnValue, ttl, keyLock.FnError = getOrSetFn(key)
 	if keyLock.FnError != nil {
 		return keyLock.FnValue, keyLock.FnError
 	}

@@ -214,14 +214,14 @@ func TestCache_Concurrency_UniqueSequentialOperations(t *testing.T) {
 	testCache := cache.New[string, string]()
 	const threadCount = 4
 	const loopCount = 10000
-	wg := sync.WaitGroup{}
+	waitGroup := sync.WaitGroup{}
 	startChan := make(chan struct{})
-	for i := range threadCount {
-		wg.Go(func() {
+	for threadIdx := range threadCount {
+		waitGroup.Go(func() {
 			<-startChan
-			for k := range loopCount {
-				key := fmt.Sprintf("key-%d-%d", i, k)
-				value := fmt.Sprintf("value-%d-%d", i, k)
+			for iteration := range loopCount {
+				key := fmt.Sprintf("key-%d-%d", threadIdx, iteration)
+				value := fmt.Sprintf("value-%d-%d", threadIdx, iteration)
 				testCache.Set(key, value, ptr.Of(time.Minute))
 				gottenValue, gotten := testCache.Get(key)
 				assert.True(t, gotten, assert.Continue())
@@ -231,7 +231,7 @@ func TestCache_Concurrency_UniqueSequentialOperations(t *testing.T) {
 				time.Sleep(time.Nanosecond * 2)
 				_, gotten = testCache.Get(key)
 				assert.False(t, gotten, assert.Continue())
-				other := fmt.Sprintf("other-%d-%d", i, k)
+				other := fmt.Sprintf("other-%d-%d", threadIdx, iteration)
 				gottenValue, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 					return other, ptr.Of(time.Minute), nil
 				})
@@ -242,7 +242,7 @@ func TestCache_Concurrency_UniqueSequentialOperations(t *testing.T) {
 		})
 	}
 	close(startChan)
-	wg.Wait()
+	waitGroup.Wait()
 }
 
 func TestCache_Concurrency_GetSetRemove(t *testing.T) {
@@ -250,10 +250,10 @@ func TestCache_Concurrency_GetSetRemove(t *testing.T) {
 	testCache := cache.New[string, string]()
 	const threadCount = 4
 	const loopCount = 10000
-	wg := sync.WaitGroup{}
+	waitGroup := sync.WaitGroup{}
 	startChan := make(chan struct{})
 	for range threadCount {
-		wg.Go(func() {
+		waitGroup.Go(func() {
 			<-startChan
 			for range loopCount {
 				const key = "key"
@@ -268,7 +268,7 @@ func TestCache_Concurrency_GetSetRemove(t *testing.T) {
 		})
 	}
 	close(startChan)
-	wg.Wait()
+	waitGroup.Wait()
 }
 
 func TestCache_Concurrency_GetOrSet(t *testing.T) {
@@ -276,10 +276,10 @@ func TestCache_Concurrency_GetOrSet(t *testing.T) {
 	testCache := cache.New[string, string]()
 	const threadCount = 4
 	const loopCount = 10000
-	wg := sync.WaitGroup{}
+	waitGroup := sync.WaitGroup{}
 	startChan := make(chan struct{})
 	for range threadCount {
-		wg.Go(func() {
+		waitGroup.Go(func() {
 			<-startChan
 			for range loopCount {
 				key := "key" + strconv.Itoa(getRandomInt(t, threadCount))
@@ -292,20 +292,20 @@ func TestCache_Concurrency_GetOrSet(t *testing.T) {
 		})
 	}
 	close(startChan)
-	wg.Wait()
+	waitGroup.Wait()
 }
 
 func TestGetOrSet_ConcurrentCalls_ReturnsFirstCallersValue(t *testing.T) {
 	t.Parallel()
 	testCache := cache.New[string, string]()
-	wg := sync.WaitGroup{}
+	waitGroup := sync.WaitGroup{}
 	const key = "key"
 	const threadCount = 4
 
 	firstWaitChan := make(chan struct{})
 
 	for range threadCount {
-		wg.Go(func() {
+		waitGroup.Go(func() {
 			<-firstWaitChan
 			returnedValue, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 				return "other", ptr.Of(time.Hour), nil
@@ -315,7 +315,7 @@ func TestGetOrSet_ConcurrentCalls_ReturnsFirstCallersValue(t *testing.T) {
 		})
 	}
 
-	wg.Go(func() {
+	waitGroup.Go(func() {
 		returnedValue, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 			close(firstWaitChan)
 			time.Sleep(time.Second)
@@ -325,7 +325,7 @@ func TestGetOrSet_ConcurrentCalls_ReturnsFirstCallersValue(t *testing.T) {
 		assert.Equals(t, returnedValue, "first", assert.Continue())
 	})
 
-	wg.Wait()
+	waitGroup.Wait()
 }
 
 func TestNew_CreatesEmptyCache(t *testing.T) {

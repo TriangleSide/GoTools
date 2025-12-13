@@ -55,4 +55,5 @@ linters:
     - unused
     - usestdlibvars
     - usetesting
+    - varnamelen
     - whitespace

@@ -235,11 +235,11 @@ func TestHeap_WhenAccessedConcurrently_ShouldHaveNoIssues(t *testing.T) {
 	const countPerRoutine = 5000
 	const routineCount = 4
 
-	wg := sync.WaitGroup{}
+	waitGroup := sync.WaitGroup{}
 	waitToStart := make(chan struct{})
 
 	for range routineCount {
-		wg.Go(func() {
+		waitGroup.Go(func() {
 			<-waitToStart
 			for range countPerRoutine {
 				randomValue := getRandomInt(t, countPerRoutine/10)
@@ -263,7 +263,7 @@ func TestHeap_WhenAccessedConcurrently_ShouldHaveNoIssues(t *testing.T) {
 	}
 
 	close(waitToStart)
-	wg.Wait()
+	waitGroup.Wait()
 
 	lastValue := math.MaxInt
 	for range countPerRoutine * routineCount {
@@ -279,14 +279,14 @@ func TestCompareAndPop_WhenCalledOnEmptyHeap_ShouldReturnZeroValueAndFalse(t *te
 	t.Parallel()
 
 	maxHeap := heap.New(func(a, b int) bool { return a > b })
-	value, ok := maxHeap.CompareAndPop(func(int) bool { return true })
+	value, found := maxHeap.CompareAndPop(func(int) bool { return true })
 	assert.Equals(t, 0, value)
-	assert.False(t, ok)
+	assert.False(t, found)
 
 	minHeap := heap.New(func(a, b int) bool { return a < b })
-	value, ok = minHeap.CompareAndPop(func(int) bool { return true })
+	value, found = minHeap.CompareAndPop(func(int) bool { return true })
 	assert.Equals(t, 0, value)
-	assert.False(t, ok)
+	assert.False(t, found)
 }
 
 func TestCompareAndPop_WhenCalled_ShouldBehaveCorrectly(t *testing.T) {
@@ -344,26 +344,26 @@ func TestCompareAndPop_WhenCalled_ShouldBehaveCorrectly(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			var h *heap.Heap[int]
-			if tc.isMaxHeap {
-				h = heap.New(func(a, b int) bool { return a > b })
+			var testHeap *heap.Heap[int]
+			if testCase.isMaxHeap {
+				testHeap = heap.New(func(a, b int) bool { return a > b })
 			} else {
-				h = heap.New(func(a, b int) bool { return a < b })
+				testHeap = heap.New(func(a, b int) bool { return a < b })
 			}
 
-			for _, v := range tc.pushValues {
-				h.Push(v)
+			for _, v := range testCase.pushValues {
+				testHeap.Push(v)
 			}
 
-			value, ok := h.CompareAndPop(tc.condition)
-			assert.Equals(t, tc.shouldPop, ok)
-			assert.Equals(t, tc.expectedValue, value)
-			assert.Equals(t, tc.expectedSize, h.Size())
-			assert.Equals(t, tc.expectedPeek, h.Peek())
+			value, found := testHeap.CompareAndPop(testCase.condition)
+			assert.Equals(t, testCase.shouldPop, found)
+			assert.Equals(t, testCase.expectedValue, value)
+			assert.Equals(t, testCase.expectedSize, testHeap.Size())
+			assert.Equals(t, testCase.expectedPeek, testHeap.Peek())
 		})
 	}
 }
@@ -378,8 +378,8 @@ func TestCompareAndPop_WhenCalled_ShouldMaintainHeapProperty(t *testing.T) {
 	maxHeap.Push(10)
 	maxHeap.Push(15)
 
-	value, ok := maxHeap.CompareAndPop(func(v int) bool { return v > 25 })
-	assert.True(t, ok)
+	value, found := maxHeap.CompareAndPop(func(v int) bool { return v > 25 })
+	assert.True(t, found)
 	assert.Equals(t, 30, value)
 	assert.Equals(t, 25, maxHeap.Peek())
 
@@ -396,8 +396,8 @@ func TestCompareAndPop_WhenCalled_ShouldMaintainHeapProperty(t *testing.T) {
 	minHeap.Push(30)
 	minHeap.Push(25)
 
-	value, ok = minHeap.CompareAndPop(func(v int) bool { return v < 15 })
-	assert.True(t, ok)
+	value, found = minHeap.CompareAndPop(func(v int) bool { return v < 15 })
+	assert.True(t, found)
 	assert.Equals(t, 10, value)
 	assert.Equals(t, 15, minHeap.Peek())
 

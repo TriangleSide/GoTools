@@ -118,14 +118,14 @@ func TestError_WrappedWithCustomRegisteredType_ReturnsCustomMessageAndStatus(t *
 func TestError_WriterError_InvokesCallback(t *testing.T) {
 	t.Parallel()
 	recorder := httptest.NewRecorder()
-	ew := &errorWriter{
+	errWriter := &errorWriter{
 		WriteFailed:    false,
 		ResponseWriter: recorder,
 	}
 	var writeError error
 	writeErrorCallback := func(err error) { writeError = err }
-	responders.Error(ew, errors.New("some error"), responders.WithErrorCallback(writeErrorCallback))
-	assert.True(t, ew.WriteFailed)
+	responders.Error(errWriter, errors.New("some error"), responders.WithErrorCallback(writeErrorCallback))
+	assert.True(t, errWriter.WriteFailed)
 	assert.ErrorPart(t, writeError, "simulated write failure")
 }
 

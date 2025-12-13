@@ -45,14 +45,14 @@ func (ts Timestamp) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler expecting RFC 3339 format.
 func (ts *Timestamp) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
 		return fmt.Errorf("timestamp must be a string (%w)", err)
 	}
-	if s == "" {
+	if str == "" {
 		return errors.New("timestamp cannot be empty")
 	}
-	t, err := time.Parse(time.RFC3339, s)
+	t, err := time.Parse(time.RFC3339, str)
 	if err != nil {
 		return fmt.Errorf("invalid RFC 3339 timestamp (%w)", err)
 	}

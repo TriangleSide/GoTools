@@ -563,18 +563,18 @@ func TestRequiredIfValidator_ConcurrentValidation_PassesConsistently(t *testing.
 	const goroutineCount = 50
 	errorsCh := make(chan error, goroutineCount)
 
-	wg := sync.WaitGroup{}
-	wg.Add(goroutineCount)
+	waitGroup := sync.WaitGroup{}
+	waitGroup.Add(goroutineCount)
 	for range goroutineCount {
 		go func() {
-			defer wg.Done()
+			defer waitGroup.Done()
 			errorsCh <- validation.Struct(TestStruct{
 				Status: "active",
 				Field:  "some value",
 			})
 		}()
 	}
-	wg.Wait()
+	waitGroup.Wait()
 	close(errorsCh)
 
 	for err := range errorsCh {

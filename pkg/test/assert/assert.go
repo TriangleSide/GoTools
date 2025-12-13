@@ -33,8 +33,8 @@ func assertPanic(tCtx *testContext, panicFunc func(), msg *string, exact bool) {
 	gotRecoverMsg := false
 	recoverMsg := ""
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
+	waitGroup := sync.WaitGroup{}
+	waitGroup.Add(1)
 
 	go func() {
 		defer func() {
@@ -48,11 +48,11 @@ func assertPanic(tCtx *testContext, panicFunc func(), msg *string, exact bool) {
 					recoverMsg = castErr.Error()
 				}
 			}
-			wg.Done()
+			waitGroup.Done()
 		}()
 		panicFunc()
 	}()
-	wg.Wait()
+	waitGroup.Wait()
 
 	if !panicOccurred {
 		tCtx.fail("Expected panic to occur but none occurred.")
@@ -146,14 +146,14 @@ func isNil(value any) bool {
 	if value == nil {
 		return true
 	}
-	v := reflect.ValueOf(value)
-	if v.Kind() == reflect.Ptr ||
-		v.Kind() == reflect.Interface ||
-		v.Kind() == reflect.Slice ||
-		v.Kind() == reflect.Map ||
-		v.Kind() == reflect.Chan ||
-		v.Kind() == reflect.Func {
-		if v.IsNil() {
+	reflectValue := reflect.ValueOf(value)
+	if reflectValue.Kind() == reflect.Ptr ||
+		reflectValue.Kind() == reflect.Interface ||
+		reflectValue.Kind() == reflect.Slice ||
+		reflectValue.Kind() == reflect.Map ||
+		reflectValue.Kind() == reflect.Chan ||
+		reflectValue.Kind() == reflect.Func {
+		if reflectValue.IsNil() {
 			return true
 		}
 	}
