@@ -22,8 +22,8 @@ func setStringIntoTextUnmarshaller(fieldPtr reflect.Value, fieldType reflect.Typ
 	return false, nil
 }
 
-// setStringIntoJsonType handles Map, Slice, and Struct types by JSON unmarshaling.
-func setStringIntoJsonType(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
+// setStringIntoJSONType handles Map, Slice, and Struct types by JSON unmarshaling.
+func setStringIntoJSONType(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
 	switch fieldType.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Struct:
 		if err := json.Unmarshal([]byte(stringEncodedValue), fieldPtr.Interface()); err != nil {
@@ -102,7 +102,7 @@ func setStringIntoBool(fieldPtr reflect.Value, fieldType reflect.Type, stringEnc
 func setStringIntoField(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) error {
 	handlers := []func(reflect.Value, reflect.Type, string) (bool, error){
 		setStringIntoTextUnmarshaller,
-		setStringIntoJsonType,
+		setStringIntoJSONType,
 		setStringIntoString,
 		setStringIntoInt,
 		setStringIntoUint,

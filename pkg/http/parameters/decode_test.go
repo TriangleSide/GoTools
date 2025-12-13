@@ -17,17 +17,17 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-type testJsonReadCloser struct {
+type testJSONReadCloser struct {
 	ReturnedError error
 	Closed        bool
 }
 
-func (j *testJsonReadCloser) Read(p []byte) (int, error) {
+func (j *testJSONReadCloser) Read(p []byte) (int, error) {
 	jsonData := `{"message": "generic json response"}`
 	return copy(p, jsonData), nil
 }
 
-func (j *testJsonReadCloser) Close() error {
+func (j *testJSONReadCloser) Close() error {
 	j.Closed = true
 	return j.ReturnedError
 }
@@ -191,7 +191,7 @@ func TestDecode_BodyFailsToClose_ShouldReturnError(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", nil)
 	assert.NoError(t, err)
-	readCloser := &testJsonReadCloser{
+	readCloser := &testJSONReadCloser{
 		ReturnedError: errors.New("close error"),
 	}
 	request.Body = readCloser
@@ -209,7 +209,7 @@ func TestDecode_BodyFailsToCloseWithDecodeError_ShouldReturnBothErrors(t *testin
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", nil)
 	assert.NoError(t, err)
-	readCloser := &testJsonReadCloser{
+	readCloser := &testJSONReadCloser{
 		ReturnedError: errors.New("close error"),
 	}
 	request.Body = readCloser

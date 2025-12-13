@@ -393,7 +393,7 @@ func TestMigrate_MigrateFunctionFails_ReturnsError(t *testing.T) {
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context, _ migration.Status) error {
+		Migrate: func(context.Context, migration.Status) error {
 			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
 			return errors.New("migrate error")
 		},
@@ -425,7 +425,7 @@ func TestMigrate_MigrateFunctionFailsAndPersistFailedStatusFails_ReturnsBothErro
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context, _ migration.Status) error {
+		Migrate: func(_ context.Context, _ migration.Status) error {
 			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
 			return errors.New("migrate error")
 		},
@@ -975,7 +975,7 @@ func TestMigrate_NoPersistedStatus_PassesPendingAsDefault(t *testing.T) {
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context, previousStatus migration.Status) error {
+		Migrate: func(_ context.Context, previousStatus migration.Status) error {
 			receivedStatus = previousStatus
 			manager.Operations = append(manager.Operations, fmt.Sprintf("Migration1.Migrate(previousStatus=%s)", previousStatus))
 			return nil
@@ -1011,7 +1011,7 @@ func TestMigrate_PersistedStatusFailed_PassesFailedToPreviousStatus(t *testing.T
 	reg := migration.NewRegistry()
 	reg.MustRegister(&migration.Registration{
 		Order: 1,
-		Migrate: func(ctx context.Context, previousStatus migration.Status) error {
+		Migrate: func(_ context.Context, previousStatus migration.Status) error {
 			receivedStatus = previousStatus
 			manager.Operations = append(manager.Operations, fmt.Sprintf("Migration1.Migrate(previousStatus=%s)", previousStatus))
 			return nil

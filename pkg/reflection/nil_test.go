@@ -23,25 +23,25 @@ func TestIsNil_PtrToZero_ReturnsFalse(t *testing.T) {
 
 func TestIsNil_NilPtr_ReturnsTrue(t *testing.T) {
 	t.Parallel()
-	var value *int = nil
+	var value *int
 	assert.True(t, reflection.IsNil(reflect.ValueOf(value)))
 }
 
 func TestIsNil_NilMap_ReturnsTrue(t *testing.T) {
 	t.Parallel()
-	var value map[string]string = nil
+	var value map[string]string
 	assert.True(t, reflection.IsNil(reflect.ValueOf(value)))
 }
 
 func TestIsNil_Integer_ReturnsFalse(t *testing.T) {
 	t.Parallel()
-	var value int32 = 0
+	var value int32
 	assert.False(t, reflection.IsNil(reflect.ValueOf(value)))
 }
 
 func TestIsNil_NilUnsafePointer_ReturnsTrue(t *testing.T) {
 	t.Parallel()
-	var value unsafe.Pointer = nil
+	var value unsafe.Pointer
 	assert.True(t, reflection.IsNil(reflect.ValueOf(value)))
 }
 
@@ -54,7 +54,7 @@ func TestIsNil_NonNilUnsafePointer_ReturnsFalse(t *testing.T) {
 
 func TestIsNil_NilSlice_ReturnsTrue(t *testing.T) {
 	t.Parallel()
-	var value []int = nil
+	var value []int
 	assert.True(t, reflection.IsNil(reflect.ValueOf(value)))
 }
 
@@ -66,7 +66,7 @@ func TestIsNil_NonNilSlice_ReturnsFalse(t *testing.T) {
 
 func TestIsNil_NilChannel_ReturnsTrue(t *testing.T) {
 	t.Parallel()
-	var value chan int = nil
+	var value chan int
 	assert.True(t, reflection.IsNil(reflect.ValueOf(value)))
 }
 
@@ -78,7 +78,7 @@ func TestIsNil_NonNilChannel_ReturnsFalse(t *testing.T) {
 
 func TestIsNil_NilFunc_ReturnsTrue(t *testing.T) {
 	t.Parallel()
-	var value func() = nil
+	var value func()
 	assert.True(t, reflection.IsNil(reflect.ValueOf(value)))
 }
 
@@ -90,7 +90,7 @@ func TestIsNil_NonNilFunc_ReturnsFalse(t *testing.T) {
 
 func TestIsNil_NilInterface_ReturnsTrue(t *testing.T) {
 	t.Parallel()
-	var value any = nil
+	var value any
 	v := reflect.ValueOf(&value).Elem()
 	assert.True(t, reflection.IsNil(v))
 }

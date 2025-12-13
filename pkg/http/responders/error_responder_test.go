@@ -47,7 +47,7 @@ func init() {
 			Message: err.Error(),
 		}
 	})
-	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(err *testUnmarshalableError) *struct{ C chan int } {
+	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*testUnmarshalableError) *struct{ C chan int } {
 		return &struct{ C chan int }{}
 	})
 }

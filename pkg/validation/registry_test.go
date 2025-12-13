@@ -14,7 +14,7 @@ func TestMustRegisterValidator_RegisteredValidator_CanBeUsedInVar(t *testing.T) 
 	t.Parallel()
 
 	validatorName := validation.Validator("registry_test_registered_can_be_used_in_var")
-	validation.MustRegisterValidator(validatorName, func(parameters *validation.CallbackParameters) *validation.CallbackResult { return nil })
+	validation.MustRegisterValidator(validatorName, func(*validation.CallbackParameters) *validation.CallbackResult { return nil })
 
 	err := validation.Var("anything", string(validatorName))
 	assert.NoError(t, err)
@@ -24,10 +24,10 @@ func TestMustRegisterValidator_DuplicateName_Panics(t *testing.T) {
 	t.Parallel()
 
 	validatorName := validation.Validator("registry_test_duplicate_panics")
-	validation.MustRegisterValidator(validatorName, func(parameters *validation.CallbackParameters) *validation.CallbackResult { return nil })
+	validation.MustRegisterValidator(validatorName, func(*validation.CallbackParameters) *validation.CallbackResult { return nil })
 
 	assert.PanicPart(t, func() {
-		validation.MustRegisterValidator(validatorName, func(parameters *validation.CallbackParameters) *validation.CallbackResult { return nil })
+		validation.MustRegisterValidator(validatorName, func(*validation.CallbackParameters) *validation.CallbackResult { return nil })
 	}, "already exists")
 }
 
@@ -35,7 +35,7 @@ func TestNewCallbackResult_EmptyResult_ReturnsIncorrectlyFilledError(t *testing.
 	t.Parallel()
 
 	validatorName := validation.Validator("registry_test_empty_callback_result")
-	validation.MustRegisterValidator(validatorName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+	validation.MustRegisterValidator(validatorName, func(*validation.CallbackParameters) *validation.CallbackResult {
 		return validation.NewCallbackResult()
 	})
 
@@ -58,7 +58,7 @@ func TestCallbackResult_WithError_PropagatesError(t *testing.T) {
 		{
 			name:          "when a callback returns a normal error it should be returned directly",
 			validatorName: "registry_test_with_error_plain",
-			callback: func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+			callback: func(*validation.CallbackParameters) *validation.CallbackResult {
 				return validation.NewCallbackResult().WithError(errors.New("some error"))
 			},
 			expectedError: "some error",
@@ -99,10 +99,10 @@ func TestCallbackResult_WithStop_SkipsRemainingValidators(t *testing.T) {
 	stopName := validation.Validator("registry_test_stop_skips_remaining_first")
 	panicName := validation.Validator("registry_test_stop_skips_remaining_second")
 
-	validation.MustRegisterValidator(stopName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+	validation.MustRegisterValidator(stopName, func(*validation.CallbackParameters) *validation.CallbackResult {
 		return validation.NewCallbackResult().WithStop()
 	})
-	validation.MustRegisterValidator(panicName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+	validation.MustRegisterValidator(panicName, func(*validation.CallbackParameters) *validation.CallbackResult {
 		panic("should not be called")
 	})
 
@@ -115,7 +115,7 @@ func TestCallbackResult_WithStop_SkipsMalformedRemainingInstruction(t *testing.T
 
 	stopName := validation.Validator("registry_test_stop_skips_malformed_remaining_first")
 
-	validation.MustRegisterValidator(stopName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+	validation.MustRegisterValidator(stopName, func(*validation.CallbackParameters) *validation.CallbackResult {
 		return validation.NewCallbackResult().WithStop()
 	})
 
@@ -129,8 +129,8 @@ func TestCallback_ReturnsNil_ContinuesToNextValidator(t *testing.T) {
 	firstName := validation.Validator("registry_test_callback_returns_nil_continues_first")
 	secondName := validation.Validator("registry_test_callback_returns_nil_continues_second")
 
-	validation.MustRegisterValidator(firstName, func(parameters *validation.CallbackParameters) *validation.CallbackResult { return nil })
-	validation.MustRegisterValidator(secondName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+	validation.MustRegisterValidator(firstName, func(*validation.CallbackParameters) *validation.CallbackResult { return nil })
+	validation.MustRegisterValidator(secondName, func(*validation.CallbackParameters) *validation.CallbackResult {
 		return validation.NewCallbackResult().WithError(errors.New("second validator error"))
 	})
 
@@ -168,7 +168,7 @@ func TestCallbackResult_AddValue_NoRemainingInstructions_ReturnsEmptyInstruction
 
 	addValueName := validation.Validator("registry_test_add_value_no_remaining_instructions")
 
-	validation.MustRegisterValidator(addValueName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+	validation.MustRegisterValidator(addValueName, func(*validation.CallbackParameters) *validation.CallbackResult {
 		return validation.NewCallbackResult().AddValue(reflect.ValueOf("anything"))
 	})
 

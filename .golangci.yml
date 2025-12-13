@@ -22,6 +22,7 @@ linters:
     - errchkjson
     - errorlint
     - errorlint
+    - gochecksumtype
     - goconst
     - gocritic
     - godot
@@ -32,6 +33,7 @@ linters:
     - importas
     - ineffassign
     - intrange
+    - makezero
     - misspell
     - mnd
     - musttag
@@ -39,6 +41,7 @@ linters:
     - nilerr
     - noctx
     - perfsprint
+    - prealloc
     - reassign
     - sqlclosecheck
     - staticcheck

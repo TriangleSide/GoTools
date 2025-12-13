@@ -46,7 +46,7 @@ func TestVar_ViolationStopsValidation_SkipsRemainingValidators(t *testing.T) {
 	validation.MustRegisterValidator(firstName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
 		return validation.NewCallbackResult().WithError(validation.NewViolation(parameters, errors.New("first violation")))
 	})
-	validation.MustRegisterValidator(secondName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+	validation.MustRegisterValidator(secondName, func(*validation.CallbackParameters) *validation.CallbackResult {
 		panic("should not be called")
 	})
 
@@ -65,7 +65,7 @@ func TestStruct_NilValue_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	type testStruct struct{}
-	var instance *testStruct = nil
+	var instance *testStruct
 	err := validation.Struct(instance)
 	assert.ErrorPart(t, err, "value is nil")
 }
@@ -426,7 +426,7 @@ func TestStruct_CallbackResultNotFilled_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	validatorName := validation.Validator("validation_test_not_filled")
-	validation.MustRegisterValidator(validatorName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+	validation.MustRegisterValidator(validatorName, func(*validation.CallbackParameters) *validation.CallbackResult {
 		return validation.NewCallbackResult()
 	})
 

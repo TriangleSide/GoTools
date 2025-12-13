@@ -42,6 +42,6 @@ func keyGen(provider signatureProvider) ([]byte, string, error) {
 		return nil, "", err
 	}
 	keyHash := sha256.Sum256(key)
-	keyId := base64.RawURLEncoding.EncodeToString(keyHash[:])
-	return key, keyId, nil
+	keyID := base64.RawURLEncoding.EncodeToString(keyHash[:])
+	return key, keyID, nil
 }

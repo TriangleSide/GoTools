@@ -48,9 +48,7 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 	for fieldIndex := range reflectType.NumField() {
 		field := reflectType.Field(fieldIndex)
 
-		anonymousChainCopy := make([]string, len(anonymousChain))
-		copy(anonymousChainCopy, anonymousChain)
-
+		anonymousChainCopy := append([]string{}, anonymousChain...)
 		if field.Anonymous {
 			anonymousChainCopy = append(anonymousChainCopy, field.Name)
 			processType(field.Type, fieldsToMetadata, anonymousChainCopy)
