@@ -60,19 +60,19 @@ func marshalToStableJSON(v any) string {
 	slices.Sort(sortedFields)
 
 	strCount += extraForBraces
-	var sb strings.Builder
-	sb.Grow(strCount)
-	sb.WriteByte('{')
+	var builder strings.Builder
+	builder.Grow(strCount)
+	builder.WriteByte('{')
 	for i, fieldName := range sortedFields {
 		if i > 0 {
-			sb.WriteByte(',')
+			builder.WriteByte(',')
 		}
-		sb.WriteByte('"')
-		sb.WriteString(fieldName)
-		sb.WriteString(`":`)
-		sb.WriteString(fieldNameToJSONStringValue[fieldName])
+		builder.WriteByte('"')
+		builder.WriteString(fieldName)
+		builder.WriteString(`":`)
+		builder.WriteString(fieldNameToJSONStringValue[fieldName])
 	}
-	sb.WriteByte('}')
+	builder.WriteByte('}')
 
-	return sb.String()
+	return builder.String()
 }

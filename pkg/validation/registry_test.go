@@ -77,17 +77,17 @@ func TestCallbackResult_WithError_PropagatesError(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			validation.MustRegisterValidator(tc.validatorName, tc.callback)
+			validation.MustRegisterValidator(testCase.validatorName, testCase.callback)
 
-			err := validation.Var("anything", string(tc.validatorName))
+			err := validation.Var("anything", string(testCase.validatorName))
 			assert.Error(t, err)
-			assert.ErrorPart(t, err, tc.expectedError)
-			if tc.expectedAs != nil {
-				assert.True(t, tc.expectedAs(err))
+			assert.ErrorPart(t, err, testCase.expectedError)
+			if testCase.expectedAs != nil {
+				assert.True(t, testCase.expectedAs(err))
 			}
 		})
 	}

@@ -31,13 +31,13 @@ func TestJSONStream_SuccessfulCallback_RespondsWithCorrectJSONStreamAndStatusCod
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
-			ch := make(chan *jsonStreamResponseBody)
+			responseChan := make(chan *jsonStreamResponseBody)
 			go func() {
-				defer close(ch)
-				ch <- &jsonStreamResponseBody{Message: "first"}
-				ch <- &jsonStreamResponseBody{Message: "second"}
+				defer close(responseChan)
+				responseChan <- &jsonStreamResponseBody{Message: "first"}
+				responseChan <- &jsonStreamResponseBody{Message: "second"}
 			}()
-			return ch, http.StatusOK, nil
+			return responseChan, http.StatusOK, nil
 		}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
@@ -262,7 +262,7 @@ func TestJSONStream_WriterFails_CallsErrorCallback(t *testing.T) {
 	t.Parallel()
 
 	recorder := httptest.NewRecorder()
-	ew := &errorWriter{
+	errWriter := &errorWriter{
 		WriteFailed:    false,
 		ResponseWriter: recorder,
 	}
@@ -273,13 +273,13 @@ func TestJSONStream_WriterFails_CallsErrorCallback(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](ew, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
-			ch := make(chan *jsonStreamResponseBody, 1)
+		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](errWriter, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			responseChan := make(chan *jsonStreamResponseBody, 1)
 			go func() {
-				defer close(ch)
-				ch <- &jsonStreamResponseBody{}
+				defer close(responseChan)
+				responseChan <- &jsonStreamResponseBody{}
 			}()
-			return ch, http.StatusOK, nil
+			return responseChan, http.StatusOK, nil
 		}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()

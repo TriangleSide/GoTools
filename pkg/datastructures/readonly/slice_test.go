@@ -123,7 +123,7 @@ func TestSlice_ConcurrentAccess_NoIssues(t *testing.T) {
 
 	const entryCount = 1000
 	const goRoutineCount = 4
-	wg := sync.WaitGroup{}
+	waitGroup := sync.WaitGroup{}
 	waitToStart := make(chan struct{})
 
 	builder := readonly.NewSliceBuilder[int]()
@@ -133,7 +133,7 @@ func TestSlice_ConcurrentAccess_NoIssues(t *testing.T) {
 	roSlice := builder.Build()
 
 	for range goRoutineCount {
-		wg.Go(func() {
+		waitGroup.Go(func() {
 			<-waitToStart
 			for k := range entryCount {
 				verifySliceValue(t, roSlice, k, k)
@@ -142,7 +142,7 @@ func TestSlice_ConcurrentAccess_NoIssues(t *testing.T) {
 	}
 
 	close(waitToStart)
-	wg.Wait()
+	waitGroup.Wait()
 }
 
 func TestSlice_At_NegativeIndex_Panics(t *testing.T) {

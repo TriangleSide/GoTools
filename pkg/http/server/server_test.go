@@ -328,8 +328,8 @@ func TestNew_TLSModeWithMissingKeys_ReturnsError(t *testing.T) {
 
 func TestRun_PortAlreadyInUse_ReturnsError(t *testing.T) {
 	t.Parallel()
-	const ip = "::1"
-	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP(ip), Port: 0})
+	const ipAddress = "::1"
+	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP(ipAddress), Port: 0})
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		assert.NoError(t, listener.Close())
@@ -339,7 +339,7 @@ func TestRun_PortAlreadyInUse_ReturnsError(t *testing.T) {
 	listenerPort := addr.AddrPort().Port()
 	srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 		cfg := getDefaultConfig(t)
-		cfg.HTTPServerBindIP = ip
+		cfg.HTTPServerBindIP = ipAddress
 		cfg.HTTPServerBindPort = listenerPort
 		return cfg, nil
 	}))
@@ -941,29 +941,29 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 		{http.MethodGet, "/jsonstream", nil, "", http.StatusOK},
 	}
 
-	wg := sync.WaitGroup{}
+	waitGroup := sync.WaitGroup{}
 	waitToStart := make(chan struct{})
 	totalGoRoutinesPerOperation := 2
 	totalRequestsPerGoRoutine := 1000
 
-	for _, tc := range testCases {
+	for _, testCase := range testCases {
 		for range totalGoRoutinesPerOperation {
-			wg.Go(func() {
+			waitGroup.Go(func() {
 				<-waitToStart
 				for range totalRequestsPerGoRoutine {
 					var body io.Reader
-					if tc.body != nil {
-						body = tc.body()
+					if testCase.body != nil {
+						body = testCase.body()
 					}
 					ctx, cancel := context.WithCancel(context.Background())
-					request, err := http.NewRequestWithContext(ctx, tc.method, "http://"+serverAddress+tc.path, body)
+					request, err := http.NewRequestWithContext(ctx, testCase.method, "http://"+serverAddress+testCase.path, body)
 					if err != nil {
 						cancel()
 						assert.NoError(t, err, assert.Continue())
 						continue
 					}
-					if tc.contentType != "" {
-						request.Header.Set(headers.ContentType, tc.contentType)
+					if testCase.contentType != "" {
+						request.Header.Set(headers.ContentType, testCase.contentType)
 					}
 					response, err := http.DefaultClient.Do(request)
 					cancel()
@@ -971,7 +971,7 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 						assert.NoError(t, err, assert.Continue())
 						continue
 					}
-					assert.Equals(t, response.StatusCode, tc.expected, assert.Continue())
+					assert.Equals(t, response.StatusCode, testCase.expected, assert.Continue())
 					assert.NoError(t, response.Body.Close(), assert.Continue())
 				}
 			})
@@ -979,5 +979,5 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 	}
 
 	close(waitToStart)
-	wg.Wait()
+	waitGroup.Wait()
 }

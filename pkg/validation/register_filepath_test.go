@@ -122,20 +122,20 @@ func TestFilepathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.Name, func(t *testing.T) {
 			t.Parallel()
 
 			var value any
-			if tc.Setup != nil {
-				value = tc.Setup(t)
+			if testCase.Setup != nil {
+				value = testCase.Setup(t)
 			} else {
-				value = tc.Value
+				value = testCase.Value
 			}
 
 			err := validation.Var(value, "filepath")
-			if tc.ExpectedError != "" {
-				assert.ErrorPart(t, err, tc.ExpectedError)
+			if testCase.ExpectedError != "" {
+				assert.ErrorPart(t, err, testCase.ExpectedError)
 			} else {
 				assert.NoError(t, err)
 			}

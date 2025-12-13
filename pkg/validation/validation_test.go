@@ -190,16 +190,16 @@ func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := validation.Struct(tc.instance)
-			if tc.expectedErrorPart == "" {
+			err := validation.Struct(testCase.instance)
+			if testCase.expectedErrorPart == "" {
 				assert.NoError(t, err)
 				return
 			}
-			assert.ErrorPart(t, err, tc.expectedErrorPart)
+			assert.ErrorPart(t, err, testCase.expectedErrorPart)
 		})
 	}
 }
@@ -294,16 +294,16 @@ func TestVar_InterfaceHoldingStruct_InvalidInnerField_ReturnsError(t *testing.T)
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := validation.Var(tc.instance, string(validation.RequiredValidatorName))
-			if tc.expectedErrorPart == "" {
+			err := validation.Var(testCase.instance, string(validation.RequiredValidatorName))
+			if testCase.expectedErrorPart == "" {
 				assert.NoError(t, err)
 				return
 			}
-			assert.ErrorPart(t, err, tc.expectedErrorPart)
+			assert.ErrorPart(t, err, testCase.expectedErrorPart)
 		})
 	}
 }
@@ -369,17 +369,17 @@ func TestStruct_MapOfStructs_Violation_ReturnsError(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			instance := &testStruct{Map: tc.mapValue}
+			instance := &testStruct{Map: testCase.mapValue}
 
 			err := validation.Struct(instance)
-			assert.ErrorPart(t, err, tc.expectedErrorPart)
+			assert.ErrorPart(t, err, testCase.expectedErrorPart)
 
 			err = validation.Var(instance, string(validation.RequiredValidatorName))
-			assert.ErrorPart(t, err, tc.expectedErrorPart)
+			assert.ErrorPart(t, err, testCase.expectedErrorPart)
 		})
 	}
 }
@@ -466,19 +466,19 @@ func TestStruct_ConcurrentValidations_ReturnExpectedResults(t *testing.T) {
 	const workers = 32
 	errs := make(chan error, workers)
 
-	var wg sync.WaitGroup
-	wg.Add(workers)
-	for i := range workers {
-		go func(i int) {
-			defer wg.Done()
-			if i%2 == 0 {
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(workers)
+	for workerIdx := range workers {
+		go func(idx int) {
+			defer waitGroup.Done()
+			if idx%2 == 0 {
 				errs <- validation.Struct(&testStruct{Value: ""})
 				return
 			}
 			errs <- validation.Struct(&testStruct{Value: "ok"})
-		}(i)
+		}(workerIdx)
 	}
-	wg.Wait()
+	waitGroup.Wait()
 	close(errs)
 
 	var gotError bool

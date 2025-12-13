@@ -248,11 +248,11 @@ func TestMetadata_ConcurrentAccess_NoErrors(t *testing.T) {
 
 	const threadCount = 8
 	const loopCount = 1000
-	wg := sync.WaitGroup{}
+	waitGroup := sync.WaitGroup{}
 	waitChan := make(chan struct{})
 
 	for range threadCount {
-		wg.Go(func() {
+		waitGroup.Go(func() {
 			<-waitChan
 			for range loopCount {
 				metadata := structs.Metadata[testStruct]()
@@ -268,5 +268,5 @@ func TestMetadata_ConcurrentAccess_NoErrors(t *testing.T) {
 	}
 
 	close(waitChan)
-	wg.Wait()
+	waitGroup.Wait()
 }
