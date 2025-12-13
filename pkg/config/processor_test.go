@@ -111,6 +111,7 @@ func TestProcessAndValidate_EmbeddedAnonymousStruct_SetsBothFields(t *testing.T)
 
 	type testStruct struct {
 		embeddedStruct
+
 		Field string `config:"ENV" validate:"required"`
 	}
 
