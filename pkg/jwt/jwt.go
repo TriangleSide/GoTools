@@ -98,20 +98,8 @@ func Decode(ctx context.Context, token string, keyProvider KeyProvider) (*Claims
 		return nil, errors.New("token algorithm does not match expected algorithm")
 	}
 
-	provider, ok := signatureProviders[algorithm]
-	if !ok {
-		return nil, errors.New("failed to resolve signature provider")
-	}
-	existingSignature, err := base64.RawURLEncoding.DecodeString(parts[2])
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode signature (%w)", err)
-	}
-	signaturesMatch, err := provider.Verify([]byte(parts[0]+"."+parts[1]), existingSignature, key)
-	if err != nil {
-		return nil, fmt.Errorf("failed to verify token (%w)", err)
-	}
-	if !signaturesMatch {
-		return nil, errors.New("token signature is invalid")
+	if err := validateSignature(parts, key, algorithm); err != nil {
+		return nil, fmt.Errorf("signature validation failed (%w)", err)
 	}
 
 	bodyJson, err := base64.RawURLEncoding.DecodeString(parts[1])
@@ -124,4 +112,24 @@ func Decode(ctx context.Context, token string, keyProvider KeyProvider) (*Claims
 	}
 
 	return &claims, nil
+}
+
+// validateSignature checks if the signature of the JWT is valid using the provided key and algorithm.
+func validateSignature(parts []string, key []byte, algorithm SignatureAlgorithm) error {
+	provider, ok := signatureProviders[algorithm]
+	if !ok {
+		return errors.New("failed to resolve signature provider")
+	}
+	existingSignature, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return fmt.Errorf("failed to decode signature (%w)", err)
+	}
+	signaturesMatch, err := provider.Verify([]byte(parts[0]+"."+parts[1]), existingSignature, key)
+	if err != nil {
+		return fmt.Errorf("failed to verify token (%w)", err)
+	}
+	if !signaturesMatch {
+		return errors.New("token signature is invalid")
+	}
+	return nil
 }
