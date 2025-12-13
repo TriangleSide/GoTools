@@ -62,6 +62,7 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 		}
 
 		tagBuilder := readonly.NewMapBuilder[string, string]()
+
 		if len(string(field.Tag)) != 0 {
 			matches := tagMatchRegex.FindAllStringSubmatch(string(field.Tag), -1)
 			for _, match := range matches {

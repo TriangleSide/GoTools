@@ -20,13 +20,16 @@ func getLogLevelFromEnv() slog.Level {
 	type Config struct {
 		LogLevel string `config:"ENV" config_default:"INFO" validate:"required,oneof=ERROR WARN INFO DEBUG error warn info debug"`
 	}
+
 	cfg, err := config.ProcessAndValidate[Config]()
 	if err != nil {
 		slog.Error(err.Error())
 		return slog.LevelInfo
 	}
+
 	strLevel := strings.ToLower(cfg.LogLevel)
 	var level = slog.LevelInfo
+
 	switch strLevel {
 	case "error":
 		level = slog.LevelError
@@ -37,6 +40,7 @@ func getLogLevelFromEnv() slog.Level {
 	case "debug":
 		level = slog.LevelDebug
 	}
+
 	return level
 }
 

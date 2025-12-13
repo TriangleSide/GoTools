@@ -137,8 +137,11 @@ func TestEdDSA_InvalidBase64Signature_ReturnsDecodeError(t *testing.T) {
 func TestEncode_UnknownAlgorithm_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	_, _, _, err := jwt.Encode(jwt.Claims{}, jwt.SignatureAlgorithm("Unknown"))
+	token, key, keyId, err := jwt.Encode(jwt.Claims{}, jwt.SignatureAlgorithm("Unknown"))
 	assert.ErrorPart(t, err, "failed to resolve signature provider")
+	assert.Equals(t, token, "")
+	assert.Nil(t, key)
+	assert.Equals(t, keyId, "")
 }
 
 func TestEncode_EdDSA_ReturnsValidKeyAndKeyID(t *testing.T) {

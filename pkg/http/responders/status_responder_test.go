@@ -36,7 +36,16 @@ func statusErrorMessageTest(t *testing.T, jsonBody, expectedError string) {
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(jsonBody))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(jsonBody),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 	assert.NoError(t, writeError)
@@ -60,7 +69,16 @@ func TestStatus_CallbackSuccess_ReturnsCorrectStatusCode(t *testing.T) {
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":123}`))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":123}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	t.Cleanup(func() {
 		assert.NoError(t, response.Body.Close())
 	})
