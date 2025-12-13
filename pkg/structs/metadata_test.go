@@ -102,6 +102,7 @@ func TestMetadata_NestedAnonymousStructs_IncludesAnonymousStructsFields(t *testi
 
 	type embeddedStruct1 struct {
 		deepStruct
+
 		EmbeddedField1 string `key:"Embedded1"`
 	}
 
@@ -112,6 +113,7 @@ func TestMetadata_NestedAnonymousStructs_IncludesAnonymousStructsFields(t *testi
 	type outerStruct struct {
 		embeddedStruct1
 		embeddedStruct2
+
 		OuterField string `key:"Outer"`
 	}
 
@@ -155,6 +157,7 @@ func TestMetadata_AmbiguousFieldName_Panics(t *testing.T) {
 
 	type outerStruct struct {
 		embeddedStruct
+
 		Field string
 	}
 
@@ -185,6 +188,7 @@ func TestMetadata_EmbeddedPointerToStruct_IncludesPointerStructFields(t *testing
 
 	type outerStruct struct {
 		*embeddedStruct
+
 		OuterField string `key:"Outer"`
 	}
 
