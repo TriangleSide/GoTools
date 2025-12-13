@@ -926,92 +926,56 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 		},
 	))
 
+	testCases := []struct {
+		method      string
+		path        string
+		body        func() io.Reader
+		contentType string
+		expected    int
+	}{
+		{http.MethodGet, "/error", nil, "", http.StatusInternalServerError},
+		{http.MethodGet, "/status?value=test", nil, "", http.StatusOK},
+		{http.MethodGet, "/status", nil, "", http.StatusBadRequest},
+		{http.MethodPost, "/json/testId", func() io.Reader { return bytes.NewBufferString(`{"data":"value"}`) }, headers.ContentTypeApplicationJSON, http.StatusOK},
+		{http.MethodPost, "/json/testId", func() io.Reader { return bytes.NewBufferString(`{"data":""}`) }, headers.ContentTypeApplicationJSON, http.StatusBadRequest},
+		{http.MethodGet, "/jsonstream", nil, "", http.StatusOK},
+	}
+
 	wg := sync.WaitGroup{}
 	waitToStart := make(chan struct{})
 	totalGoRoutinesPerOperation := 2
 	totalRequestsPerGoRoutine := 1000
 
-	performRequest := func(t *testing.T, method, url string, body io.Reader, expected int) {
-		t.Helper()
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		request, err := http.NewRequestWithContext(ctx, method, url, body)
-		if err != nil {
-			assert.NoError(t, err, assert.Continue())
-			return
+	for _, tc := range testCases {
+		for range totalGoRoutinesPerOperation {
+			wg.Go(func() {
+				<-waitToStart
+				for range totalRequestsPerGoRoutine {
+					var body io.Reader
+					if tc.body != nil {
+						body = tc.body()
+					}
+					ctx, cancel := context.WithCancel(context.Background())
+					request, err := http.NewRequestWithContext(ctx, tc.method, "http://"+serverAddress+tc.path, body)
+					if err != nil {
+						cancel()
+						assert.NoError(t, err, assert.Continue())
+						continue
+					}
+					if tc.contentType != "" {
+						request.Header.Set(headers.ContentType, tc.contentType)
+					}
+					response, err := http.DefaultClient.Do(request)
+					cancel()
+					if err != nil {
+						assert.NoError(t, err, assert.Continue())
+						continue
+					}
+					assert.Equals(t, response.StatusCode, tc.expected, assert.Continue())
+					assert.NoError(t, response.Body.Close(), assert.Continue())
+				}
+			})
 		}
-		if method == http.MethodPost {
-			request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-		}
-		response, err := http.DefaultClient.Do(request)
-		assert.NoError(t, err, assert.Continue())
-		if err != nil {
-			return
-		}
-		assert.Equals(t, response.StatusCode, expected, assert.Continue())
-		assert.NoError(t, response.Body.Close(), assert.Continue())
-	}
-
-	// Error endpoint.
-	for range totalGoRoutinesPerOperation {
-		wg.Go(func() {
-			<-waitToStart
-			for range totalRequestsPerGoRoutine {
-				performRequest(t, http.MethodGet, "http://"+serverAddress+"/error", nil, http.StatusInternalServerError)
-			}
-		})
-	}
-
-	// Status endpoint good.
-	for range totalGoRoutinesPerOperation {
-		wg.Go(func() {
-			<-waitToStart
-			for range totalRequestsPerGoRoutine {
-				performRequest(t, http.MethodGet, "http://"+serverAddress+"/status?value=test", nil, http.StatusOK)
-			}
-		})
-	}
-
-	// Status endpoint bad decode.
-	for range totalGoRoutinesPerOperation {
-		wg.Go(func() {
-			<-waitToStart
-			for range totalRequestsPerGoRoutine {
-				performRequest(t, http.MethodGet, "http://"+serverAddress+"/status", nil, http.StatusBadRequest)
-			}
-		})
-	}
-
-	// JSON endpoint good.
-	for range totalGoRoutinesPerOperation {
-		wg.Go(func() {
-			<-waitToStart
-			for range totalRequestsPerGoRoutine {
-				bodyData := bytes.NewBuffer([]byte(`{"data":"value"}`))
-				performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusOK)
-			}
-		})
-	}
-
-	// JSON endpoint invalid.
-	for range totalGoRoutinesPerOperation {
-		wg.Go(func() {
-			<-waitToStart
-			for range totalRequestsPerGoRoutine {
-				bodyData := bytes.NewBuffer([]byte(`{"data":""}`))
-				performRequest(t, http.MethodPost, "http://"+serverAddress+"/json/testId", bodyData, http.StatusBadRequest)
-			}
-		})
-	}
-
-	// JSONStream endpoint good.
-	for range totalGoRoutinesPerOperation {
-		wg.Go(func() {
-			<-waitToStart
-			for range totalRequestsPerGoRoutine {
-				performRequest(t, http.MethodGet, "http://"+serverAddress+"/jsonstream", nil, http.StatusOK)
-			}
-		})
 	}
 
 	close(waitToStart)
