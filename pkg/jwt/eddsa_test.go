@@ -30,7 +30,7 @@ func TestEdDSAProvider_InvalidVerifyingKey_ReturnsError(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
+	_, err = jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return []byte("short"), jwt.EdDSA, nil
 	})
 	assert.ErrorPart(t, err, "failed to use public key")
@@ -44,7 +44,7 @@ func TestEdDSAProvider_VerifyWithGeneratedPrivateKey_Succeeds(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	decoded, err := jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
+	decoded, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return key, jwt.EdDSA, nil
 	})
 	assert.NoError(t, err)
@@ -62,7 +62,7 @@ func TestEdDSAProvider_VerifyWithDerivedPublicKey_Succeeds(t *testing.T) {
 	publicKey := privateKey.Public().(ed25519.PublicKey)
 
 	ctx := context.Background()
-	decoded, err := jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
+	decoded, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return publicKey, jwt.EdDSA, nil
 	})
 	assert.NoError(t, err)
@@ -84,7 +84,7 @@ func TestEdDSAProvider_InvalidSignatureLength_ReturnsError(t *testing.T) {
 	token = strings.Join(parts, ".")
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
+	_, err = jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return publicKey, jwt.EdDSA, nil
 	})
 	assert.ErrorPart(t, err, "eddsa signature must be 64 bytes")
@@ -101,7 +101,7 @@ func TestEdDSAProvider_VerifyWithWrongKey_Fails(t *testing.T) {
 	secondaryPrivateKey := ed25519.NewKeyFromSeed(secondarySeed[:])
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
+	_, err = jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return secondaryPrivateKey, jwt.EdDSA, nil
 	})
 	assert.Error(t, err)
@@ -129,7 +129,7 @@ func TestEdDSAProvider_TamperedPayload_RejectsToken(t *testing.T) {
 	tampered := strings.Join(parts, ".")
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, tampered, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
+	_, err = jwt.Decode(ctx, tampered, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return publicKey, jwt.EdDSA, nil
 	})
 	assert.ErrorPart(t, err, "token signature is invalid")
@@ -146,7 +146,7 @@ func TestEdDSAProvider_MismatchedAlgorithm_ReturnsError(t *testing.T) {
 	publicKey := privateKey.Public().(ed25519.PublicKey)
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(ctx context.Context, keyId string) ([]byte, jwt.SignatureAlgorithm, error) {
+	_, err = jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return publicKey, jwt.SignatureAlgorithm("RS256"), nil
 	})
 	assert.ErrorPart(t, err, "token algorithm does not match expected algorithm")

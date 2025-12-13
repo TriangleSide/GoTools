@@ -23,7 +23,7 @@ func TestMustRegister_InvalidMethod_Panics(t *testing.T) {
 		builder := api.NewHTTPAPIBuilder()
 		builder.MustRegister("/", "BAD_METHOD", &api.Handler{
 			Middleware: nil,
-			Handler:    func(writer http.ResponseWriter, request *http.Request) {},
+			Handler:    func(http.ResponseWriter, *http.Request) {},
 		})
 	}, "method")
 }
@@ -34,7 +34,7 @@ func TestMustRegister_InvalidPath_Panics(t *testing.T) {
 		builder := api.NewHTTPAPIBuilder()
 		builder.MustRegister("/!@#$%/{}", http.MethodGet, &api.Handler{
 			Middleware: nil,
-			Handler:    func(writer http.ResponseWriter, request *http.Request) {},
+			Handler:    func(http.ResponseWriter, *http.Request) {},
 		})
 	}, "path contains invalid characters")
 }
@@ -45,11 +45,11 @@ func TestMustRegister_DuplicatePathAndMethod_Panics(t *testing.T) {
 		builder := api.NewHTTPAPIBuilder()
 		builder.MustRegister("/", http.MethodGet, &api.Handler{
 			Middleware: nil,
-			Handler:    func(writer http.ResponseWriter, request *http.Request) {},
+			Handler:    func(http.ResponseWriter, *http.Request) {},
 		})
 		builder.MustRegister("/", http.MethodGet, &api.Handler{
 			Middleware: nil,
-			Handler:    func(writer http.ResponseWriter, request *http.Request) {},
+			Handler:    func(http.ResponseWriter, *http.Request) {},
 		})
 	}, "method 'GET' already registered for path '/'")
 }
@@ -88,7 +88,7 @@ func TestMustRegister_SinglePathAndMethod_IsRetrievable(t *testing.T) {
 	builder := api.NewHTTPAPIBuilder()
 	builder.MustRegister(path, http.MethodGet, &api.Handler{
 		Middleware: nil,
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
+		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 		},
 	})
@@ -120,13 +120,13 @@ func TestMustRegister_TwoMethodsSamePath_BothRetrievable(t *testing.T) {
 	builder := api.NewHTTPAPIBuilder()
 	builder.MustRegister(path, http.MethodGet, &api.Handler{
 		Middleware: nil,
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
+		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 		},
 	})
 	builder.MustRegister(path, http.MethodPost, &api.Handler{
 		Middleware: nil,
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
+		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusAccepted)
 		},
 	})
@@ -169,13 +169,13 @@ func TestMustRegister_TwoPathsSameMethod_BothRetrievable(t *testing.T) {
 	builder := api.NewHTTPAPIBuilder()
 	builder.MustRegister("/test1", http.MethodGet, &api.Handler{
 		Middleware: nil,
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
+		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 		},
 	})
 	builder.MustRegister("/test2", http.MethodGet, &api.Handler{
 		Middleware: nil,
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
+		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusAccepted)
 		},
 	})
@@ -229,7 +229,7 @@ func TestMustRegister_HandlerWithMiddleware_StoresMiddleware(t *testing.T) {
 	builder := api.NewHTTPAPIBuilder()
 	builder.MustRegister(path, http.MethodGet, &api.Handler{
 		Middleware: []middleware.Middleware{testMiddleware},
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
+		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 		},
 	})

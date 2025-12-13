@@ -22,9 +22,9 @@ func cacheMustHaveKeyAndValue[Key comparable, Value any](t *testing.T, testCache
 	assert.Equals(t, value, gottenValue)
 }
 
-func getRandomInt(t *testing.T, max int) int {
+func getRandomInt(t *testing.T, maxValue int) int {
 	t.Helper()
-	randomValueBig, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	randomValueBig, err := rand.Int(rand.Reader, big.NewInt(int64(maxValue)))
 	assert.Nil(t, err)
 	return int(randomValueBig.Int64())
 }
@@ -111,7 +111,7 @@ func TestGetOrSet_EmptyCache_CallsFunctionAndSetsValue(t *testing.T) {
 	fnCalled := false
 	_, gotten := testCache.Get(key)
 	assert.False(t, gotten)
-	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+	returnVal, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 		fnCalled = true
 		return value, nil, nil
 	})
@@ -130,7 +130,7 @@ func TestGetOrSet_FunctionReturnsError_ReturnsError(t *testing.T) {
 	fnCalled := false
 	_, gotten := testCache.Get(key)
 	assert.False(t, gotten)
-	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+	returnVal, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 		fnCalled = true
 		return value, nil, errors.New("error")
 	})
@@ -157,7 +157,7 @@ func TestGetOrSet_NoExpiry_DoesNotCallFunction(t *testing.T) {
 	const value = "value"
 	testCache.Set(key, value, nil)
 	fnCalled := false
-	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+	returnVal, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 		fnCalled = true
 		return "other", nil, nil
 	})
@@ -199,7 +199,7 @@ func TestGetOrSet_Expired_CallsFunctionAndUpdatesValue(t *testing.T) {
 	testCache.Set(key, value, ptr.Of(time.Nanosecond))
 	time.Sleep(time.Nanosecond * 2)
 	fnCalled := false
-	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+	returnVal, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 		fnCalled = true
 		return other, nil, nil
 	})
@@ -232,7 +232,7 @@ func TestCache_Concurrency_UniqueSequentialOperations(t *testing.T) {
 				_, gotten = testCache.Get(key)
 				assert.False(t, gotten, assert.Continue())
 				other := fmt.Sprintf("other-%d-%d", i, k)
-				gottenValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+				gottenValue, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 					return other, ptr.Of(time.Minute), nil
 				})
 				assert.NoError(t, err, assert.Continue())
@@ -284,7 +284,7 @@ func TestCache_Concurrency_GetOrSet(t *testing.T) {
 			for range loopCount {
 				key := "key" + strconv.Itoa(getRandomInt(t, threadCount))
 				value := "value" + strconv.Itoa(getRandomInt(t, threadCount))
-				_, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+				_, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 					return value, ptr.Of(time.Millisecond), nil
 				})
 				assert.NoError(t, err, assert.Continue())
@@ -307,7 +307,7 @@ func TestGetOrSet_ConcurrentCalls_ReturnsFirstCallersValue(t *testing.T) {
 	for range threadCount {
 		wg.Go(func() {
 			<-firstWaitChan
-			returnedValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+			returnedValue, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 				return "other", ptr.Of(time.Hour), nil
 			})
 			assert.NoError(t, err, assert.Continue())
@@ -316,7 +316,7 @@ func TestGetOrSet_ConcurrentCalls_ReturnsFirstCallersValue(t *testing.T) {
 	}
 
 	wg.Go(func() {
-		returnedValue, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+		returnedValue, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 			close(firstWaitChan)
 			time.Sleep(time.Second)
 			return "first", ptr.Of(time.Nanosecond), nil
@@ -390,7 +390,7 @@ func TestGetOrSet_WithTTL_ValueExpiresAfterTTL(t *testing.T) {
 	testCache := cache.New[string, string]()
 	const key = "key"
 	const value = "value"
-	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+	returnVal, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 		return value, ptr.Of(time.Nanosecond), nil
 	})
 	assert.NoError(t, err)
@@ -441,7 +441,7 @@ func TestGetOrSet_AfterRemove_CallsFunction(t *testing.T) {
 	testCache.Set(key, "value1", nil)
 	testCache.Remove(key)
 	fnCalled := false
-	returnVal, err := testCache.GetOrSet(key, func(key string) (string, *time.Duration, error) {
+	returnVal, err := testCache.GetOrSet(key, func(string) (string, *time.Duration, error) {
 		fnCalled = true
 		return "value2", nil, nil
 	})

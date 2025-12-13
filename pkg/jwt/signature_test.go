@@ -34,7 +34,7 @@ func TestEdDSA_ValidToken_DecodesSuccessfully(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(ctx context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	_, err = jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return secondaryPublicKey, jwt.EdDSA, nil
 	})
@@ -42,7 +42,7 @@ func TestEdDSA_ValidToken_DecodesSuccessfully(t *testing.T) {
 
 	_ = primaryPrivateKey
 
-	decodedBody, err := jwt.Decode(ctx, token, func(ctx context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	decodedBody, err := jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return key, jwt.EdDSA, nil
 	})
@@ -70,7 +70,7 @@ func TestEdDSA_ModifiedSignature_FailsVerification(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(ctx context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	_, err = jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return secondaryPublicKey, jwt.EdDSA, nil
 	})
@@ -86,7 +86,7 @@ func TestEdDSA_ModifiedSignature_FailsVerification(t *testing.T) {
 		}
 	}
 
-	decodedBody, err := jwt.Decode(ctx, token, func(ctx context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	decodedBody, err := jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return key, jwt.EdDSA, nil
 	})
@@ -113,7 +113,7 @@ func TestEdDSA_InvalidBase64Signature_ReturnsDecodeError(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(ctx context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	_, err = jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return secondaryPublicKey, jwt.EdDSA, nil
 	})
@@ -125,7 +125,7 @@ func TestEdDSA_InvalidBase64Signature_ReturnsDecodeError(t *testing.T) {
 		token = strings.Join(parts, ".")
 	}
 
-	decodedBody, err := jwt.Decode(ctx, token, func(ctx context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	decodedBody, err := jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return key, jwt.EdDSA, nil
 	})
@@ -137,11 +137,11 @@ func TestEdDSA_InvalidBase64Signature_ReturnsDecodeError(t *testing.T) {
 func TestEncode_UnknownAlgorithm_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	token, key, keyId, err := jwt.Encode(jwt.Claims{}, jwt.SignatureAlgorithm("Unknown"))
+	token, key, keyID, err := jwt.Encode(jwt.Claims{}, jwt.SignatureAlgorithm("Unknown"))
 	assert.ErrorPart(t, err, "failed to resolve signature provider")
 	assert.Equals(t, token, "")
 	assert.Nil(t, key)
-	assert.Equals(t, keyId, "")
+	assert.Equals(t, keyID, "")
 }
 
 func TestEncode_EdDSA_ReturnsValidKeyAndKeyID(t *testing.T) {
@@ -159,7 +159,7 @@ func TestEncode_EdDSA_ReturnsValidKeyAndKeyID(t *testing.T) {
 	assert.NotEquals(t, token, "")
 
 	ctx := context.Background()
-	decoded, err := jwt.Decode(ctx, token, func(ctx context.Context, reqKeyId string) ([]byte, jwt.SignatureAlgorithm, error) {
+	decoded, err := jwt.Decode(ctx, token, func(_ context.Context, reqKeyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, reqKeyId, keyID)
 		return key, jwt.EdDSA, nil
 	})

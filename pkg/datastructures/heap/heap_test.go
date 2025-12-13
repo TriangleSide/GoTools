@@ -11,9 +11,9 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
-func getRandomInt(t *testing.T, max int) int {
+func getRandomInt(t *testing.T, maxValue int) int {
 	t.Helper()
-	randomValueBig, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	randomValueBig, err := rand.Int(rand.Reader, big.NewInt(int64(maxValue)))
 	assert.Nil(t, err)
 	return int(randomValueBig.Int64())
 }
@@ -279,12 +279,12 @@ func TestCompareAndPop_WhenCalledOnEmptyHeap_ShouldReturnZeroValueAndFalse(t *te
 	t.Parallel()
 
 	maxHeap := heap.New(func(a, b int) bool { return a > b })
-	value, ok := maxHeap.CompareAndPop(func(v int) bool { return true })
+	value, ok := maxHeap.CompareAndPop(func(int) bool { return true })
 	assert.Equals(t, 0, value)
 	assert.False(t, ok)
 
 	minHeap := heap.New(func(a, b int) bool { return a < b })
-	value, ok = minHeap.CompareAndPop(func(v int) bool { return true })
+	value, ok = minHeap.CompareAndPop(func(int) bool { return true })
 	assert.Equals(t, 0, value)
 	assert.False(t, ok)
 }

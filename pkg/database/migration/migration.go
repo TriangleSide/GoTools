@@ -45,7 +45,7 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 		return errors.New("migration registry is nil")
 	}
 
-	var releaseMigrationLockErr error = nil
+	var releaseMigrationLockErr error
 	releaseMigrationLockWG := sync.WaitGroup{}
 
 	ctxDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.MigrationDeadlineMillis))
@@ -122,7 +122,7 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 	heartbeatTicker := time.NewTicker(heartbeatInterval)
 	defer heartbeatTicker.Stop()
 
-	var heartbeatErr error = nil
+	var heartbeatErr error
 	var successiveHeartbeatErrCount = 0
 
 	for {

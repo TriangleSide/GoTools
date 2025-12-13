@@ -27,7 +27,7 @@ func TestDereference_IntPassed_DoesNothing(t *testing.T) {
 
 func TestDereference_NilPtrToInt_DoesNothing(t *testing.T) {
 	t.Parallel()
-	var nilPtr *int = nil
+	var nilPtr *int
 	value := reflect.ValueOf(nilPtr)
 	assert.Equals(t, value.Kind(), reflect.Ptr)
 	dereferenced := reflection.Dereference(value)
@@ -36,7 +36,7 @@ func TestDereference_NilPtrToInt_DoesNothing(t *testing.T) {
 
 func TestDereference_NilMap_DoesNothing(t *testing.T) {
 	t.Parallel()
-	var nilMap map[string]string = nil
+	var nilMap map[string]string
 	value := reflect.ValueOf(nilMap)
 	assert.Equals(t, value.Kind(), reflect.Map)
 	dereferenced := reflection.Dereference(value)
@@ -61,7 +61,7 @@ func TestDereference_ZeroValueReflectValue_DoesNothing(t *testing.T) {
 
 func TestDereference_PointerToNilPointer_ReturnsNilPointerValue(t *testing.T) {
 	t.Parallel()
-	var nilPtr *int = nil
+	var nilPtr *int
 	ptrToNil := &nilPtr
 	value := reflect.ValueOf(ptrToNil)
 	assert.Equals(t, value.Kind(), reflect.Ptr)
@@ -83,7 +83,7 @@ func TestDereference_PointerToInterfaceContainingInt_ReturnsInt(t *testing.T) {
 
 func TestDereference_PointerToNilInterface_ReturnsNilInterfaceValue(t *testing.T) {
 	t.Parallel()
-	var nilIface any = nil
+	var nilIface any
 	value := reflect.ValueOf(&nilIface)
 	assert.Equals(t, value.Kind(), reflect.Ptr)
 	dereferenced := reflection.Dereference(value)
@@ -105,7 +105,7 @@ func TestDereference_PointerToNestedInterfaces_ReturnsUnderlyingValue(t *testing
 
 func TestDereference_NilSlice_DoesNothing(t *testing.T) {
 	t.Parallel()
-	var nilSlice []int = nil
+	var nilSlice []int
 	value := reflect.ValueOf(nilSlice)
 	assert.Equals(t, value.Kind(), reflect.Slice)
 	dereferenced := reflection.Dereference(value)
@@ -115,7 +115,7 @@ func TestDereference_NilSlice_DoesNothing(t *testing.T) {
 
 func TestDereference_NilChannel_DoesNothing(t *testing.T) {
 	t.Parallel()
-	var nilChan chan int = nil
+	var nilChan chan int
 	value := reflect.ValueOf(nilChan)
 	assert.Equals(t, value.Kind(), reflect.Chan)
 	dereferenced := reflection.Dereference(value)
@@ -125,7 +125,7 @@ func TestDereference_NilChannel_DoesNothing(t *testing.T) {
 
 func TestDereference_NilFunc_DoesNothing(t *testing.T) {
 	t.Parallel()
-	var nilFunc func() = nil
+	var nilFunc func()
 	value := reflect.ValueOf(nilFunc)
 	assert.Equals(t, value.Kind(), reflect.Func)
 	dereferenced := reflection.Dereference(value)
@@ -156,7 +156,7 @@ func TestDereference_InterfaceContainingPointer_ReturnsUnderlyingValue(t *testin
 
 func TestDereference_InterfaceContainingNilPointer_ReturnsNilPointerValue(t *testing.T) {
 	t.Parallel()
-	var nilPtr *int = nil
+	var nilPtr *int
 	var iface any = nilPtr
 	value := reflect.ValueOf(&iface)
 	dereferenced := reflection.Dereference(value)

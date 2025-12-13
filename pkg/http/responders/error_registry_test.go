@@ -17,7 +17,7 @@ func (e *uniqueTestError) Error() string {
 
 func TestMustRegisterErrorResponse_ValidErrorType_DoesNotPanic(t *testing.T) {
 	t.Parallel()
-	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(err *uniqueTestError) *struct{} {
+	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*uniqueTestError) *struct{} {
 		return &struct{}{}
 	})
 }
@@ -25,7 +25,7 @@ func TestMustRegisterErrorResponse_ValidErrorType_DoesNotPanic(t *testing.T) {
 func TestMustRegisterErrorResponse_RegisteredTwice_Panics(t *testing.T) {
 	t.Parallel()
 	assert.Panic(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(err *testError) *struct{} {
+		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*testError) *struct{} {
 			return &struct{}{}
 		})
 	})
@@ -34,7 +34,7 @@ func TestMustRegisterErrorResponse_RegisteredTwice_Panics(t *testing.T) {
 func TestMustRegisterErrorResponse_PointerGeneric_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(err **testError) *struct{} {
+		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(**testError) *struct{} {
 			return &struct{}{}
 		})
 	}, "registered error responses must be a struct")
@@ -43,7 +43,7 @@ func TestMustRegisterErrorResponse_PointerGeneric_Panics(t *testing.T) {
 func TestMustRegisterErrorResponse_NonErrorStruct_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(err *struct{}) *struct{} {
+		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*struct{}) *struct{} {
 			return &struct{}{}
 		})
 	}, "must have an error interface")
@@ -52,7 +52,7 @@ func TestMustRegisterErrorResponse_NonErrorStruct_Panics(t *testing.T) {
 func TestMustRegisterErrorResponse_NonStructResponse_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(err *testError) *int {
+		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*testError) *int {
 			return ptr.Of(0)
 		})
 	}, "response type must be a struct")

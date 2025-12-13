@@ -13,7 +13,7 @@ func TestCreateChain_NilMiddlewareList_OnlyCallsHandler(t *testing.T) {
 	t.Parallel()
 
 	called := false
-	handler := func(w http.ResponseWriter, req *http.Request) {
+	handler := func(http.ResponseWriter, *http.Request) {
 		called = true
 	}
 	mwChain := middleware.CreateChain(nil, handler)
@@ -25,7 +25,7 @@ func TestCreateChain_EmptyMiddlewareList_OnlyCallsHandler(t *testing.T) {
 	t.Parallel()
 
 	called := false
-	handler := func(w http.ResponseWriter, req *http.Request) {
+	handler := func(http.ResponseWriter, *http.Request) {
 		called = true
 	}
 	mwChain := middleware.CreateChain([]middleware.Middleware{}, handler)
@@ -45,7 +45,7 @@ func TestCreateChain_SingleMiddleware_InvokesMiddlewareAndHandler(t *testing.T) 
 			}
 		},
 	}
-	handler := func(w http.ResponseWriter, req *http.Request) {
+	handler := func(http.ResponseWriter, *http.Request) {
 		invocations = append(invocations, "handler")
 	}
 	mwChain := middleware.CreateChain(mwList, handler)
@@ -74,7 +74,7 @@ func TestCreateChain_MultipleMiddlewares_InvokesInOrder(t *testing.T) {
 			}
 		},
 	}
-	handler := func(w http.ResponseWriter, req *http.Request) {
+	handler := func(http.ResponseWriter, *http.Request) {
 		invocations = append(invocations, "handler")
 	}
 	mwChain := middleware.CreateChain(mwList, handler)
@@ -102,7 +102,7 @@ func TestCreateChain_AllNilMiddlewareEntries_OnlyCallsHandler(t *testing.T) {
 
 	called := false
 	mwList := []middleware.Middleware{nil, nil, nil}
-	handler := func(w http.ResponseWriter, req *http.Request) {
+	handler := func(http.ResponseWriter, *http.Request) {
 		called = true
 	}
 	mwChain := middleware.CreateChain(mwList, handler)
@@ -129,7 +129,7 @@ func TestCreateChain_NilMiddlewareEntries_SkipsThem(t *testing.T) {
 			}
 		},
 	}
-	handler := func(w http.ResponseWriter, req *http.Request) {
+	handler := func(http.ResponseWriter, *http.Request) {
 		invocations = append(invocations, "handler")
 	}
 	mwChain := middleware.CreateChain(mwList, handler)
@@ -152,13 +152,13 @@ func TestCreateChain_MiddlewareDoesNotCallNext_ShortCircuitsChain(t *testing.T) 
 				next(writer, request)
 			}
 		},
-		func(next http.HandlerFunc) http.HandlerFunc {
-			return func(writer http.ResponseWriter, request *http.Request) {
+		func(http.HandlerFunc) http.HandlerFunc {
+			return func(http.ResponseWriter, *http.Request) {
 				invocations = append(invocations, "second")
 			}
 		},
 	}
-	handler := func(w http.ResponseWriter, req *http.Request) {
+	handler := func(http.ResponseWriter, *http.Request) {
 		invocations = append(invocations, "handler")
 	}
 	mwChain := middleware.CreateChain(mwList, handler)

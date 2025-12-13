@@ -97,7 +97,7 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 //	}
 func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonly.Map[Tag, LookupKeyToFieldName], error) {
 	reflectType := reflect.TypeFor[T]()
-	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], *time.Duration, error) {
+	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], *time.Duration, error) {
 		fieldsMetadata := structs.Metadata[T]()
 
 		tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)

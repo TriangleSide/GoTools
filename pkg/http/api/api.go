@@ -51,7 +51,7 @@ func (builder *HTTPAPIBuilder) MustRegister(path Path, method Method, handler *H
 	}
 
 	if handler.Handler == nil {
-		handler.Handler = func(writer http.ResponseWriter, request *http.Request) {
+		handler.Handler = func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusNotImplemented)
 		}
 	}
