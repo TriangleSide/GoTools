@@ -121,29 +121,23 @@ func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, 
 	})
 }
 
-// validateRecursively checks if the value is a container, like a slice, and checks if the
-// contents can be validated as well.
-func validateRecursively(depth int, val reflect.Value, violations *Violations) error {
-	const maxDepth = 32
-	if depth >= maxDepth {
-		return errors.New("cycle found in the validation")
-	}
-
-	val = reflection.Dereference(val)
-	if reflection.IsNil(val) {
+// validateNestedStruct validates a nested struct and accumulates any violations.
+func validateNestedStruct(depth int, val reflect.Value, violations *Violations) error {
+	err := validateStruct(val.Interface(), depth+1)
+	if err == nil {
 		return nil
 	}
+	var structViolations *Violations
+	if errors.As(err, &structViolations) {
+		violations.AddViolations(structViolations)
+		return nil
+	}
+	return err
+}
 
+// validateContainerElements validates elements within slices, arrays, and maps.
+func validateContainerElements(depth int, val reflect.Value, violations *Violations) error {
 	switch val.Kind() {
-	case reflect.Struct:
-		if err := validateStruct(val.Interface(), depth+1); err != nil {
-			var structViolations *Violations
-			if errors.As(err, &structViolations) {
-				violations.AddViolations(structViolations)
-			} else {
-				return err
-			}
-		}
 	case reflect.Slice, reflect.Array:
 		for i := range val.Len() {
 			if err := validateRecursively(depth+1, val.Index(i), violations); err != nil {
@@ -160,11 +154,28 @@ func validateRecursively(depth int, val reflect.Value, violations *Violations) e
 				return err
 			}
 		}
-	default:
-		// Do nothing.
+	}
+	return nil
+}
+
+// validateRecursively ensures nested structs inside containers (slices, arrays, maps) are
+// validated, even when the container field itself has no validate tag. For example, a field
+// "Users []User" with no tag will still have each User struct validated for its own constraints.
+func validateRecursively(depth int, val reflect.Value, violations *Violations) error {
+	const maxDepth = 32
+	if depth >= maxDepth {
+		return errors.New("cycle found in the validation")
 	}
 
-	return nil
+	val = reflection.Dereference(val)
+	if reflection.IsNil(val) {
+		return nil
+	}
+
+	if val.Kind() == reflect.Struct {
+		return validateNestedStruct(depth, val, violations)
+	}
+	return validateContainerElements(depth, val, violations)
 }
 
 // Struct validates all struct fields using their validation tags, returning an error if any fail.
