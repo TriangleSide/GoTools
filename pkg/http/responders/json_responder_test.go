@@ -1,6 +1,7 @@
 package responders_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -29,10 +30,17 @@ func newJSONResponderTestServer[TRequest, TResponse any](t *testing.T, handler f
 
 func postJSON(t *testing.T, url, body string) *http.Response {
 	t.Helper()
-
-	response, err := http.Post(url, headers.ContentTypeApplicationJSON, strings.NewReader(body)) // nolint:gosec
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		url,
+		strings.NewReader(body),
+	)
 	assert.NoError(t, err)
-
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
+	assert.NoError(t, err)
 	return response
 }
 
@@ -141,7 +149,16 @@ func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":123}`))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":123}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.True(t, ew.WriteFailed)
 	assert.ErrorPart(t, writeError, "simulated write failure")

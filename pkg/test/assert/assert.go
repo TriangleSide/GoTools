@@ -35,6 +35,7 @@ func assertPanic(tCtx *testContext, panicFunc func(), msg *string, exact bool) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {

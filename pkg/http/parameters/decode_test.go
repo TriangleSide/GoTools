@@ -133,10 +133,19 @@ func TestDecode_PathFieldCannotBeSet_ShouldFailToDecode(t *testing.T) {
 		err := server.Close()
 		assert.NoError(t, err, assert.Continue())
 	}()
-	listener, err := net.Listen("tcp", "[::1]:0")
+	lc := net.ListenConfig{}
+	listener, err := lc.Listen(t.Context(), "tcp", "[::1]:0")
 	assert.NoError(t, err)
 	go func() { _ = server.Serve(listener) }()
-	response, err := http.Get("http://" + listener.Addr().String() + "/NotAnInt")
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodGet,
+		"http://"+listener.Addr().String()+"/NotAnInt",
+		nil,
+	)
+	assert.NoError(t, err)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	t.Cleanup(func() {
 		assert.NoError(t, response.Body.Close())
 	})
@@ -367,7 +376,8 @@ func TestDecode_StructWithManyDifferentFields_ShouldSucceed(t *testing.T) {
 		err := server.Close()
 		assert.NoError(t, err, assert.Continue())
 	}()
-	listener, err := net.Listen("tcp", "[::1]:0")
+	lc := net.ListenConfig{}
+	listener, err := lc.Listen(t.Context(), "tcp", "[::1]:0")
 	assert.NoError(t, err)
 	go func() { _ = server.Serve(listener) }()
 

@@ -42,7 +42,16 @@ func TestJSONStream_SuccessfulCallback_RespondsWithCorrectJSONStreamAndStatusCod
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":1}`))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":1}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equals(t, response.StatusCode, http.StatusOK)
 	assert.NoError(t, writeError)
@@ -71,7 +80,16 @@ func TestJSONStream_ParameterDecoderFails_RespondsWithErrorJSONAndBadRequest(t *
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":-1}`))
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":-1}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 	assert.NoError(t, writeError)
@@ -97,7 +115,16 @@ func TestJSONStream_CallbackReturnsError_RespondsWithErrorJSONAndBadRequest(t *t
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":2}`))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":2}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equals(t, response.StatusCode, http.StatusBadRequest)
 	assert.NoError(t, writeError)
@@ -123,7 +150,16 @@ func TestJSONStream_CallbackReturnsNilChannel_RespondsWithInternalServerError(t 
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":2}`))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":2}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equals(t, response.StatusCode, http.StatusInternalServerError)
 	assert.NoError(t, writeError)
@@ -158,7 +194,16 @@ func TestJSONStream_UnencodableResponse_DoesNotWriteBody(t *testing.T) {
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":3}`))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":3}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equals(t, response.StatusCode, http.StatusOK)
 	assert.Error(t, writeError)
@@ -193,7 +238,16 @@ func TestJSONStream_RequestContextCancelled_DoesNotWriteData(t *testing.T) {
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":4}`))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":4}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equals(t, response.StatusCode, http.StatusOK)
 	assert.NoError(t, writeError)
@@ -230,7 +284,16 @@ func TestJSONStream_WriterFails_CallsErrorCallback(t *testing.T) {
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":3}`))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":3}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equals(t, response.StatusCode, http.StatusOK)
 	assert.ErrorPart(t, writeError, "simulated write failure")
@@ -256,7 +319,16 @@ func TestJSONStream_ChannelClosedImmediately_RespondsWithEmptyBody(t *testing.T)
 	}))
 	defer server.Close()
 
-	response, err := http.Post(server.URL, headers.ContentTypeApplicationJSON, strings.NewReader(`{"id":1}`))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL,
+		strings.NewReader(`{"id":1}`),
+	)
+	assert.NoError(t, err)
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	client := &http.Client{}
+	response, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equals(t, response.StatusCode, http.StatusOK)
 	assert.NoError(t, writeError)
