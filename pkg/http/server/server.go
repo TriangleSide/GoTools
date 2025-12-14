@@ -41,10 +41,14 @@ func New(opts ...Option) (*Server, error) {
 		return nil, fmt.Errorf("could not load configuration (%w)", err)
 	}
 
-	serveMux := newServeMux(srvOpts)
-	tlsConfig, err := newTLSConfig(envConfig)
-	if err != nil {
-		return nil, err
+	serveMux := configureServeMux(srvOpts)
+
+	var tlsConfig *tls.Config
+	if envConfig.HTTPServerTLSMode != TLSModeOff {
+		tlsConfig, err = configureTLS(envConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	srv := &Server{
@@ -115,8 +119,8 @@ func (server *Server) Shutdown(ctx context.Context) error {
 	return err
 }
 
-// newServeMux creates and configures an HTTP request multiplexer with endpoint handlers.
-func newServeMux(srvOpts *serverOptions) *http.ServeMux {
+// configureServeMux creates and configures an HTTP request multiplexer with endpoint handlers.
+func configureServeMux(srvOpts *serverOptions) *http.ServeMux {
 	builder := api.NewHTTPAPIBuilder()
 	for _, endpointHandler := range srvOpts.endpointHandlers {
 		endpointHandler.AcceptHTTPAPIBuilder(builder)
@@ -149,11 +153,9 @@ func newServeMux(srvOpts *serverOptions) *http.ServeMux {
 	return serveMux
 }
 
-// newTLSConfig creates a TLS configuration based on the specified TLS mode.
-func newTLSConfig(envConfig *Config) (*tls.Config, error) {
+// configureTLS creates a TLS configuration based on the specified TLS mode.
+func configureTLS(envConfig *Config) (*tls.Config, error) {
 	switch envConfig.HTTPServerTLSMode {
-	case TLSModeOff:
-		return nil, nil
 	case TLSModeTLS:
 		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
