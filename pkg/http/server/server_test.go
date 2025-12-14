@@ -946,12 +946,24 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 		contentType string
 		expected    int
 	}{
-		{http.MethodGet, "/error", nil, "", http.StatusInternalServerError},
-		{http.MethodGet, "/status?value=test", nil, "", http.StatusOK},
-		{http.MethodGet, "/status", nil, "", http.StatusBadRequest},
-		{http.MethodPost, "/json/testId", func() io.Reader { return bytes.NewBufferString(`{"data":"value"}`) }, headers.ContentTypeApplicationJSON, http.StatusOK},
-		{http.MethodPost, "/json/testId", func() io.Reader { return bytes.NewBufferString(`{"data":""}`) }, headers.ContentTypeApplicationJSON, http.StatusBadRequest},
-		{http.MethodGet, "/jsonstream", nil, "", http.StatusOK},
+		{http.MethodGet, "/error",
+			nil,
+			"", http.StatusInternalServerError},
+		{http.MethodGet, "/status?value=test",
+			nil,
+			"", http.StatusOK},
+		{http.MethodGet, "/status",
+			nil,
+			"", http.StatusBadRequest},
+		{http.MethodPost, "/json/testId",
+			func() io.Reader { return bytes.NewBufferString(`{"data":"value"}`) },
+			headers.ContentTypeApplicationJSON, http.StatusOK},
+		{http.MethodPost, "/json/testId",
+			func() io.Reader { return bytes.NewBufferString(`{"data":""}`) },
+			headers.ContentTypeApplicationJSON, http.StatusBadRequest},
+		{http.MethodGet, "/jsonstream",
+			nil,
+			"", http.StatusOK},
 	}
 
 	waitGroup := sync.WaitGroup{}
