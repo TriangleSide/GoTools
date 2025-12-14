@@ -9,7 +9,8 @@ import (
 	"strconv"
 )
 
-// setStringIntoTextUnmarshaller parses a string-encoded value and sets it into an interface that implements encoding.TextUnmarshaler.
+// setStringIntoTextUnmarshaller parses a string-encoded value and sets it into an
+// interface that implements encoding.TextUnmarshaler.
 // It handles types implementing encoding.TextUnmarshaler, basic types, and complex types (via JSON).
 func setStringIntoTextUnmarshaller(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
 	if reflect.PointerTo(fieldType).Implements(reflect.TypeFor[encoding.TextUnmarshaler]()) {
@@ -137,7 +138,8 @@ func getStructFieldValue(structValue reflect.Value, fieldName string, fieldMetad
 // The function handles various data types including basic types (string, int, etc.),
 // complex types (structs, slices, maps) and types implementing the encoding.TextUnmarshaler interface.
 // The conversion from string to the appropriate type is performed based on the field's underlying type.
-// JSON format is expected for complex types. This function supports setting both direct values and pointers to the values.
+// JSON format is expected for complex types. This function supports setting both direct values
+// and pointers to the values.
 func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) error {
 	structValue := reflect.ValueOf(obj)
 	if structValue.Kind() != reflect.Ptr || structValue.Elem().Kind() != reflect.Struct {

@@ -19,10 +19,14 @@ const (
 
 // init registers the numeric comparison validators (gt, gte, lt, lte) for comparing values against thresholds.
 func init() {
-	registerComparisonValidation(GreaterThanValidatorName, func(a, b float64) bool { return a > b }, "greater than")
-	registerComparisonValidation(GreaterThanOrEqualValidatorName, func(a, b float64) bool { return a >= b }, "greater than or equal to")
-	registerComparisonValidation(LessThanValidatorName, func(a, b float64) bool { return a < b }, "less than")
-	registerComparisonValidation(LessThanOrEqualValidatorName, func(a, b float64) bool { return a <= b }, "less than or equal to")
+	registerComparisonValidation(GreaterThanValidatorName,
+		func(a, b float64) bool { return a > b }, "greater than")
+	registerComparisonValidation(GreaterThanOrEqualValidatorName,
+		func(a, b float64) bool { return a >= b }, "greater than or equal to")
+	registerComparisonValidation(LessThanValidatorName,
+		func(a, b float64) bool { return a < b }, "less than")
+	registerComparisonValidation(LessThanOrEqualValidatorName,
+		func(a, b float64) bool { return a <= b }, "less than or equal to")
 }
 
 // registerComparisonValidation consolidates the common logic for comparison validations.

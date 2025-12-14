@@ -94,7 +94,8 @@ func TestEncryptDecrypt_VariousDataSizes_SuccessfullyRoundTrips(t *testing.T) {
 func TestNew_CustomRandomDataFunc_ControlsNonce(t *testing.T) {
 	t.Parallel()
 	var generatedNonce []byte
-	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), symmetric.WithRandomDataFunc(func(buffer []byte) error {
+	key := "key" + strconv.Itoa(getRandomInt(t))
+	encryptor, err := symmetric.New(key, symmetric.WithRandomDataFunc(func(buffer []byte) error {
 		for i := range buffer {
 			buffer[i] = byte(i + 1)
 		}
@@ -155,11 +156,12 @@ func TestDecrypt_NilBytes_ReturnsError(t *testing.T) {
 func TestDecrypt_CipherTextShorterThanNonceSize_ReturnsError(t *testing.T) {
 	t.Parallel()
 	var nonceSize int
-	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), symmetric.WithRandomDataFunc(func(buffer []byte) error {
+	randomDataFunc := symmetric.WithRandomDataFunc(func(buffer []byte) error {
 		nonceSize = len(buffer)
 		_, readErr := rand.Read(buffer)
 		return readErr
-	}))
+	})
+	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), randomDataFunc)
 	assert.NoError(t, err)
 	assert.NotNil(t, encryptor)
 	_, err = encryptor.Encrypt([]byte("prime the nonce size"))
@@ -175,11 +177,12 @@ func TestDecrypt_CipherTextShorterThanNonceSize_ReturnsError(t *testing.T) {
 func TestDecrypt_CipherTextExactlyNonceSize_ReturnsError(t *testing.T) {
 	t.Parallel()
 	var nonceSize int
-	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), symmetric.WithRandomDataFunc(func(buffer []byte) error {
+	randomDataFunc := symmetric.WithRandomDataFunc(func(buffer []byte) error {
 		nonceSize = len(buffer)
 		_, readErr := rand.Read(buffer)
 		return readErr
-	}))
+	})
+	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), randomDataFunc)
 	assert.NoError(t, err)
 	assert.NotNil(t, encryptor)
 	_, err = encryptor.Encrypt([]byte("prime the nonce size"))
