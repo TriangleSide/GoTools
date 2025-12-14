@@ -8,11 +8,17 @@ import (
 // camelToSnake converts a camelCase string to an upper case SNAKE_CASE format.
 func camelToSnake(str string) string {
 	var snake strings.Builder
-	for i, r := range str {
-		if i > 0 && unicode.IsUpper(r) && (i+1 < len(str) && unicode.IsLower(rune(str[i+1])) || unicode.IsLower(rune(str[i-1]))) {
+	for i, currentRune := range str {
+		isUpper := unicode.IsUpper(currentRune)
+		notFirstByte := i > 0
+		hasNextByte := i+1 < len(str)
+		nextByteIsLower := hasNextByte && unicode.IsLower(rune(str[i+1]))
+		prevByteIsLower := notFirstByte && unicode.IsLower(rune(str[i-1]))
+		shouldInsertUnderscore := notFirstByte && isUpper && (nextByteIsLower || prevByteIsLower)
+		if shouldInsertUnderscore {
 			snake.WriteRune('_')
 		}
-		snake.WriteRune(unicode.ToUpper(r))
+		snake.WriteRune(unicode.ToUpper(currentRune))
 	}
 	return snake.String()
 }

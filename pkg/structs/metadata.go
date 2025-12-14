@@ -25,12 +25,13 @@ func Metadata[T any]() *readonly.Map[string, *FieldMetadata] {
 
 // MetadataFromType returns a map of a struct's field names to their respective metadata.
 func MetadataFromType(reflectType reflect.Type) *readonly.Map[string, *FieldMetadata] {
-	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, func(reflectType reflect.Type) (*readonly.Map[string, *FieldMetadata], *time.Duration, error) {
+	getOrSetFn := func(reflectType reflect.Type) (*readonly.Map[string, *FieldMetadata], *time.Duration, error) {
 		fieldsToMetadata := make(map[string]*FieldMetadata)
 		processType(reflectType, fieldsToMetadata, make([]string, 0))
 		readOnlyMap := readonly.NewMapBuilder[string, *FieldMetadata]().SetMap(fieldsToMetadata).Build()
 		return readOnlyMap, nil, nil
-	})
+	}
+	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, getOrSetFn)
 	return fieldsToMetadata
 }
 

@@ -118,9 +118,10 @@ func TestJSON_CallbackReturnsError_RespondsWithErrorJSONAndBadRequestStatus(t *t
 func TestJSON_UnencodableResponse_ReturnsInternalServerError(t *testing.T) {
 	t.Parallel()
 
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonUnmarshalableResponse](t, func(*jsonRequestParams) (*jsonUnmarshalableResponse, int, error) {
+	responderFunc := func(*jsonRequestParams) (*jsonUnmarshalableResponse, int, error) {
 		return &jsonUnmarshalableResponse{}, http.StatusOK, nil
-	})
+	}
+	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonUnmarshalableResponse](t, responderFunc)
 	defer cleanup()
 
 	response := postJSON(t, serverURL, `{"id":456}`)
