@@ -14,7 +14,8 @@ import (
 )
 
 func newJSONResponderTestServer[TRequest, TResponse any](
-	t *testing.T, handler func(*TRequest) (*TResponse, int, error)) (string, func(), func() error) {
+	t *testing.T, handler func(*TRequest) (*TResponse, int, error),
+) (string, func(), func() error) {
 	t.Helper()
 
 	var writeErr error

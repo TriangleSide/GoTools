@@ -46,7 +46,8 @@ func TestDecode_TagValidationFails_ShouldPanic(t *testing.T) {
 
 func TestDecode_JsonWithUnknownField_ShouldFailToDecode(t *testing.T) {
 	t.Parallel()
-	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"fieldThatDoesNotExist":"value"}`))
+	jsonBody := `{"fieldThatDoesNotExist":"value"}`
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(jsonBody))
 	assert.NoError(t, err)
 	request = request.WithContext(context.Background())
 	request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
@@ -58,7 +59,8 @@ func TestDecode_JsonWithUnknownField_ShouldFailToDecode(t *testing.T) {
 
 func TestDecode_JsonNotProperlyFormatted_ShouldFailToDecode(t *testing.T) {
 	t.Parallel()
-	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"myJsonField":"value"`))
+	jsonBody := `{"myJsonField":"value"`
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(jsonBody))
 	assert.NoError(t, err)
 	request = request.WithContext(context.Background())
 	request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
@@ -261,7 +263,9 @@ func TestDecode_EmptyStruct_ShouldSucceed(t *testing.T) {
 
 func TestDecode_NonJsonContentType_ShouldSkipJsonParsing(t *testing.T) {
 	t.Parallel()
-	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/?QueryParam=value", strings.NewReader(`{"field":"value"}`))
+	jsonBody := `{"field":"value"}`
+	url := "/?QueryParam=value"
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, url, strings.NewReader(jsonBody))
 	assert.NoError(t, err)
 	request = request.WithContext(context.Background())
 	request.Header.Set(headers.ContentType, "text/plain")
@@ -362,7 +366,8 @@ func TestDecode_StructWithManyDifferentFields_ShouldSucceed(t *testing.T) {
 	assert.Error(t, validation.Struct(params))
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/{PathStringField}/{PathPtrStringField}/{doesNoExistInTheStruct}", func(_ http.ResponseWriter, request *http.Request) {
+	pathPattern := "/{PathStringField}/{PathPtrStringField}/{doesNoExistInTheStruct}"
+	mux.HandleFunc(pathPattern, func(_ http.ResponseWriter, request *http.Request) {
 		params, _ = parameters.Decode[parameterFields](request)
 	})
 
@@ -416,7 +421,8 @@ func TestDecode_StructWithManyDifferentFields_ShouldSucceed(t *testing.T) {
 			"JSONPtrListField": ["item1", "item2"]
 		}`
 
-	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://"+listener.Addr().String()+clientPath+queryParams, bytes.NewBufferString(jsonBody))
+	requestURL := "http://" + listener.Addr().String() + clientPath + queryParams
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, requestURL, bytes.NewBufferString(jsonBody))
 	assert.NoError(t, err)
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Header-Does-Not-Exist-In-The-Struct", "value")

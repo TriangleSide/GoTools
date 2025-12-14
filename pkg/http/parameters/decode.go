@@ -70,8 +70,13 @@ func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 	return nil
 }
 
-// decodeQueryParameters identifies fields tagged with QueryTag and maps corresponding URL query parameters to these fields.
-func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName], request *http.Request) error {
+// decodeQueryParameters identifies fields tagged with QueryTag and maps
+// corresponding URL query parameters to these fields.
+func decodeQueryParameters[T any](
+	params *T,
+	tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName],
+	request *http.Request,
+) error {
 	lookupKeyToFieldName := tagToLookupKeyToFieldName.Get(QueryTag)
 	normalizer := tagToLookupKeyNormalizer[QueryTag]
 
@@ -82,18 +87,27 @@ func decodeQueryParameters[T any](params *T, tagToLookupKeyToFieldName *readonly
 			continue
 		}
 		if len(queryParameterValues) != 1 {
-			return fmt.Errorf("expecting one value for query parameter %s but found %v", queryParameterName, queryParameterValues)
+			return fmt.Errorf(
+				"expecting one value for query parameter %s but found %v",
+				queryParameterName, queryParameterValues)
 		}
 		if err := structs.AssignToField(params, matchedFieldName, queryParameterValues[0]); err != nil {
-			return fmt.Errorf("failed to set value for query parameter %s with values of %v (%w)", queryParameterName, queryParameterValues, err)
+			return fmt.Errorf(
+				"failed to set value for query parameter %s with values of %v (%w)",
+				queryParameterName, queryParameterValues, err)
 		}
 	}
 
 	return nil
 }
 
-// decodeHeaderParameters identifies fields tagged with HeaderTag and maps corresponding HTTP headers to these fields.
-func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName], request *http.Request) error {
+// decodeHeaderParameters identifies fields tagged with HeaderTag and maps
+// corresponding HTTP headers to these fields.
+func decodeHeaderParameters[T any](
+	params *T,
+	tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName],
+	request *http.Request,
+) error {
 	lookupKeyToFieldName := tagToLookupKeyToFieldName.Get(HeaderTag)
 	normalizer := tagToLookupKeyNormalizer[HeaderTag]
 
@@ -107,15 +121,22 @@ func decodeHeaderParameters[T any](params *T, tagToLookupKeyToFieldName *readonl
 			return fmt.Errorf("expecting one value for header parameter %s but found %v", headerName, headerValues)
 		}
 		if err := structs.AssignToField(params, matchedFieldName, headerValues[0]); err != nil {
-			return fmt.Errorf("failed to set value for header parameter %s with values of %v (%w)", headerName, headerValues, err)
+			return fmt.Errorf(
+				"failed to set value for header parameter %s with values of %v (%w)",
+				headerName, headerValues, err)
 		}
 	}
 
 	return nil
 }
 
-// decodePathParameters identifies fields tagged with PathTag and maps corresponding URL path parameters to these fields.
-func decodePathParameters[T any](params *T, tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName], request *http.Request) error {
+// decodePathParameters identifies fields tagged with PathTag and maps
+// corresponding URL path parameters to these fields.
+func decodePathParameters[T any](
+	params *T,
+	tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName],
+	request *http.Request,
+) error {
 	lookupKeyToFieldName := tagToLookupKeyToFieldName.Get(PathTag)
 	normalizer := tagToLookupKeyNormalizer[PathTag]
 
