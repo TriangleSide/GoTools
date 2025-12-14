@@ -30,15 +30,17 @@ func TestJSONStream_SuccessfulCallback_RespondsWithCorrectJSONStreamAndStatusCod
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
-			responseChan := make(chan *jsonStreamResponseBody)
-			go func() {
-				defer close(responseChan)
-				responseChan <- &jsonStreamResponseBody{Message: "first"}
-				responseChan <- &jsonStreamResponseBody{Message: "second"}
-			}()
-			return responseChan, http.StatusOK, nil
-		}, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
+			) {
+				responseChan := make(chan *jsonStreamResponseBody)
+				go func() {
+					defer close(responseChan)
+					responseChan <- &jsonStreamResponseBody{Message: "first"}
+					responseChan <- &jsonStreamResponseBody{Message: "second"}
+				}()
+				return responseChan, http.StatusOK, nil
+			}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
@@ -74,9 +76,11 @@ func TestJSONStream_ParameterDecoderFails_RespondsWithErrorJSONAndBadRequest(t *
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
-			return nil, http.StatusOK, nil
-		}, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
+			) {
+				return nil, http.StatusOK, nil
+			}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
@@ -109,9 +113,11 @@ func TestJSONStream_CallbackReturnsError_RespondsWithErrorJSONAndBadRequest(t *t
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
-			return nil, 0, &testError{}
-		}, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
+			) {
+				return nil, 0, &testError{}
+			}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
@@ -144,9 +150,11 @@ func TestJSONStream_CallbackReturnsNilChannel_RespondsWithInternalServerError(t 
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
-			return nil, http.StatusOK, nil
-		}, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
+			) {
+				return nil, http.StatusOK, nil
+			}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
@@ -183,14 +191,16 @@ func TestJSONStream_UnencodableResponse_DoesNotWriteBody(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, unmarshalableResponse](w, r, func(*jsonStreamRequestParams) (<-chan *unmarshalableResponse, int, error) {
-			ch := make(chan *unmarshalableResponse, 1)
-			go func() {
-				defer close(ch)
-				ch <- &unmarshalableResponse{}
-			}()
-			return ch, http.StatusOK, nil
-		}, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSONStream[jsonStreamRequestParams, unmarshalableResponse](
+			w, r, func(*jsonStreamRequestParams) (<-chan *unmarshalableResponse, int, error,
+			) {
+				ch := make(chan *unmarshalableResponse, 1)
+				go func() {
+					defer close(ch)
+					ch <- &unmarshalableResponse{}
+				}()
+				return ch, http.StatusOK, nil
+			}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
@@ -222,19 +232,21 @@ func TestJSONStream_RequestContextCancelled_DoesNotWriteData(t *testing.T) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithCancel(r.Context())
-		r = r.WithContext(ctx)
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		ctx, cancel := context.WithCancel(request.Context())
+		request = request.WithContext(ctx)
 		cancel()
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
-			<-r.Context().Done()
-			ch := make(chan *jsonStreamResponseBody)
-			go func() {
-				defer close(ch)
-				ch <- &jsonStreamResponseBody{Message: "first"}
-			}()
-			return ch, http.StatusOK, nil
-		}, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+			writer, request, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
+			) {
+				<-request.Context().Done()
+				ch := make(chan *jsonStreamResponseBody)
+				go func() {
+					defer close(ch)
+					ch <- &jsonStreamResponseBody{Message: "first"}
+				}()
+				return ch, http.StatusOK, nil
+			}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
@@ -273,14 +285,16 @@ func TestJSONStream_WriterFails_CallsErrorCallback(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](errWriter, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
-			responseChan := make(chan *jsonStreamResponseBody, 1)
-			go func() {
-				defer close(responseChan)
-				responseChan <- &jsonStreamResponseBody{}
-			}()
-			return responseChan, http.StatusOK, nil
-		}, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+			errWriter, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
+			) {
+				responseChan := make(chan *jsonStreamResponseBody, 1)
+				go func() {
+					defer close(responseChan)
+					responseChan <- &jsonStreamResponseBody{}
+				}()
+				return responseChan, http.StatusOK, nil
+			}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
@@ -309,13 +323,15 @@ func TestJSONStream_ChannelClosedImmediately_RespondsWithEmptyBody(t *testing.T)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
-			ch := make(chan *jsonStreamResponseBody)
-			go func() {
-				close(ch)
-			}()
-			return ch, http.StatusOK, nil
-		}, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
+			) {
+				ch := make(chan *jsonStreamResponseBody)
+				go func() {
+					close(ch)
+				}()
+				return ch, http.StatusOK, nil
+			}, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
