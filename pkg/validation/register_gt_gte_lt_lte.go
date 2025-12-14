@@ -7,13 +7,17 @@ import (
 )
 
 const (
-	// GreaterThanValidatorName is the name of the validator that checks if a numeric value is greater than a threshold.
+	// GreaterThanValidatorName is the name of the validator that checks
+	// if a numeric value is greater than a threshold.
 	GreaterThanValidatorName Validator = "gt"
-	// GreaterThanOrEqualValidatorName is the name of the validator that checks if a numeric value is greater than or equal to a threshold.
+	// GreaterThanOrEqualValidatorName is the name of the validator that checks
+	// if a numeric value is greater than or equal to a threshold.
 	GreaterThanOrEqualValidatorName Validator = "gte"
-	// LessThanValidatorName is the name of the validator that checks if a numeric value is less than a threshold.
+	// LessThanValidatorName is the name of the validator that checks
+	// if a numeric value is less than a threshold.
 	LessThanValidatorName Validator = "lt"
-	// LessThanOrEqualValidatorName is the name of the validator that checks if a numeric value is less than or equal to a threshold.
+	// LessThanOrEqualValidatorName is the name of the validator that checks
+	// if a numeric value is less than or equal to a threshold.
 	LessThanOrEqualValidatorName Validator = "lte"
 )
 

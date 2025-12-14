@@ -27,7 +27,8 @@ func init() {
 
 		var valueStr = value.String()
 		if ip := net.ParseIP(valueStr); ip == nil {
-			return result.WithError(NewViolation(params, fmt.Errorf("the value '%s' could not be parsed as an IP address", valueStr)))
+			return result.WithError(NewViolation(params, fmt.Errorf(
+				"the value '%s' could not be parsed as an IP address", valueStr)))
 		}
 
 		return nil

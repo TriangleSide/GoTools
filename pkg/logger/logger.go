@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -18,10 +19,10 @@ var ctxKeyInstance = ctxKey{}
 // getLogLevelFromEnv retrieves the log level from environment variables.
 func getLogLevelFromEnv() slog.Level {
 	type Config struct {
-		LogLevel string `config:"ENV" config_default:"INFO" validate:"required,oneof=ERROR WARN INFO DEBUG error warn info debug"`
+		LogLevel string `config:"ENV" config_default:"INFO"`
 	}
 
-	cfg, err := config.ProcessAndValidate[Config]()
+	cfg, err := config.Process[Config]()
 	if err != nil {
 		slog.Error(err.Error())
 		return slog.LevelInfo
@@ -39,6 +40,8 @@ func getLogLevelFromEnv() slog.Level {
 		level = slog.LevelInfo
 	case "debug":
 		level = slog.LevelDebug
+	default:
+		slog.Error(fmt.Sprintf("Invalid log level '%s', defaulting to INFO.", strLevel))
 	}
 
 	return level
