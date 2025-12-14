@@ -71,10 +71,11 @@ func TestEdDSA_ModifiedSignature_FailsVerification(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
-		assert.Equals(t, requestedKeyID, keyID)
+	wrongKeyCallback := func(_ context.Context, reqKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+		assert.Equals(t, reqKeyID, keyID)
 		return secondaryPublicKey, jwt.EdDSA, nil
-	})
+	}
+	_, err = jwt.Decode(ctx, token, wrongKeyCallback)
 	assert.Error(t, err)
 
 	parts := strings.Split(token, ".")
@@ -115,10 +116,11 @@ func TestEdDSA_InvalidBase64Signature_ReturnsDecodeError(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
-		assert.Equals(t, requestedKeyID, keyID)
+	keyCallback := func(_ context.Context, reqKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+		assert.Equals(t, reqKeyID, keyID)
 		return secondaryPublicKey, jwt.EdDSA, nil
-	})
+	}
+	_, err = jwt.Decode(ctx, token, keyCallback)
 	assert.Error(t, err)
 
 	parts := strings.Split(token, ".")

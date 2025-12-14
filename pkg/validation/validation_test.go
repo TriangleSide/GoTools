@@ -43,9 +43,10 @@ func TestVar_ViolationStopsValidation_SkipsRemainingValidators(t *testing.T) {
 	firstName := validation.Validator("validation_test_violation_stops_remaining_first")
 	secondName := validation.Validator("validation_test_violation_stops_remaining_second")
 
-	validation.MustRegisterValidator(firstName, func(parameters *validation.CallbackParameters) *validation.CallbackResult {
+	firstCallback := func(parameters *validation.CallbackParameters) *validation.CallbackResult {
 		return validation.NewCallbackResult().WithError(validation.NewViolation(parameters, errors.New("first violation")))
-	})
+	}
+	validation.MustRegisterValidator(firstName, firstCallback)
 	validation.MustRegisterValidator(secondName, func(*validation.CallbackParameters) *validation.CallbackResult {
 		panic("should not be called")
 	})
@@ -123,7 +124,8 @@ func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {
 				},
 				Value: "Value",
 			},
-			expectedErrorPart: "validation failed on field 'DeepEmbeddedField' with validator 'required' because the value is the zero-value",
+			expectedErrorPart: "validation failed on field 'DeepEmbeddedField' " +
+				"with validator 'required' because the value is the zero-value",
 		},
 		{
 			name: "embedded_field_is_zero_value",
@@ -139,7 +141,8 @@ func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {
 				},
 				Value: "Value",
 			},
-			expectedErrorPart: "validation failed on field 'EmbeddedField' with validator 'required' because the value is the zero-value",
+			expectedErrorPart: "validation failed on field 'EmbeddedField' " +
+				"with validator 'required' because the value is the zero-value",
 		},
 		{
 			name: "struct_field_is_zero_value",

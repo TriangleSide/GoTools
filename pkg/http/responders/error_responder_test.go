@@ -95,7 +95,8 @@ func TestError_JoinedWithCustomRegisteredType_ReturnsCustomMessageAndStatus(t *t
 	recorder := httptest.NewRecorder()
 	var writeError error
 	writeErrorCallback := func(err error) { writeError = err }
-	responders.Error(recorder, errors.Join(&testError{}, errors.New("other error")), responders.WithErrorCallback(writeErrorCallback))
+	joinedErr := errors.Join(&testError{}, errors.New("other error"))
+	responders.Error(recorder, joinedErr, responders.WithErrorCallback(writeErrorCallback))
 	assert.Equals(t, recorder.Code, http.StatusBadRequest)
 	httpError := mustDeserializeError(t, recorder)
 	assert.Equals(t, httpError.Message, "test error")
@@ -152,7 +153,10 @@ func TestError_FallbackMarshallerFails_InvokesCallback(t *testing.T) {
 		return nil, marshalErr
 	}
 	recorder := httptest.NewRecorder()
-	responders.Error(recorder, errors.New("initial error"), responders.WithJSONMarshal(marshal), responders.WithErrorCallback(writeErrorCallback))
+	initialErr := errors.New("initial error")
+	responders.Error(recorder, initialErr,
+		responders.WithJSONMarshal(marshal),
+		responders.WithErrorCallback(writeErrorCallback))
 	assert.Equals(t, len(marshalErrors), 2)
 	assert.Equals(t, recorder.Code, http.StatusInternalServerError)
 	assert.Equals(t, marshalErrors[0], marshalErr)
