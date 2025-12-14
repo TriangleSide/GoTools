@@ -54,18 +54,22 @@ func TestNew_CustomBlockCipherProvider_ReceivesHashedKey(t *testing.T) {
 
 func TestNew_CipherProviderReturnsError_ReturnsError(t *testing.T) {
 	t.Parallel()
-	encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(getRandomInt(t)), symmetric.WithBlockCipherProvider(func([]byte) (cipher.Block, error) {
+	key := "encryptionKey" + strconv.Itoa(getRandomInt(t))
+	blockCipherProvider := symmetric.WithBlockCipherProvider(func([]byte) (cipher.Block, error) {
 		return nil, errors.New("block cipher provider error")
-	}))
+	})
+	encryptor, err := symmetric.New(key, blockCipherProvider)
 	assert.ErrorPart(t, err, "failed to create the block cipher (block cipher provider error)")
 	assert.Nil(t, encryptor)
 }
 
 func TestNew_AEADModeCannotBeCreated_ReturnsError(t *testing.T) {
 	t.Parallel()
-	encryptor, err := symmetric.New("encryptionKey"+strconv.Itoa(getRandomInt(t)), symmetric.WithBlockCipherProvider(func([]byte) (cipher.Block, error) {
+	key := "encryptionKey" + strconv.Itoa(getRandomInt(t))
+	blockCipherProvider := symmetric.WithBlockCipherProvider(func([]byte) (cipher.Block, error) {
 		return invalidSizeBlock{}, nil
-	}))
+	})
+	encryptor, err := symmetric.New(key, blockCipherProvider)
 	assert.ErrorPart(t, err, "failed to configure AEAD mode")
 	assert.Nil(t, encryptor)
 }

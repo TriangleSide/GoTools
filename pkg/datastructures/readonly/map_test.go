@@ -8,7 +8,9 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
-func verifyMapKeyAndValue[Key comparable, Value any](t *testing.T, roMap *readonly.Map[Key, Value], key Key, value Value) {
+func verifyMapKeyAndValue[Key comparable, Value any](
+	t *testing.T, roMap *readonly.Map[Key, Value], key Key, value Value,
+) {
 	t.Helper()
 	assert.True(t, roMap.Size() >= 1)
 	hasKey := roMap.Has(key)

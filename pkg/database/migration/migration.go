@@ -189,7 +189,9 @@ func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([
 }
 
 // validatePersistedMigrationsAreRegistered ensures no persisted migration order is missing from the registry.
-func validatePersistedMigrationsAreRegistered(orderToPersistedStatus map[Order]Status, orderedMigrations []*Registration) error {
+func validatePersistedMigrationsAreRegistered(
+	orderToPersistedStatus map[Order]Status, orderedMigrations []*Registration,
+) error {
 	registeredMigrationOrders := make(map[Order]struct{}, len(orderedMigrations))
 	for _, registeredMigration := range orderedMigrations {
 		registeredMigrationOrders[registeredMigration.Order] = struct{}{}
@@ -204,7 +206,8 @@ func validatePersistedMigrationsAreRegistered(orderToPersistedStatus map[Order]S
 	return nil
 }
 
-// latestCompletedMigrationOrder returns the greatest registered order with a persisted COMPLETED status, or -1 if none exist.
+// latestCompletedMigrationOrder returns the greatest registered order with a persisted
+// COMPLETED status, or -1 if none exist.
 func latestCompletedMigrationOrder(orderToPersistedStatus map[Order]Status, orderedMigrations []*Registration) Order {
 	latestCompletedMigration := Order(-1)
 	for _, registeredMigration := range orderedMigrations {
@@ -216,8 +219,11 @@ func latestCompletedMigrationOrder(orderToPersistedStatus map[Order]Status, orde
 	return latestCompletedMigration
 }
 
-// enabledMigrationsThatArentCompleted returns enabled migrations that are not persisted as COMPLETED, with their previous status.
-func enabledMigrationsThatArentCompleted(orderToPersistedStatus map[Order]Status, orderedMigrations []*Registration) []migrationToRun {
+// enabledMigrationsThatArentCompleted returns enabled migrations that are not persisted as
+// COMPLETED, with their previous status.
+func enabledMigrationsThatArentCompleted(
+	orderToPersistedStatus map[Order]Status, orderedMigrations []*Registration,
+) []migrationToRun {
 	migrationsToRun := make([]migrationToRun, 0)
 	for _, registeredMigration := range orderedMigrations {
 		if !registeredMigration.Enabled {
@@ -243,7 +249,9 @@ func enabledMigrationsThatArentCompleted(orderToPersistedStatus map[Order]Status
 func validateMigrationsInOrder(migrationsToRun []migrationToRun, latestCompletedMigration Order) error {
 	for _, mtr := range migrationsToRun {
 		if mtr.registration.Order < latestCompletedMigration {
-			return fmt.Errorf("cannot run migrations out of order (found %d but latest completed is %d)", mtr.registration.Order, latestCompletedMigration)
+			return fmt.Errorf(
+				"cannot run migrations out of order (found %d but latest completed is %d)",
+				mtr.registration.Order, latestCompletedMigration)
 		}
 	}
 	return nil
@@ -254,13 +262,17 @@ func validateMigrationsInOrder(migrationsToRun []migrationToRun, latestCompleted
 func runMigrations(ctx context.Context, migrationsToRun []migrationToRun, manager Manager) error {
 	for _, mtr := range migrationsToRun {
 		if err := manager.PersistStatus(ctx, mtr.registration.Order, Pending); err != nil {
-			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Pending, mtr.registration.Order, err)
+			return fmt.Errorf(
+				"failed to persist the status %s for the migration order %d (%w)",
+				Pending, mtr.registration.Order, err)
 		}
 	}
 
 	for _, mtr := range migrationsToRun {
 		if err := manager.PersistStatus(ctx, mtr.registration.Order, Started); err != nil {
-			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Started, mtr.registration.Order, err)
+			return fmt.Errorf(
+				"failed to persist the status %s for the migration order %d (%w)",
+				Started, mtr.registration.Order, err)
 		}
 		if err := mtr.registration.Migrate(ctx, mtr.previousStatus); err != nil {
 			err = fmt.Errorf("failed to complete the migration with order %d (%w)", mtr.registration.Order, err)
@@ -270,7 +282,9 @@ func runMigrations(ctx context.Context, migrationsToRun []migrationToRun, manage
 			return err
 		}
 		if err := manager.PersistStatus(ctx, mtr.registration.Order, Completed); err != nil {
-			return fmt.Errorf("failed to persist the status %s for the migration order %d (%w)", Completed, mtr.registration.Order, err)
+			return fmt.Errorf(
+				"failed to persist the status %s for the migration order %d (%w)",
+				Completed, mtr.registration.Order, err)
 		}
 	}
 

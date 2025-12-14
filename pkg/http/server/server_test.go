@@ -50,11 +50,13 @@ func (t *testErrorResponse) Error() string {
 }
 
 func init() {
-	responders.MustRegisterErrorResponse(http.StatusInternalServerError, func(err *testErrorResponse) *responders.StandardErrorResponse {
-		return &responders.StandardErrorResponse{
-			Message: err.Error(),
-		}
-	})
+	responders.MustRegisterErrorResponse(
+		http.StatusInternalServerError,
+		func(err *testErrorResponse) *responders.StandardErrorResponse {
+			return &responders.StandardErrorResponse{
+				Message: err.Error(),
+			}
+		})
 }
 
 func getDefaultConfig(t *testing.T) *server.Config {
@@ -847,7 +849,9 @@ func TestRun_MutualTLSModeWithMultipleClientCAs_AcceptsClientsFromAnyCA(t *testi
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
 		BasicConstraintsValid: true,
 	}
-	secondCACertBytes, err := x509.CreateCertificate(rand.Reader, &secondCACertTemplate, &secondCACertTemplate, &secondCAPrivateKey.PublicKey, secondCAPrivateKey)
+	secondCACertBytes, err := x509.CreateCertificate(
+		rand.Reader, &secondCACertTemplate, &secondCACertTemplate,
+		&secondCAPrivateKey.PublicKey, secondCAPrivateKey)
 	assert.NoError(t, err)
 	secondCACertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: secondCACertBytes})
 	assert.NoError(t, os.WriteFile(secondCACertPath, secondCACertPEM, 0600))

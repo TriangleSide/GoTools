@@ -202,10 +202,11 @@ func TestDecode_ValidToken_ReturnsClaims(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := context.Background()
-	decodedClaims, err := jwt.Decode(ctx, token, func(_ context.Context, reqKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProvider := func(_ context.Context, reqKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, reqKeyID, keyID)
 		return key, jwt.EdDSA, nil
-	})
+	}
+	decodedClaims, err := jwt.Decode(ctx, token, keyProvider)
 	assert.NoError(t, err)
 	assert.NotNil(t, decodedClaims)
 	assert.Equals(t, *decodedClaims.Issuer, "test-issuer")
@@ -250,9 +251,10 @@ func TestDecode_CorruptedSignature_ReturnsError(t *testing.T) {
 	corruptedToken := strings.Join(parts, ".")
 
 	ctx := context.Background()
-	decodedClaims, err := jwt.Decode(ctx, corruptedToken, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProvider := func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return key, jwt.EdDSA, nil
-	})
+	}
+	decodedClaims, err := jwt.Decode(ctx, corruptedToken, keyProvider)
 	assert.Nil(t, decodedClaims)
 	assert.ErrorPart(t, err, "failed to verify token")
 }
