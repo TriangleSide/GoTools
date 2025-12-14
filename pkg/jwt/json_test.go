@@ -46,7 +46,8 @@ func TestEncode_StableJSONMarshaller_EncodesFieldsInSortedOrder(t *testing.T) {
 
 	bodyJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
 	assert.NoError(t, err)
-	expectedBody := `{"aud":"audience","exp":"2024-06-01T12:00:00Z","iat":"2018-01-10T04:15:00Z","iss":"issuer","jti":"token","nbf":"2021-03-20T08:30:00Z","sub":"subject"}`
+	expectedBody := `{"aud":"audience","exp":"2024-06-01T12:00:00Z","iat":"2018-01-10T04:15:00Z",` +
+		`"iss":"issuer","jti":"token","nbf":"2021-03-20T08:30:00Z","sub":"subject"}`
 	assert.Equals(t, string(bodyJSON), expectedBody)
 	var decodedClaims jwt.Claims
 	err = json.Unmarshal(bodyJSON, &decodedClaims)
@@ -106,7 +107,8 @@ func TestEncode_FieldsRequireEscaping_EncodesEscapedStrings(t *testing.T) {
 
 	bodyJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
 	assert.NoError(t, err)
-	assert.Equals(t, string(bodyJSON), `{"aud":"audience \"quoted\" path\\folder","iss":"issuer-with-escape\\","jti":"token \"complex\" value\\id"}`)
+	assert.Equals(t, string(bodyJSON), `{"aud":"audience \"quoted\" path\\folder",`+
+		`"iss":"issuer-with-escape\\","jti":"token \"complex\" value\\id"}`)
 }
 
 func TestEncode_TimestampsWithDifferentTimezones_NormalizesToUTC(t *testing.T) {
@@ -128,7 +130,8 @@ func TestEncode_TimestampsWithDifferentTimezones_NormalizesToUTC(t *testing.T) {
 
 	bodyJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
 	assert.NoError(t, err)
-	assert.Equals(t, string(bodyJSON), `{"aud":"timezone-audience","exp":"2030-12-25T15:30:00Z","iat":"2020-06-15T22:45:00Z","nbf":"2025-08-31T23:00:00Z","sub":"subject"}`)
+	assert.Equals(t, string(bodyJSON), `{"aud":"timezone-audience","exp":"2030-12-25T15:30:00Z",`+
+		`"iat":"2020-06-15T22:45:00Z","nbf":"2025-08-31T23:00:00Z","sub":"subject"}`)
 }
 
 func TestEncode_ZeroTimestampFields_OmitsFromEncodedBody(t *testing.T) {

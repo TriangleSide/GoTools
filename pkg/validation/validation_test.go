@@ -158,7 +158,8 @@ func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {
 				},
 				Value: "Value",
 			},
-			expectedErrorPart: "validation failed on field 'StructField' with validator 'required' because the value is the zero-value",
+			expectedErrorPart: "validation failed on field 'StructField' with validator 'required'" +
+				" because the value is the zero-value",
 		},
 		{
 			name: "value_is_zero_value",
@@ -174,7 +175,8 @@ func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {
 				},
 				Value: "",
 			},
-			expectedErrorPart: "validation failed on field 'Value' with validator 'required' because the value is the zero-value",
+			expectedErrorPart: "validation failed on field 'Value' with validator 'required'" +
+				" because the value is the zero-value",
 		},
 		{
 			name: "all_fields_set",
@@ -324,7 +326,8 @@ func TestStruct_SliceOfStructs_Violation_ReturnsError(t *testing.T) {
 	err := validation.Struct(&testStruct{
 		Slice: []testSliceStruct{{SliceStructValue: 1}, {SliceStructValue: 0}},
 	})
-	assert.ErrorPart(t, err, "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0' because the value 0 must be greater than 0")
+	assert.ErrorPart(t, err, "validation failed on field 'SliceStructValue' with validator 'gt'"+
+		" and parameters '0' because the value 0 must be greater than 0")
 }
 
 func TestStruct_SliceOfStructs_UnknownValidator_ReturnsError(t *testing.T) {
@@ -361,14 +364,16 @@ func TestStruct_MapOfStructs_Violation_ReturnsError(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:              "invalid_value_struct",
-			mapValue:          map[testMapStruct]testMapStruct{{SliceStructValue: 1}: {SliceStructValue: -1}},
-			expectedErrorPart: "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0' because the value -1 must be greater than 0",
+			name:     "invalid_value_struct",
+			mapValue: map[testMapStruct]testMapStruct{{SliceStructValue: 1}: {SliceStructValue: -1}},
+			expectedErrorPart: "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0'" +
+				" because the value -1 must be greater than 0",
 		},
 		{
-			name:              "invalid_key_struct",
-			mapValue:          map[testMapStruct]testMapStruct{{SliceStructValue: -2}: {SliceStructValue: 1}},
-			expectedErrorPart: "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0' because the value -2 must be greater than 0",
+			name:     "invalid_key_struct",
+			mapValue: map[testMapStruct]testMapStruct{{SliceStructValue: -2}: {SliceStructValue: 1}},
+			expectedErrorPart: "validation failed on field 'SliceStructValue' with validator 'gt' and parameters '0'" +
+				" because the value -2 must be greater than 0",
 		},
 	}
 

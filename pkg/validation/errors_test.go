@@ -21,7 +21,8 @@ func TestNewViolation_StructValidationWithParameters_ReturnsFormattedMessage(t *
 		Value:           reflect.ValueOf(1),
 		Parameters:      "parameters",
 	}, errors.New("test message"))
-	assert.Equals(t, violation.Error(), "validation failed on field 'Value' with validator 'test' and parameters 'parameters' because test message")
+	assert.Equals(t, violation.Error(), "validation failed on field 'Value' with validator 'test'"+
+		" and parameters 'parameters' because test message")
 }
 
 func TestNewViolation_StructValidationWithoutParameters_ReturnsFormattedMessage(t *testing.T) {
@@ -47,7 +48,8 @@ func TestNewViolation_NonStructValidationWithParameters_ReturnsFormattedMessage(
 		Value:              reflect.ValueOf(1),
 		Parameters:         "parameters",
 	}, errors.New("test message"))
-	assert.Equals(t, violation.Error(), "validation failed with validator 'test' and parameters 'parameters' because test message")
+	assert.Equals(t, violation.Error(), "validation failed with validator 'test' and "+
+		"parameters 'parameters' because test message")
 }
 
 func TestNewViolation_NonStructValidationWithoutParameters_ReturnsFormattedMessage(t *testing.T) {

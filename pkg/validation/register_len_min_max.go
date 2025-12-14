@@ -46,7 +46,8 @@ func registerStringLengthValidation(name Validator, compareFunc func(length, tar
 
 		var valueStr = value.String()
 		if !compareFunc(len(valueStr), targetLength) {
-			return result.WithError(NewViolation(params, fmt.Errorf("the length %d must be %s %d", len(valueStr), descriptor, targetLength)))
+			return result.WithError(NewViolation(params, fmt.Errorf(
+				"the length %d must be %s %d", len(valueStr), descriptor, targetLength)))
 		}
 
 		return nil

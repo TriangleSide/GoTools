@@ -35,6 +35,7 @@ linters:
     - importas
     - ineffassign
     - intrange
+    - lll
     - makezero
     - misspell
     - mnd
