@@ -9,7 +9,12 @@ import (
 )
 
 // JSON responds to an HTTP request by encoding the response as JSON.
-func JSON[RequestParameters any, ResponseBody any](writer http.ResponseWriter, request *http.Request, callback func(*RequestParameters) (*ResponseBody, int, error), opts ...Option) {
+func JSON[RequestParameters any, ResponseBody any](
+	writer http.ResponseWriter,
+	request *http.Request,
+	callback func(*RequestParameters) (*ResponseBody, int, error),
+	opts ...Option,
+) {
 	cfg := configure(opts...)
 
 	requestParams, err := parameters.Decode[RequestParameters](request)

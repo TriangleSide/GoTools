@@ -90,7 +90,8 @@ func (cipher *Cipher) Encrypt(data []byte) ([]byte, error) {
 func (cipher *Cipher) Decrypt(encryptedData []byte) ([]byte, error) {
 	nonceSize := cipher.aead.NonceSize()
 	if len(encryptedData) < nonceSize {
-		return nil, fmt.Errorf("cipher-text of len %d is shorter than the minimum length of %d", len(encryptedData), nonceSize)
+		return nil, fmt.Errorf(
+			"cipher-text of len %d is shorter than the minimum length of %d", len(encryptedData), nonceSize)
 	}
 
 	nonce := encryptedData[:nonceSize]

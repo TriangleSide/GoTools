@@ -49,16 +49,19 @@ func MustRegisterErrorResponse[T any, R any](status int, callback func(err *T) *
 	}
 }
 
-// StandardErrorResponse is the standard JSON response an API endpoint makes when an unknown error occurs in the endpoint handler.
+// StandardErrorResponse is the standard JSON response an API endpoint makes
+// when an unknown error occurs in the endpoint handler.
 type StandardErrorResponse struct {
 	Message string `json:"message"`
 }
 
 // init registers standard error messages for the responder.
 func init() {
-	MustRegisterErrorResponse[validation.Violations, StandardErrorResponse](http.StatusBadRequest, func(err *validation.Violations) *StandardErrorResponse {
-		return &StandardErrorResponse{
-			Message: err.Error(),
-		}
-	})
+	MustRegisterErrorResponse(
+		http.StatusBadRequest,
+		func(err *validation.Violations) *StandardErrorResponse {
+			return &StandardErrorResponse{
+				Message: err.Error(),
+			}
+		})
 }

@@ -16,7 +16,8 @@ import (
 )
 
 func cacheMustHaveKeyAndValue[Key comparable, Value any](
-	t *testing.T, testCache *cache.Cache[Key, Value], key Key, value Value) {
+	t *testing.T, testCache *cache.Cache[Key, Value], key Key, value Value,
+) {
 	t.Helper()
 	gottenValue, gotten := testCache.Get(key)
 	assert.True(t, gotten)

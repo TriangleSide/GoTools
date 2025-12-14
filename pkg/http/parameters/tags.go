@@ -61,7 +61,8 @@ var (
 		},
 	}
 
-	// lookupKeyFollowsNamingConvention verifies that a tag's lookup key follows the naming convention defined by TagLookupKeyNamingConvention.
+	// lookupKeyFollowsNamingConvention verifies that a tag's lookup key follows
+	// the naming convention defined by TagLookupKeyNamingConvention.
 	lookupKeyFollowsNamingConvention func(lookupKey string) bool
 
 	// lookupKeyExtractionCache stores the results of the ExtractAndValidateFieldTagLookupKeys function.
