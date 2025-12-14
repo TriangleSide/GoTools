@@ -50,14 +50,17 @@ func parseValidatorNameAndInstruction(nameToInstruction string) (string, string,
 }
 
 // forEachValidatorAndInstruction invokes the callback for each validator name and instruction.
-func forEachValidatorAndInstruction(validateTagContents string, callback func(name string, instruction string, rest func() string) (bool, error)) error {
+func forEachValidatorAndInstruction(
+	validateTagContents string,
+	callback func(name string, instruction string, rest func() string) (bool, error),
+) error {
 	if strings.TrimSpace(validateTagContents) == "" {
 		return fmt.Errorf("empty %s instructions", Tag)
 	}
 	namesToInstructions := strings.Split(validateTagContents, ValidatorsSep)
 
-	for instructionIdx := range namesToInstructions {
-		validatorName, validatorInstructions, parseErr := parseValidatorNameAndInstruction(namesToInstructions[instructionIdx])
+	for instructionIdx, nameToInstruction := range namesToInstructions {
+		validatorName, validatorInstructions, parseErr := parseValidatorNameAndInstruction(nameToInstruction)
 		if parseErr != nil {
 			return parseErr
 		}
@@ -78,8 +81,15 @@ func forEachValidatorAndInstruction(validateTagContents string, callback func(na
 
 // checkValidatorsAgainstValue validates a value based on the provided validation tag.
 // It returns an error if anything went wrong while validating.
-func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, structFieldName string, fieldValue reflect.Value, validationTagContents string, violations *Violations) error {
-	return forEachValidatorAndInstruction(validationTagContents, func(name string, instruction string, rest func() string) (bool, error) {
+func checkValidatorsAgainstValue(
+	isStructValue bool,
+	structValue reflect.Value,
+	structFieldName string,
+	fieldValue reflect.Value,
+	validationTagContents string,
+	violations *Violations,
+) error {
+	iterCallback := func(name string, instruction string, rest func() string) (bool, error) {
 		callbackNotCast, callbackFound := registeredValidations.Load(name)
 		if !callbackFound {
 			return false, fmt.Errorf("validation with name '%s' is not registered", name)
@@ -120,7 +130,8 @@ func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, 
 		}
 
 		return true, nil
-	})
+	}
+	return forEachValidatorAndInstruction(validationTagContents, iterCallback)
 }
 
 // validateNestedStruct validates a nested struct and accumulates any violations.
