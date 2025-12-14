@@ -78,7 +78,57 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 	return lookupKeyFollowsNamingConvention(lookupKey)
 }
 
-// ExtractAndValidateFieldTagLookupKeys validates the struct tags and returns a map of unique tag lookup keys for each field in the struct.
+// buildFieldTagLookupKeys extracts and validates field tag lookup keys for type T.
+func buildFieldTagLookupKeys[T any](reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], *time.Duration, error) {
+	fieldsMetadata := structs.Metadata[T]()
+
+	tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)
+	for customTag := range tagToLookupKeyNormalizer {
+		tagToLookupKeyToFieldName[customTag] = make(LookupKeyToFieldName)
+	}
+
+	for fieldName, fieldMetadata := range fieldsMetadata.All() {
+		customTagFound := false
+		for customTag, lookupKeyNormalizer := range tagToLookupKeyNormalizer {
+			originalLookupKeyForTag, customTagFoundOnField := fieldMetadata.Tags().Fetch(string(customTag))
+			if !customTagFoundOnField {
+				continue
+			}
+
+			if customTagFound {
+				return nil, nil, fmt.Errorf("there can only be one encoding tag on the field '%s'", fieldName)
+			}
+			customTagFound = true
+
+			normalizedLookupKeyForTag := lookupKeyNormalizer(originalLookupKeyForTag)
+			if !TagLookupKeyFollowsNamingConvention(normalizedLookupKeyForTag) {
+				return nil, nil, fmt.Errorf(
+					"tag '%s' with lookup key '%s' must adhere to the naming convention",
+					customTag, originalLookupKeyForTag)
+			}
+
+			_, lookupKeyAlreadySeenForTag := tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag]
+			if lookupKeyAlreadySeenForTag {
+				return nil, nil, fmt.Errorf(
+					"tag '%s' with lookup key '%s' is not unique",
+					customTag, originalLookupKeyForTag)
+			}
+			tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag] = fieldName
+
+			jsonTagValue, jsonTagFound := fieldMetadata.Tags().Fetch(string(JSONTag))
+			if !jsonTagFound || jsonTagValue != "-" {
+				return nil, nil, fmt.Errorf(
+					"struct field '%s' with tag '%s' must have accompanying tag %s:\"-\"",
+					fieldName, customTag, JSONTag)
+			}
+		}
+	}
+
+	return readonly.NewMapBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), nil, nil
+}
+
+// ExtractAndValidateFieldTagLookupKeys validates the struct tags and returns a map
+// of unique tag lookup keys for each field in the struct.
 //
 //	type MyStruct struct {
 //		HeaderParameter string `httpHeader:"x-my-parameter" json:"-"`
@@ -97,43 +147,5 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 //	}
 func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonly.Map[Tag, LookupKeyToFieldName], error) {
 	reflectType := reflect.TypeFor[T]()
-	return lookupKeyExtractionCache.GetOrSet(reflectType, func(reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], *time.Duration, error) {
-		fieldsMetadata := structs.Metadata[T]()
-
-		tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)
-		for customTag := range tagToLookupKeyNormalizer {
-			tagToLookupKeyToFieldName[customTag] = make(LookupKeyToFieldName)
-		}
-
-		for fieldName, fieldMetadata := range fieldsMetadata.All() {
-			customTagFound := false
-			for customTag, lookupKeyNormalizer := range tagToLookupKeyNormalizer {
-				originalLookupKeyForTag, customTagFoundOnField := fieldMetadata.Tags().Fetch(string(customTag))
-				if !customTagFoundOnField {
-					continue
-				}
-
-				if customTagFound {
-					return nil, nil, fmt.Errorf("there can only be one encoding tag on the field '%s'", fieldName)
-				}
-				customTagFound = true
-
-				normalizedLookupKeyForTag := lookupKeyNormalizer(originalLookupKeyForTag)
-				if !TagLookupKeyFollowsNamingConvention(normalizedLookupKeyForTag) {
-					return nil, nil, fmt.Errorf("tag '%s' with lookup key '%s' must adhere to the naming convention", customTag, originalLookupKeyForTag)
-				}
-
-				if _, lookupKeyAlreadySeenForTag := tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag]; lookupKeyAlreadySeenForTag {
-					return nil, nil, fmt.Errorf("tag '%s' with lookup key '%s' is not unique", customTag, originalLookupKeyForTag)
-				}
-				tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag] = fieldName
-
-				if jsonTagValue, jsonTagFound := fieldMetadata.Tags().Fetch(string(JSONTag)); !jsonTagFound || jsonTagValue != "-" {
-					return nil, nil, fmt.Errorf("struct field '%s' with tag '%s' must have accompanying tag %s:\"-\"", fieldName, customTag, JSONTag)
-				}
-			}
-		}
-
-		return readonly.NewMapBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), nil, nil
-	})
+	return lookupKeyExtractionCache.GetOrSet(reflectType, buildFieldTagLookupKeys[T])
 }

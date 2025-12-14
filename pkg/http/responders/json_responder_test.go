@@ -13,7 +13,8 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
-func newJSONResponderTestServer[TRequest, TResponse any](t *testing.T, handler func(*TRequest) (*TResponse, int, error)) (string, func(), func() error) {
+func newJSONResponderTestServer[TRequest, TResponse any](
+	t *testing.T, handler func(*TRequest) (*TResponse, int, error)) (string, func(), func() error) {
 	t.Helper()
 
 	var writeErr error
@@ -52,7 +53,7 @@ type jsonResponseBody struct {
 	Message string `json:"message"`
 }
 
-type jsonUnmarshalableResponse struct {
+type jsonUnmarshalable struct {
 	ChanField chan int `json:"chan_field"`
 }
 
@@ -118,10 +119,10 @@ func TestJSON_CallbackReturnsError_RespondsWithErrorJSONAndBadRequestStatus(t *t
 func TestJSON_UnencodableResponse_ReturnsInternalServerError(t *testing.T) {
 	t.Parallel()
 
-	responderFunc := func(*jsonRequestParams) (*jsonUnmarshalableResponse, int, error) {
-		return &jsonUnmarshalableResponse{}, http.StatusOK, nil
+	responderFunc := func(*jsonRequestParams) (*jsonUnmarshalable, int, error) {
+		return &jsonUnmarshalable{}, http.StatusOK, nil
 	}
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonUnmarshalableResponse](t, responderFunc)
+	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonUnmarshalable](t, responderFunc)
 	defer cleanup()
 
 	response := postJSON(t, serverURL, `{"id":456}`)
@@ -146,7 +147,8 @@ func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		responders.JSON[jsonRequestParams, jsonResponseBody](errWriter, r, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
+		responders.JSON[jsonRequestParams, jsonResponseBody](
+			errWriter, r, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
 	}))
 	defer server.Close()
 
@@ -169,9 +171,10 @@ func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
 func TestJSON_NilResponseBody_RespondsWithNullJSON(t *testing.T) {
 	t.Parallel()
 
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonResponseBody](t, func(*jsonRequestParams) (*jsonResponseBody, int, error) {
+	responderFunc := func(*jsonRequestParams) (*jsonResponseBody, int, error) {
 		return nil, http.StatusOK, nil
-	})
+	}
+	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonResponseBody](t, responderFunc)
 	defer cleanup()
 
 	response := postJSON(t, serverURL, `{"id":123}`)
