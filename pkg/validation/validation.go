@@ -219,10 +219,12 @@ func validateStruct[T any](val T, depth int) error {
 func Var[T any](val T, validatorInstructions string) error {
 	reflectValue := reflect.ValueOf(val)
 	violations := NewViolations()
-	if err := checkValidatorsAgainstValue(false, reflect.Value{}, "", reflectValue, validatorInstructions, violations); err != nil {
+	err := checkValidatorsAgainstValue(false, reflect.Value{}, "", reflectValue, validatorInstructions, violations)
+	if err != nil {
 		return err
 	}
-	if err := validateRecursively(0, reflectValue, violations); err != nil {
+	err = validateRecursively(0, reflectValue, violations)
+	if err != nil {
 		return err
 	}
 	return violations.NilIfEmpty()

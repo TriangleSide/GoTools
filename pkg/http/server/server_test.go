@@ -170,7 +170,8 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 		BasicConstraintsValid: true,
 	}
 
-	caCertBytes, err := x509.CreateCertificate(rand.Reader, &caCertTemplate, &caCertTemplate, &caPrivateKey.PublicKey, caPrivateKey)
+	caCertBytes, err := x509.CreateCertificate(
+		rand.Reader, &caCertTemplate, &caCertTemplate, &caPrivateKey.PublicKey, caPrivateKey)
 	assert.NoError(t, err)
 	caCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
 
@@ -180,7 +181,8 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 
 	serverPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err)
-	serverPrivateKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(serverPrivateKey)})
+	serverPrivateKeyPEM := pem.EncodeToMemory(
+		&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(serverPrivateKey)})
 
 	serverCertTemplate := x509.Certificate{
 		SerialNumber: big.NewInt(2),
@@ -194,7 +196,8 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 		BasicConstraintsValid: true,
 		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
 	}
-	serverCertBytes, err := x509.CreateCertificate(rand.Reader, &serverCertTemplate, &caCertTemplate, &serverPrivateKey.PublicKey, caPrivateKey)
+	serverCertBytes, err := x509.CreateCertificate(
+		rand.Reader, &serverCertTemplate, &caCertTemplate, &serverPrivateKey.PublicKey, caPrivateKey)
 	assert.NoError(t, err)
 	serverCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverCertBytes})
 
@@ -206,7 +209,8 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 
 	clientPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err)
-	clientPrivateKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(clientPrivateKey)})
+	clientPrivateKeyPEM := pem.EncodeToMemory(
+		&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(clientPrivateKey)})
 
 	clientCertTemplate := x509.Certificate{
 		SerialNumber: big.NewInt(3),
@@ -219,7 +223,8 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 	}
-	clientCertBytes, err := x509.CreateCertificate(rand.Reader, &clientCertTemplate, &caCertTemplate, &clientPrivateKey.PublicKey, caPrivateKey)
+	clientCertBytes, err := x509.CreateCertificate(
+		rand.Reader, &clientCertTemplate, &caCertTemplate, &clientPrivateKey.PublicKey, caPrivateKey)
 	assert.NoError(t, err)
 	clientCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: clientCertBytes})
 
@@ -246,10 +251,14 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 	}
-	invalidClientCertBytes, err := x509.CreateCertificate(rand.Reader, &invalidClientCertTemplate, &invalidClientCertTemplate, &invalidClientPrivateKey.PublicKey, invalidClientPrivateKey)
+	invalidClientCertBytes, err := x509.CreateCertificate(
+		rand.Reader, &invalidClientCertTemplate, &invalidClientCertTemplate,
+		&invalidClientPrivateKey.PublicKey, invalidClientPrivateKey)
 	assert.NoError(t, err)
-	invalidClientCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: invalidClientCertBytes})
-	invalidClientKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(invalidClientPrivateKey)})
+	invalidClientCertPEM := pem.EncodeToMemory(
+		&pem.Block{Type: "CERTIFICATE", Bytes: invalidClientCertBytes})
+	invalidClientKeyPEM := pem.EncodeToMemory(
+		&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(invalidClientPrivateKey)})
 
 	invalidClientCert, err := tls.X509KeyPair(invalidClientCertPEM, invalidClientKeyPEM)
 	assert.NoError(t, err)
