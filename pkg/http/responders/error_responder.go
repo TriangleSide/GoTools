@@ -14,10 +14,12 @@ type errJoinUnwrap interface {
 	Unwrap() []error
 }
 
-// findRegistryMatch checks the error type to see if it matches a value in the registry.
-func findRegistryMatch(err error) (*registeredErrorResponse, error) {
+// findRegistryMatchAndPerformCallback checks the error type to see if it matches a value in the registry.
+// If it does, it returns the status code, the result of the callback, and true.
+// If not, it returns zero values and false.
+func findRegistryMatchAndPerformCallback(err error) (int, any, bool) {
 	if err == nil {
-		return nil, nil
+		return 0, nil, false
 	}
 
 	var allErrs []error
@@ -29,15 +31,16 @@ func findRegistryMatch(err error) (*registeredErrorResponse, error) {
 
 	for _, workErr := range allErrs {
 		errType := reflect.TypeOf(workErr)
-		if registeredErrorNotCast, registeredErrorFound := registeredErrorResponses.Load(errType); registeredErrorFound {
-			return registeredErrorNotCast.(*registeredErrorResponse), workErr
+		if registeredErrorNotCast, found := registeredErrorResponses.Load(errType); found {
+			registeredErr := registeredErrorNotCast.(*registeredErrorResponse)
+			return registeredErr.Status, registeredErr.Callback(workErr), true
 		}
-		if match, matchErr := findRegistryMatch(errors.Unwrap(workErr)); match != nil {
-			return match, matchErr
+		if status, result, found := findRegistryMatchAndPerformCallback(errors.Unwrap(workErr)); found {
+			return status, result, true
 		}
 	}
 
-	return nil, nil
+	return 0, nil, false
 }
 
 // Error responds to an HTTP requests with an ErrorResponse. It tries to match it to a known error type
@@ -47,9 +50,9 @@ func Error(writer http.ResponseWriter, err error, opts ...Option) {
 
 	var statusCode int
 	var errResponse any
-	if match, matchErr := findRegistryMatch(err); match != nil {
-		statusCode = match.Status
-		errResponse = match.Callback(matchErr)
+	if callbackStatus, callbackResult, matched := findRegistryMatchAndPerformCallback(err); matched {
+		statusCode = callbackStatus
+		errResponse = callbackResult
 	} else {
 		statusCode = http.StatusInternalServerError
 		errResponse = StandardErrorResponse{

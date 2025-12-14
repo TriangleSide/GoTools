@@ -21,7 +21,7 @@ func WithJSONMarshal(marshal func(any) ([]byte, error)) Option {
 }
 
 // WithErrorCallback configures the responder to invoke this callback when a responder processing error occurs.
-// Do not retry the responder when this is invoked.
+// Do not retry any HTTP responder when this is invoked.
 func WithErrorCallback(callback func(error)) Option {
 	return func(cfg *config) {
 		cfg.errorCallback = callback

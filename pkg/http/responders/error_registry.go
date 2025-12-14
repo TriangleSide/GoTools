@@ -10,7 +10,10 @@ import (
 
 // registeredErrorResponse is used by the Error responder to format the response.
 type registeredErrorResponse struct {
-	Status   int
+	// Status is the HTTP status code to return.
+	Status int
+	// Callback is the function that formats the error response.
+	// The response will be marshaled to JSON before being sent.
 	Callback func(err any) any
 }
 

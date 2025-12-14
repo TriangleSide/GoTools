@@ -42,6 +42,7 @@ linters:
     - modernize
     - musttag
     - nilerr
+    - nilnil
     - noctx
     - perfsprint
     - prealloc
