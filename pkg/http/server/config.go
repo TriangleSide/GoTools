@@ -15,6 +15,7 @@ const (
 )
 
 // Config holds configuration parameters for an HTTP server.
+// nolint:lll
 type Config struct {
 	// HTTPServerBindIP is the IP address the server listens on.
 	HTTPServerBindIP string `config:"ENV" config_default:"::1" validate:"required,ip_addr"`

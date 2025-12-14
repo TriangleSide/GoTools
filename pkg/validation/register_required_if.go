@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	// RequiredIfValidatorName is the name of the validator that conditionally requires a field based on another field's value.
+	// RequiredIfValidatorName is the name of the validator that
+	// conditionally requires a field based on another field's value.
 	RequiredIfValidatorName Validator = "required_if"
 )
 

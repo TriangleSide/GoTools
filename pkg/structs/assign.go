@@ -12,7 +12,9 @@ import (
 // setStringIntoTextUnmarshaller parses a string-encoded value and sets it into an
 // interface that implements encoding.TextUnmarshaler.
 // It handles types implementing encoding.TextUnmarshaler, basic types, and complex types (via JSON).
-func setStringIntoTextUnmarshaller(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
+func setStringIntoTextUnmarshaller(
+	fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string,
+) (bool, error) {
 	if reflect.PointerTo(fieldType).Implements(reflect.TypeFor[encoding.TextUnmarshaler]()) {
 		unmarshaler := fieldPtr.Interface().(encoding.TextUnmarshaler)
 		if err := unmarshaler.UnmarshalText([]byte(stringEncodedValue)); err != nil {
