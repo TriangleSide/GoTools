@@ -63,9 +63,10 @@ func TestDecode_TwoSegments_ReturnsError(t *testing.T) {
 func TestDecode_FourSegments_ReturnsError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	claims, err := jwt.Decode(ctx, "header.body.signature.extra", func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProvider := func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, jwt.EdDSA, nil
-	})
+	}
+	claims, err := jwt.Decode(ctx, "header.body.signature.extra", keyProvider)
 	assert.Nil(t, claims)
 	assert.ErrorExact(t, err, "token must contain header, body, and signature")
 }
@@ -73,9 +74,10 @@ func TestDecode_FourSegments_ReturnsError(t *testing.T) {
 func TestDecode_InvalidBase64Header_ReturnsError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	claims, err := jwt.Decode(ctx, "not-valid-base64!@#.body.signature", func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProvider := func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, jwt.EdDSA, nil
-	})
+	}
+	claims, err := jwt.Decode(ctx, "not-valid-base64!@#.body.signature", keyProvider)
 	assert.Nil(t, claims)
 	assert.ErrorPart(t, err, "failed to decode header")
 }
@@ -84,9 +86,10 @@ func TestDecode_InvalidJSONHeader_ReturnsError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	invalidHeader := base64.RawURLEncoding.EncodeToString([]byte("not-json"))
-	claims, err := jwt.Decode(ctx, invalidHeader+".body.signature", func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProvider := func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, jwt.EdDSA, nil
-	})
+	}
+	claims, err := jwt.Decode(ctx, invalidHeader+".body.signature", keyProvider)
 	assert.Nil(t, claims)
 	assert.ErrorPart(t, err, "json unmarshal error")
 }

@@ -155,5 +155,7 @@ func TestViolations_Error_MultipleViolations_ReturnsJoinedMessages(t *testing.T)
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(2),
 	}, errors.New("second message")))
-	assert.Equals(t, violations.Error(), "validation failed with validator 'first' because first message; validation failed with validator 'second' because second message")
+	expectedErr := "validation failed with validator 'first' because first message"
+	expectedErr += "; validation failed with validator 'second' because second message"
+	assert.Equals(t, violations.Error(), expectedErr)
 }
