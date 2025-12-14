@@ -108,7 +108,9 @@ func checkValidatorsAgainstValue(isStructValue bool, structValue reflect.Value, 
 			}
 			if callbackResponse.newValues != nil {
 				for _, newValue := range callbackResponse.newValues {
-					if newValErr := checkValidatorsAgainstValue(isStructValue, structValue, structFieldName, newValue, rest(), violations); newValErr != nil {
+					newValErr := checkValidatorsAgainstValue(
+						isStructValue, structValue, structFieldName, newValue, rest(), violations)
+					if newValErr != nil {
 						return false, newValErr
 					}
 				}
@@ -201,7 +203,9 @@ func validateStruct[T any](val T, depth int) error {
 		fieldValueFromStruct, _ := structs.ValueFromName(val, fieldName)
 
 		if validationTag, hasValidationTag := fieldMetadata.Tags().Fetch(Tag); hasValidationTag {
-			if err := checkValidatorsAgainstValue(true, reflectValue, fieldName, fieldValueFromStruct, validationTag, violations); err != nil {
+			err = checkValidatorsAgainstValue(
+				true, reflectValue, fieldName, fieldValueFromStruct, validationTag, violations)
+			if err != nil {
 				return err
 			}
 		}

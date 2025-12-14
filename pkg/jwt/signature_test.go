@@ -33,19 +33,20 @@ func TestEdDSA_ValidToken_DecodesSuccessfully(t *testing.T) {
 	token, key, keyID, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
-	_, err = jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProviderSecondary := func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return secondaryPublicKey, jwt.EdDSA, nil
-	})
+	}
+	_, err = jwt.Decode(t.Context(), token, keyProviderSecondary)
 	assert.Error(t, err)
 
 	_ = primaryPrivateKey
 
-	decodedBody, err := jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProvider := func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return key, jwt.EdDSA, nil
-	})
+	}
+	decodedBody, err := jwt.Decode(t.Context(), token, keyProvider)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, decodedBody)
@@ -86,10 +87,11 @@ func TestEdDSA_ModifiedSignature_FailsVerification(t *testing.T) {
 		}
 	}
 
-	decodedBody, err := jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProvider := func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return key, jwt.EdDSA, nil
-	})
+	}
+	decodedBody, err := jwt.Decode(ctx, token, keyProvider)
 
 	assert.ErrorPart(t, err, "failed to verify token")
 	assert.Nil(t, decodedBody)
@@ -125,10 +127,11 @@ func TestEdDSA_InvalidBase64Signature_ReturnsDecodeError(t *testing.T) {
 		token = strings.Join(parts, ".")
 	}
 
-	decodedBody, err := jwt.Decode(ctx, token, func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProvider := func(_ context.Context, requestedKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, requestedKeyID, keyID)
 		return key, jwt.EdDSA, nil
-	})
+	}
+	decodedBody, err := jwt.Decode(ctx, token, keyProvider)
 
 	assert.ErrorPart(t, err, "failed to decode signature")
 	assert.Nil(t, decodedBody)
@@ -159,10 +162,11 @@ func TestEncode_EdDSA_ReturnsValidKeyAndKeyID(t *testing.T) {
 	assert.NotEquals(t, token, "")
 
 	ctx := context.Background()
-	decoded, err := jwt.Decode(ctx, token, func(_ context.Context, reqKeyId string) ([]byte, jwt.SignatureAlgorithm, error) {
+	keyProvider := func(_ context.Context, reqKeyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, reqKeyId, keyID)
 		return key, jwt.EdDSA, nil
-	})
+	}
+	decoded, err := jwt.Decode(ctx, token, keyProvider)
 	assert.NoError(t, err)
 	assert.Equals(t, *decoded.Issuer, *claims.Issuer)
 	assert.Equals(t, *decoded.Subject, *claims.Subject)

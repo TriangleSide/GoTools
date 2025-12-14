@@ -69,7 +69,8 @@ func Encode(claims Claims, algorithm SignatureAlgorithm) (string, []byte, string
 // KeyProvider is a function type that retrieves the signing key and algorithm based on the provided context and key ID.
 type KeyProvider func(ctx context.Context, keyId string) ([]byte, SignatureAlgorithm, error)
 
-// Decode validates the supplied token string using the key and algorithm from the provider and returns the decoded claims.
+// Decode validates the supplied token string using the key and algorithm from the provider.
+// It returns the decoded claims if the token is valid, or an error otherwise.
 func Decode(ctx context.Context, token string, keyProvider KeyProvider) (*Claims, error) {
 	if token == "" {
 		return nil, errors.New("token cannot be empty")
