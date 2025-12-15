@@ -30,24 +30,19 @@ var (
 
 // MustRegisterErrorResponse allows error types to be registered for the Error responder.
 // The registered error type should always be instantiated as a pointer for this to work correctly.
-func MustRegisterErrorResponse[T any](status int, callback func(err *T) *StandardErrorResponse) {
+func MustRegisterErrorResponse[T error](status int, callback func(err T) *StandardErrorResponse) {
 	typeOfError := reflect.TypeFor[T]()
-	if typeOfError.Kind() != reflect.Struct {
-		panic("The generic for registered error responses must be a struct.")
-	}
-
-	ptrToTypeOfError := reflect.PointerTo(typeOfError)
-	if !ptrToTypeOfError.Implements(reflect.TypeFor[error]()) {
-		panic("The generic for registered error types must have an error interface.")
+	if typeOfError.Kind() != reflect.Pointer || typeOfError.Elem().Kind() != reflect.Struct {
+		panic("The generic for registered error responses must be a pointer to a struct.")
 	}
 
 	errorResponse := &registeredErrorResponse{
 		Status: status,
 		Callback: func(err any) *StandardErrorResponse {
-			return callback(err.(*T))
+			return callback(err.(T))
 		},
 	}
-	_, alreadyRegistered := registeredErrorResponses.LoadOrStore(ptrToTypeOfError, errorResponse)
+	_, alreadyRegistered := registeredErrorResponses.LoadOrStore(typeOfError, errorResponse)
 	if alreadyRegistered {
 		panic("The error type has already been registered.")
 	}
