@@ -18,12 +18,6 @@ func (e *testError) Error() string {
 	return "test error"
 }
 
-type testUnmarshalableError struct{}
-
-func (e *testUnmarshalableError) Error() string {
-	return "unmarshalable error"
-}
-
 type errorWriter struct {
 	http.ResponseWriter
 
@@ -47,9 +41,6 @@ func init() {
 		return &responders.StandardErrorResponse{
 			Message: err.Error(),
 		}
-	})
-	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*testUnmarshalableError) *struct{ C chan int } {
-		return &struct{ C chan int }{}
 	})
 }
 
@@ -128,18 +119,6 @@ func TestError_WriterError_InvokesCallback(t *testing.T) {
 	responders.Error(errWriter, errors.New("some error"), responders.WithErrorCallback(writeErrorCallback))
 	assert.True(t, errWriter.WriteFailed)
 	assert.ErrorPart(t, writeError, "simulated write failure")
-}
-
-func TestError_UnmarshalableErrorResponse_InvokesCallback(t *testing.T) {
-	t.Parallel()
-	recorder := httptest.NewRecorder()
-	var writeError error
-	writeErrorCallback := func(err error) { writeError = err }
-	responders.Error(recorder, &testUnmarshalableError{}, responders.WithErrorCallback(writeErrorCallback))
-	assert.Equals(t, recorder.Code, http.StatusInternalServerError)
-	httpError := mustDeserializeError(t, recorder)
-	assert.Equals(t, httpError.Message, http.StatusText(http.StatusInternalServerError))
-	assert.ErrorPart(t, writeError, "json")
 }
 
 func TestError_FallbackMarshallerFails_InvokesCallback(t *testing.T) {

@@ -8,13 +8,19 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
+// StandardErrorResponse is the standard JSON response an API endpoint makes
+// when an error occurs in the endpoint handler.
+type StandardErrorResponse struct {
+	Message string `json:"message"`
+}
+
 // registeredErrorResponse is used by the Error responder to format the response.
 type registeredErrorResponse struct {
 	// Status is the HTTP status code to return.
 	Status int
 	// Callback is the function that formats the error response.
 	// The response will be marshaled to JSON before being sent.
-	Callback func(err any) any
+	Callback func(err any) *StandardErrorResponse
 }
 
 var (
@@ -24,7 +30,7 @@ var (
 
 // MustRegisterErrorResponse allows error types to be registered for the Error responder.
 // The registered error type should always be instantiated as a pointer for this to work correctly.
-func MustRegisterErrorResponse[T any, R any](status int, callback func(err *T) *R) {
+func MustRegisterErrorResponse[T any](status int, callback func(err *T) *StandardErrorResponse) {
 	typeOfError := reflect.TypeFor[T]()
 	if typeOfError.Kind() != reflect.Struct {
 		panic("The generic for registered error responses must be a struct.")
@@ -35,14 +41,9 @@ func MustRegisterErrorResponse[T any, R any](status int, callback func(err *T) *
 		panic("The generic for registered error types must have an error interface.")
 	}
 
-	responseType := reflect.TypeFor[R]()
-	if responseType.Kind() != reflect.Struct {
-		panic("The response type must be a struct.")
-	}
-
 	errorResponse := &registeredErrorResponse{
 		Status: status,
-		Callback: func(err any) any {
+		Callback: func(err any) *StandardErrorResponse {
 			return callback(err.(*T))
 		},
 	}
@@ -50,12 +51,6 @@ func MustRegisterErrorResponse[T any, R any](status int, callback func(err *T) *
 	if alreadyRegistered {
 		panic("The error type has already been registered.")
 	}
-}
-
-// StandardErrorResponse is the standard JSON response an API endpoint makes
-// when an unknown error occurs in the endpoint handler.
-type StandardErrorResponse struct {
-	Message string `json:"message"`
 }
 
 // init registers standard error messages for the responder.

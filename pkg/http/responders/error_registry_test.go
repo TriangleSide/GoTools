@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/http/responders"
-	"github.com/TriangleSide/GoTools/pkg/ptr"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
@@ -17,16 +16,16 @@ func (e *uniqueTestError) Error() string {
 
 func TestMustRegisterErrorResponse_ValidErrorType_DoesNotPanic(t *testing.T) {
 	t.Parallel()
-	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*uniqueTestError) *struct{} {
-		return &struct{}{}
+	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*uniqueTestError) *responders.StandardErrorResponse {
+		return &responders.StandardErrorResponse{}
 	})
 }
 
 func TestMustRegisterErrorResponse_RegisteredTwice_Panics(t *testing.T) {
 	t.Parallel()
 	assert.Panic(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*testError) *struct{} {
-			return &struct{}{}
+		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*testError) *responders.StandardErrorResponse {
+			return &responders.StandardErrorResponse{}
 		})
 	})
 }
@@ -34,8 +33,8 @@ func TestMustRegisterErrorResponse_RegisteredTwice_Panics(t *testing.T) {
 func TestMustRegisterErrorResponse_PointerGeneric_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(**testError) *struct{} {
-			return &struct{}{}
+		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(**testError) *responders.StandardErrorResponse {
+			return &responders.StandardErrorResponse{}
 		})
 	}, "registered error responses must be a struct")
 }
@@ -43,17 +42,8 @@ func TestMustRegisterErrorResponse_PointerGeneric_Panics(t *testing.T) {
 func TestMustRegisterErrorResponse_NonErrorStruct_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*struct{}) *struct{} {
-			return &struct{}{}
+		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*struct{}) *responders.StandardErrorResponse {
+			return &responders.StandardErrorResponse{}
 		})
 	}, "must have an error interface")
-}
-
-func TestMustRegisterErrorResponse_NonStructResponse_Panics(t *testing.T) {
-	t.Parallel()
-	assert.PanicPart(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*testError) *int {
-			return ptr.Of(0)
-		})
-	}, "response type must be a struct")
 }
