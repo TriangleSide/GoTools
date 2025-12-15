@@ -30,7 +30,7 @@ func findRegistryMatchAndPerformCallback(err error) (int, any, bool) {
 	}
 
 	for _, workErr := range allErrs {
-		errType := reflect.TypeOf(workErr)
+		errType := normalizeErrorTypeForRegistry(reflect.TypeOf(workErr))
 		if registeredErrorNotCast, found := registeredErrorResponses.Load(errType); found {
 			registeredErr := registeredErrorNotCast.(*registeredErrorResponse)
 			return registeredErr.Status, registeredErr.Callback(workErr), true
