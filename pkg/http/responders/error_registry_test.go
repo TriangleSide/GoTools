@@ -36,7 +36,16 @@ func TestMustRegisterErrorResponse_PointerGeneric_Panics(t *testing.T) {
 		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(**testError) *responders.StandardErrorResponse {
 			return &responders.StandardErrorResponse{}
 		})
-	}, "registered error responses must be a struct")
+	}, "cannot be a pointer")
+}
+
+func TestMustRegisterErrorResponse_TriplePointerGeneric_Panics(t *testing.T) {
+	t.Parallel()
+	assert.PanicPart(t, func() {
+		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(***testError) *responders.StandardErrorResponse {
+			return &responders.StandardErrorResponse{}
+		})
+	}, "cannot be a pointer")
 }
 
 func TestMustRegisterErrorResponse_NonErrorStruct_Panics(t *testing.T) {
@@ -45,5 +54,5 @@ func TestMustRegisterErrorResponse_NonErrorStruct_Panics(t *testing.T) {
 		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*struct{}) *responders.StandardErrorResponse {
 			return &responders.StandardErrorResponse{}
 		})
-	}, "must have an error interface")
+	}, "error interface")
 }
