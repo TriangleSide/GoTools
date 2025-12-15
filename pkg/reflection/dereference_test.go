@@ -225,3 +225,116 @@ func TestDereference_NonNilFunc_DoesNothing(t *testing.T) {
 	assert.Equals(t, dereferenced.Kind(), reflect.Func)
 	assert.False(t, reflection.IsNil(dereferenced))
 }
+
+func TestDereferenceType_NilType_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	var nilType reflect.Type
+	result := reflection.DereferenceType(nilType)
+	assert.True(t, result == nil)
+}
+
+func TestDereferenceType_IntType_ReturnsInt(t *testing.T) {
+	t.Parallel()
+	intType := reflect.TypeFor[int]()
+	result := reflection.DereferenceType(intType)
+	assert.Equals(t, result.Kind(), reflect.Int)
+	assert.Equals(t, result, intType)
+}
+
+func TestDereferenceType_SinglePointerToInt_ReturnsInt(t *testing.T) {
+	t.Parallel()
+	ptrType := reflect.TypeFor[*int]()
+	assert.Equals(t, ptrType.Kind(), reflect.Ptr)
+	result := reflection.DereferenceType(ptrType)
+	assert.Equals(t, result.Kind(), reflect.Int)
+}
+
+func TestDereferenceType_DoublePointerToInt_ReturnsInt(t *testing.T) {
+	t.Parallel()
+	ptrType := reflect.TypeFor[**int]()
+	assert.Equals(t, ptrType.Kind(), reflect.Ptr)
+	result := reflection.DereferenceType(ptrType)
+	assert.Equals(t, result.Kind(), reflect.Int)
+}
+
+func TestDereferenceType_TriplePointerToInt_ReturnsInt(t *testing.T) {
+	t.Parallel()
+	ptrType := reflect.TypeFor[***int]()
+	assert.Equals(t, ptrType.Kind(), reflect.Ptr)
+	result := reflection.DereferenceType(ptrType)
+	assert.Equals(t, result.Kind(), reflect.Int)
+}
+
+func TestDereferenceType_PointerToStruct_ReturnsStruct(t *testing.T) {
+	t.Parallel()
+	type testStruct struct {
+		Field int
+	}
+	ptrType := reflect.TypeFor[*testStruct]()
+	assert.Equals(t, ptrType.Kind(), reflect.Ptr)
+	result := reflection.DereferenceType(ptrType)
+	assert.Equals(t, result.Kind(), reflect.Struct)
+	assert.Equals(t, result.Name(), "testStruct")
+}
+
+func TestDereferenceType_SliceType_ReturnsSlice(t *testing.T) {
+	t.Parallel()
+	sliceType := reflect.TypeFor[[]int]()
+	assert.Equals(t, sliceType.Kind(), reflect.Slice)
+	result := reflection.DereferenceType(sliceType)
+	assert.Equals(t, result.Kind(), reflect.Slice)
+	assert.Equals(t, result, sliceType)
+}
+
+func TestDereferenceType_MapType_ReturnsMap(t *testing.T) {
+	t.Parallel()
+	mapType := reflect.TypeFor[map[string]int]()
+	assert.Equals(t, mapType.Kind(), reflect.Map)
+	result := reflection.DereferenceType(mapType)
+	assert.Equals(t, result.Kind(), reflect.Map)
+	assert.Equals(t, result, mapType)
+}
+
+func TestDereferenceType_StringType_ReturnsString(t *testing.T) {
+	t.Parallel()
+	stringType := reflect.TypeFor[string]()
+	assert.Equals(t, stringType.Kind(), reflect.String)
+	result := reflection.DereferenceType(stringType)
+	assert.Equals(t, result.Kind(), reflect.String)
+	assert.Equals(t, result, stringType)
+}
+
+func TestDereferenceType_PointerToSlice_ReturnsSlice(t *testing.T) {
+	t.Parallel()
+	ptrType := reflect.TypeFor[*[]int]()
+	assert.Equals(t, ptrType.Kind(), reflect.Ptr)
+	result := reflection.DereferenceType(ptrType)
+	assert.Equals(t, result.Kind(), reflect.Slice)
+}
+
+func TestDereferenceType_PointerToMap_ReturnsMap(t *testing.T) {
+	t.Parallel()
+	ptrType := reflect.TypeFor[*map[string]int]()
+	assert.Equals(t, ptrType.Kind(), reflect.Ptr)
+	result := reflection.DereferenceType(ptrType)
+	assert.Equals(t, result.Kind(), reflect.Map)
+}
+
+func TestDereferenceType_InterfaceHoldingInt_ReturnsConcreteType(t *testing.T) {
+	t.Parallel()
+	var iface any = 42
+	ifaceType := reflect.TypeOf(iface)
+	assert.Equals(t, ifaceType.Kind(), reflect.Int)
+	result := reflection.DereferenceType(ifaceType)
+	assert.Equals(t, result.Kind(), reflect.Int)
+}
+
+func TestDereferenceType_InterfaceHoldingPointer_ReturnsBaseType(t *testing.T) {
+	t.Parallel()
+	x := 42
+	var iface any = &x
+	ifaceType := reflect.TypeOf(iface)
+	assert.Equals(t, ifaceType.Kind(), reflect.Ptr)
+	result := reflection.DereferenceType(ifaceType)
+	assert.Equals(t, result.Kind(), reflect.Int)
+}
