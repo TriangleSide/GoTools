@@ -14,6 +14,12 @@ func (e *uniqueTestError) Error() string {
 	return "unique test error"
 }
 
+type stringError string
+
+func (e stringError) Error() string {
+	return string(e)
+}
+
 func TestMustRegisterErrorResponse_ValidErrorType_DoesNotPanic(t *testing.T) {
 	t.Parallel()
 	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*uniqueTestError) *responders.StandardErrorResponse {
@@ -30,20 +36,11 @@ func TestMustRegisterErrorResponse_RegisteredTwice_Panics(t *testing.T) {
 	})
 }
 
-func TestMustRegisterErrorResponse_PointerGeneric_Panics(t *testing.T) {
+func TestMustRegisterErrorResponse_NonPointerToStructGeneric_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(**testError) *responders.StandardErrorResponse {
+		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(stringError) *responders.StandardErrorResponse {
 			return &responders.StandardErrorResponse{}
 		})
-	}, "registered error responses must be a struct")
-}
-
-func TestMustRegisterErrorResponse_NonErrorStruct_Panics(t *testing.T) {
-	t.Parallel()
-	assert.PanicPart(t, func() {
-		responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*struct{}) *responders.StandardErrorResponse {
-			return &responders.StandardErrorResponse{}
-		})
-	}, "must have an error interface")
+	}, "registered error responses must be a pointer to a struct")
 }
