@@ -15,3 +15,11 @@ func Dereference(value reflect.Value) reflect.Value {
 	}
 	return value
 }
+
+// DereferenceType returns the base type after dereferencing all pointer indirections.
+func DereferenceType(t reflect.Type) reflect.Type {
+	for t != nil && t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return t
+}

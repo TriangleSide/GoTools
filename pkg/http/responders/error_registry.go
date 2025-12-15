@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
@@ -31,14 +32,14 @@ var (
 // MustRegisterErrorResponse allows error types to be registered for the Error responder.
 // The registered error type should always be instantiated as a pointer for this to work correctly.
 func MustRegisterErrorResponse[T any](status int, callback func(err *T) *StandardErrorResponse) {
-	typeOfError := reflect.TypeFor[T]()
-	if typeOfError.Kind() != reflect.Struct {
-		panic("The generic for registered error responses must be a struct.")
+	errorType := reflect.TypeFor[T]()
+	if errorType.Kind() == reflect.Ptr {
+		panic("The generic for registered error types cannot be a pointer.")
 	}
 
-	ptrToTypeOfError := reflect.PointerTo(typeOfError)
-	if !ptrToTypeOfError.Implements(reflect.TypeFor[error]()) {
-		panic("The generic for registered error types must have an error interface.")
+	errorType = normalizeErrorTypeForRegistry(errorType)
+	if !errorType.Implements(reflect.TypeFor[error]()) {
+		panic("The generic for registered error types must implement the error interface.")
 	}
 
 	errorResponse := &registeredErrorResponse{
@@ -47,15 +48,20 @@ func MustRegisterErrorResponse[T any](status int, callback func(err *T) *Standar
 			return callback(err.(*T))
 		},
 	}
-	_, alreadyRegistered := registeredErrorResponses.LoadOrStore(ptrToTypeOfError, errorResponse)
+	_, alreadyRegistered := registeredErrorResponses.LoadOrStore(errorType, errorResponse)
 	if alreadyRegistered {
 		panic("The error type has already been registered.")
 	}
 }
 
+// normalizeErrorTypeForRegistry ensures that the error type used for registry lookups is always the same.
+func normalizeErrorTypeForRegistry(errType reflect.Type) reflect.Type {
+	return reflect.PointerTo(reflection.DereferenceType(errType))
+}
+
 // init registers standard error messages for the responder.
 func init() {
-	MustRegisterErrorResponse(
+	MustRegisterErrorResponse[validation.Violations](
 		http.StatusBadRequest,
 		func(err *validation.Violations) *StandardErrorResponse {
 			return &StandardErrorResponse{
