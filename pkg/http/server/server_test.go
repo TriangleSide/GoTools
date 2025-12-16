@@ -406,9 +406,10 @@ func TestShutdown_CalledMultipleTimes_Succeeds(t *testing.T) {
 func TestRun_ListenerClosedUnexpectedly_ReturnsError(t *testing.T) {
 	t.Parallel()
 	listener, err := net.ListenTCP("tcp6", &net.TCPAddr{IP: net.ParseIP("::1"), Port: 0})
+	assert.NoError(t, err)
 	waitUntilReady := make(chan bool)
 	srv, err := server.New(server.WithListenerProvider(func(string, uint16) (*net.TCPListener, error) {
-		return listener, err
+		return listener, nil
 	}), server.WithBoundCallback(func(*net.TCPAddr) {
 		close(waitUntilReady)
 	}), server.WithConfigProvider(func() (*server.Config, error) {

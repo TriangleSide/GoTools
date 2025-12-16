@@ -44,8 +44,10 @@ func New(key string, opts ...Option) (*Cipher, error) {
 	cfg := &config{
 		blockCipherProvider: aes.NewCipher,
 		randomDataFunc: func(buffer []byte) error {
-			_, err := io.ReadFull(rand.Reader, buffer)
-			return err
+			if _, err := io.ReadFull(rand.Reader, buffer); err != nil {
+				return fmt.Errorf("failed to read random data (%w)", err)
+			}
+			return nil
 		},
 	}
 
