@@ -76,6 +76,6 @@ func WithAttrs(ctx context.Context, attrs ...slog.Attr) (context.Context, *slog.
 	for _, attr := range attrs {
 		anySlice = append(anySlice, attr)
 	}
-	newLogger := logger.With(anySlice...)
-	return context.WithValue(ctx, ctxKeyInstance, newLogger), newLogger
+	loggerWithAttrs := logger.With(anySlice...)
+	return context.WithValue(ctx, ctxKeyInstance, loggerWithAttrs), loggerWithAttrs
 }
