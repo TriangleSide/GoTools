@@ -46,13 +46,13 @@ func Process[T any]() (*T, error) {
 			}
 			value = defaultValue
 			if err := structs.AssignToField(conf, fieldName, value); err != nil {
-				return nil, fmt.Errorf("failed to assign default value %s to field %s (%w)", value, fieldName, err)
+				return nil, fmt.Errorf("failed to assign default value %s to field %s: %w", value, fieldName, err)
 			}
 			continue
 		}
 
 		if err := structs.AssignToField(conf, fieldName, value); err != nil {
-			return nil, fmt.Errorf("failed to assign value %s to field %s (%w)", value, fieldName, err)
+			return nil, fmt.Errorf("failed to assign value %s to field %s: %w", value, fieldName, err)
 		}
 	}
 
@@ -66,7 +66,7 @@ func ProcessAndValidate[T any]() (*T, error) {
 		return nil, err
 	}
 	if err := validation.Struct(conf); err != nil {
-		return nil, fmt.Errorf("failed while validating the configuration (%w)", err)
+		return nil, fmt.Errorf("failed while validating the configuration: %w", err)
 	}
 	return conf, nil
 }

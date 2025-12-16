@@ -45,7 +45,7 @@ func Encode(claims Claims, algorithm SignatureAlgorithm) (string, []byte, string
 
 	key, keyID, err := keyGen(provider)
 	if err != nil {
-		return "", nil, "", fmt.Errorf("failed to generate signing key (%w)", err)
+		return "", nil, "", fmt.Errorf("failed to generate signing key: %w", err)
 	}
 
 	header := Header{Algorithm: string(algorithm), Type: jwtHeaderType, KeyID: keyID}
@@ -57,7 +57,7 @@ func Encode(claims Claims, algorithm SignatureAlgorithm) (string, []byte, string
 
 	signatureBytes, err := provider.Sign([]byte(encodedHeader+"."+encodedBody), key)
 	if err != nil {
-		return "", nil, "", fmt.Errorf("failed to sign token (%w)", err)
+		return "", nil, "", fmt.Errorf("failed to sign token: %w", err)
 	}
 
 	encodedSignature := base64.RawURLEncoding.EncodeToString(signatureBytes)
@@ -83,16 +83,16 @@ func Decode(ctx context.Context, token string, keyProvider KeyProvider) (*Claims
 
 	headerJSON, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode header (%w)", err)
+		return nil, fmt.Errorf("failed to decode header: %w", err)
 	}
 	var header Header
 	if err := json.Unmarshal(headerJSON, &header); err != nil {
-		return nil, fmt.Errorf("json unmarshal error (%w)", err)
+		return nil, fmt.Errorf("json unmarshal error: %w", err)
 	}
 
 	key, algorithm, err := keyProvider(ctx, header.KeyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve key (%w)", err)
+		return nil, fmt.Errorf("failed to retrieve key: %w", err)
 	}
 
 	if SignatureAlgorithm(header.Algorithm) != algorithm {
@@ -100,16 +100,16 @@ func Decode(ctx context.Context, token string, keyProvider KeyProvider) (*Claims
 	}
 
 	if err := validateSignature(parts, key, algorithm); err != nil {
-		return nil, fmt.Errorf("signature validation failed (%w)", err)
+		return nil, fmt.Errorf("signature validation failed: %w", err)
 	}
 
 	bodyJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode body (%w)", err)
+		return nil, fmt.Errorf("failed to decode body: %w", err)
 	}
 	var claims Claims
 	if err := json.Unmarshal(bodyJSON, &claims); err != nil {
-		return nil, fmt.Errorf("json unmarshal error (%w)", err)
+		return nil, fmt.Errorf("json unmarshal error: %w", err)
 	}
 
 	return &claims, nil
@@ -123,11 +123,11 @@ func validateSignature(parts []string, key []byte, algorithm SignatureAlgorithm)
 	}
 	existingSignature, err := base64.RawURLEncoding.DecodeString(parts[2])
 	if err != nil {
-		return fmt.Errorf("failed to decode signature (%w)", err)
+		return fmt.Errorf("failed to decode signature: %w", err)
 	}
 	signaturesMatch, err := provider.Verify([]byte(parts[0]+"."+parts[1]), existingSignature, key)
 	if err != nil {
-		return fmt.Errorf("failed to verify token (%w)", err)
+		return fmt.Errorf("failed to verify token: %w", err)
 	}
 	if !signaturesMatch {
 		return errors.New("token signature is invalid")
