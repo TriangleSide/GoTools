@@ -13,7 +13,7 @@ import (
 // config is the configuration for the encryptor.
 type config struct {
 	blockCipherProvider func(key []byte) (cipher.Block, error)
-	randomDataFunc      func(buffer []byte) error
+	randReader          io.Reader
 }
 
 // Option is optional configuration of the encryptor.
@@ -26,29 +26,24 @@ func WithBlockCipherProvider(provider func(key []byte) (cipher.Block, error)) Op
 	}
 }
 
-// WithRandomDataFunc overwrites the random data function.
-func WithRandomDataFunc(randomDataFunc func(buffer []byte) error) Option {
+// WithRandReader overwrites the random data function.
+func WithRandReader(reader io.Reader) Option {
 	return func(c *config) {
-		c.randomDataFunc = randomDataFunc
+		c.randReader = reader
 	}
 }
 
 // Cipher provides AES-GCM encryption and decryption.
 type Cipher struct {
-	aead           cipher.AEAD
-	randomDataFunc func(buffer []byte) error
+	aead       cipher.AEAD
+	randReader io.Reader
 }
 
 // New allocates and configures a Cipher.
 func New(key string, opts ...Option) (*Cipher, error) {
 	cfg := &config{
 		blockCipherProvider: aes.NewCipher,
-		randomDataFunc: func(buffer []byte) error {
-			if _, err := io.ReadFull(rand.Reader, buffer); err != nil {
-				return fmt.Errorf("failed to read random data: %w", err)
-			}
-			return nil
-		},
+		randReader:          rand.Reader,
 	}
 
 	for _, opt := range opts {
@@ -71,8 +66,8 @@ func New(key string, opts ...Option) (*Cipher, error) {
 	}
 
 	return &Cipher{
-		aead:           aead,
-		randomDataFunc: cfg.randomDataFunc,
+		aead:       aead,
+		randReader: cfg.randReader,
 	}, nil
 }
 
@@ -80,10 +75,9 @@ func New(key string, opts ...Option) (*Cipher, error) {
 // It returns the nonce-prefixed ciphertext and an error if any occurs during the encryption process.
 func (cipher *Cipher) Encrypt(data []byte) ([]byte, error) {
 	nonce := make([]byte, cipher.aead.NonceSize())
-	if err := cipher.randomDataFunc(nonce); err != nil {
+	if _, err := io.ReadFull(cipher.randReader, nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
-
 	return cipher.aead.Seal(nonce, nonce, data, nil), nil
 }
 

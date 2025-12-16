@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
-	"fmt"
 	"math/big"
 	"strconv"
 	"sync"
@@ -23,6 +22,14 @@ func (invalidSizeBlock) BlockSize() int { return 8 }
 func (invalidSizeBlock) Encrypt(dst, src []byte) { copy(dst, src) }
 
 func (invalidSizeBlock) Decrypt(dst, src []byte) { copy(dst, src) }
+
+type testReader struct {
+	readFunc func([]byte) (int, error)
+}
+
+func (r *testReader) Read(p []byte) (int, error) {
+	return r.readFunc(p)
+}
 
 func getRandomInt(t *testing.T) int {
 	t.Helper()
@@ -92,17 +99,20 @@ func TestEncryptDecrypt_VariousDataSizes_SuccessfullyRoundTrips(t *testing.T) {
 	}
 }
 
-func TestNew_CustomRandomDataFunc_ControlsNonce(t *testing.T) {
+func TestNew_CustomRandReader_ControlsNonce(t *testing.T) {
 	t.Parallel()
 	var generatedNonce []byte
 	key := "key" + strconv.Itoa(getRandomInt(t))
-	encryptor, err := symmetric.New(key, symmetric.WithRandomDataFunc(func(buffer []byte) error {
-		for i := range buffer {
-			buffer[i] = byte(i + 1)
-		}
-		generatedNonce = append([]byte(nil), buffer...)
-		return nil
-	}))
+	reader := &testReader{
+		readFunc: func(buffer []byte) (int, error) {
+			for i := range buffer {
+				buffer[i] = byte(i + 1)
+			}
+			generatedNonce = append([]byte(nil), buffer...)
+			return len(buffer), nil
+		},
+	}
+	encryptor, err := symmetric.New(key, symmetric.WithRandReader(reader))
 	assert.NoError(t, err)
 	assert.NotNil(t, encryptor)
 	ciphertext, err := encryptor.Encrypt([]byte("data"))
@@ -157,14 +167,13 @@ func TestDecrypt_NilBytes_ReturnsError(t *testing.T) {
 func TestDecrypt_CipherTextShorterThanNonceSize_ReturnsError(t *testing.T) {
 	t.Parallel()
 	var nonceSize int
-	randomDataFunc := symmetric.WithRandomDataFunc(func(buffer []byte) error {
-		nonceSize = len(buffer)
-		if _, readErr := rand.Read(buffer); readErr != nil {
-			return fmt.Errorf("failed to read random data: %w", readErr)
-		}
-		return nil
-	})
-	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), randomDataFunc)
+	reader := &testReader{
+		readFunc: func(buffer []byte) (int, error) {
+			nonceSize = len(buffer)
+			return rand.Read(buffer)
+		},
+	}
+	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), symmetric.WithRandReader(reader))
 	assert.NoError(t, err)
 	assert.NotNil(t, encryptor)
 	_, err = encryptor.Encrypt([]byte("prime the nonce size"))
@@ -180,14 +189,13 @@ func TestDecrypt_CipherTextShorterThanNonceSize_ReturnsError(t *testing.T) {
 func TestDecrypt_CipherTextExactlyNonceSize_ReturnsError(t *testing.T) {
 	t.Parallel()
 	var nonceSize int
-	randomDataFunc := symmetric.WithRandomDataFunc(func(buffer []byte) error {
-		nonceSize = len(buffer)
-		if _, readErr := rand.Read(buffer); readErr != nil {
-			return fmt.Errorf("failed to read random data: %w", readErr)
-		}
-		return nil
-	})
-	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), randomDataFunc)
+	reader := &testReader{
+		readFunc: func(buffer []byte) (int, error) {
+			nonceSize = len(buffer)
+			return rand.Read(buffer)
+		},
+	}
+	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), symmetric.WithRandReader(reader))
 	assert.NoError(t, err)
 	assert.NotNil(t, encryptor)
 	_, err = encryptor.Encrypt([]byte("prime the nonce size"))
@@ -238,11 +246,14 @@ func TestNew_EmptyKey_ReturnsError(t *testing.T) {
 	assert.Nil(t, encryptor)
 }
 
-func TestEncrypt_RandomDataFuncFails_ReturnsError(t *testing.T) {
+func TestEncrypt_RandReaderFails_ReturnsError(t *testing.T) {
 	t.Parallel()
-	encryptor, err := symmetric.New("key", symmetric.WithRandomDataFunc(func([]byte) error {
-		return errors.New("random data error")
-	}))
+	reader := &testReader{
+		readFunc: func([]byte) (int, error) {
+			return 0, errors.New("random data error")
+		},
+	}
+	encryptor, err := symmetric.New("key", symmetric.WithRandReader(reader))
 	assert.NoError(t, err)
 	assert.NotNil(t, encryptor)
 	cypher, err := encryptor.Encrypt([]byte("test"))
