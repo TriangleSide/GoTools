@@ -19,7 +19,7 @@ func Decode[T any](request *http.Request) (returnParams *T, returnErr error) {
 	defer func() {
 		if request.Body != nil {
 			if err := request.Body.Close(); err != nil {
-				returnErr = errors.Join(returnErr, fmt.Errorf("failed to close the request body (%w)", err))
+				returnErr = errors.Join(returnErr, fmt.Errorf("failed to close the request body: %w", err))
 				returnParams = nil
 			}
 		}
@@ -36,23 +36,23 @@ func Decode[T any](request *http.Request) (returnParams *T, returnErr error) {
 	}
 
 	if err := decodeJSONBodyParameters(params, request); err != nil {
-		return nil, fmt.Errorf("failed to parse json body parameters (%w)", err)
+		return nil, fmt.Errorf("failed to parse json body parameters: %w", err)
 	}
 
 	if err := decodeQueryParameters(params, tagToLookupKeyToFieldName, request); err != nil {
-		return nil, fmt.Errorf("failed to parse query parameters (%w)", err)
+		return nil, fmt.Errorf("failed to parse query parameters: %w", err)
 	}
 
 	if err := decodeHeaderParameters(params, tagToLookupKeyToFieldName, request); err != nil {
-		return nil, fmt.Errorf("failed to parse header parameters (%w)", err)
+		return nil, fmt.Errorf("failed to parse header parameters: %w", err)
 	}
 
 	if err := decodePathParameters(params, tagToLookupKeyToFieldName, request); err != nil {
-		return nil, fmt.Errorf("failed to parse path parameters (%w)", err)
+		return nil, fmt.Errorf("failed to parse path parameters: %w", err)
 	}
 
 	if err := validation.Struct(params); err != nil {
-		return nil, fmt.Errorf("validation failed for request parameters (%w)", err)
+		return nil, fmt.Errorf("validation failed for request parameters: %w", err)
 	}
 
 	return params, nil
@@ -64,7 +64,7 @@ func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 		decoder := json.NewDecoder(request.Body)
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(params); err != nil {
-			return fmt.Errorf("failed to decode json body (%w)", err)
+			return fmt.Errorf("failed to decode json body: %w", err)
 		}
 	}
 	return nil
@@ -93,7 +93,7 @@ func decodeQueryParameters[T any](
 		}
 		if err := structs.AssignToField(params, matchedFieldName, queryParameterValues[0]); err != nil {
 			return fmt.Errorf(
-				"failed to set value for query parameter %s with values of %v (%w)",
+				"failed to set value for query parameter %s with values of %v: %w",
 				queryParameterName, queryParameterValues, err)
 		}
 	}
@@ -122,7 +122,7 @@ func decodeHeaderParameters[T any](
 		}
 		if err := structs.AssignToField(params, matchedFieldName, headerValues[0]); err != nil {
 			return fmt.Errorf(
-				"failed to set value for header parameter %s with values of %v (%w)",
+				"failed to set value for header parameter %s with values of %v: %w",
 				headerName, headerValues, err)
 		}
 	}
@@ -147,7 +147,7 @@ func decodePathParameters[T any](
 			continue
 		}
 		if err := structs.AssignToField(params, field, pathValue); err != nil {
-			return fmt.Errorf("failed to set value for path parameter %s with values of %v (%w)", pathName, pathValue, err)
+			return fmt.Errorf("failed to set value for path parameter %s with values of %v: %w", pathName, pathValue, err)
 		}
 	}
 

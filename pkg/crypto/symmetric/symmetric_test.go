@@ -60,7 +60,7 @@ func TestNew_CipherProviderReturnsError_ReturnsError(t *testing.T) {
 		return nil, errors.New("block cipher provider error")
 	})
 	encryptor, err := symmetric.New(key, blockCipherProvider)
-	assert.ErrorPart(t, err, "failed to create the block cipher (block cipher provider error)")
+	assert.ErrorPart(t, err, "failed to create the block cipher: block cipher provider error")
 	assert.Nil(t, encryptor)
 }
 
@@ -160,7 +160,7 @@ func TestDecrypt_CipherTextShorterThanNonceSize_ReturnsError(t *testing.T) {
 	randomDataFunc := symmetric.WithRandomDataFunc(func(buffer []byte) error {
 		nonceSize = len(buffer)
 		if _, readErr := rand.Read(buffer); readErr != nil {
-			return fmt.Errorf("failed to read random data (%w)", readErr)
+			return fmt.Errorf("failed to read random data: %w", readErr)
 		}
 		return nil
 	})
@@ -183,7 +183,7 @@ func TestDecrypt_CipherTextExactlyNonceSize_ReturnsError(t *testing.T) {
 	randomDataFunc := symmetric.WithRandomDataFunc(func(buffer []byte) error {
 		nonceSize = len(buffer)
 		if _, readErr := rand.Read(buffer); readErr != nil {
-			return fmt.Errorf("failed to read random data (%w)", readErr)
+			return fmt.Errorf("failed to read random data: %w", readErr)
 		}
 		return nil
 	})
@@ -246,7 +246,7 @@ func TestEncrypt_RandomDataFuncFails_ReturnsError(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, encryptor)
 	cypher, err := encryptor.Encrypt([]byte("test"))
-	assert.ErrorPart(t, err, "failed to generate nonce (random data error)")
+	assert.ErrorPart(t, err, "failed to generate nonce: random data error")
 	assert.Nil(t, cypher)
 }
 

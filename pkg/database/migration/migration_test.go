@@ -35,7 +35,7 @@ type managerRecorder struct {
 func (r *managerRecorder) AcquireDBLock(ctx context.Context) error {
 	r.Operations = append(r.Operations, "AcquireDBLock()")
 	if ctx.Err() != nil {
-		return fmt.Errorf("context error in AcquireDBLock (%w)", ctx.Err())
+		return fmt.Errorf("context error in AcquireDBLock: %w", ctx.Err())
 	}
 	return r.AcquireDBLockError
 }
@@ -43,7 +43,7 @@ func (r *managerRecorder) AcquireDBLock(ctx context.Context) error {
 func (r *managerRecorder) EnsureDataStores(ctx context.Context) error {
 	r.Operations = append(r.Operations, "EnsureDataStores()")
 	if ctx.Err() != nil {
-		return fmt.Errorf("context error in EnsureDataStores (%w)", ctx.Err())
+		return fmt.Errorf("context error in EnsureDataStores: %w", ctx.Err())
 	}
 	return r.EnsureDataStoresError
 }
@@ -51,7 +51,7 @@ func (r *managerRecorder) EnsureDataStores(ctx context.Context) error {
 func (r *managerRecorder) ReleaseDBLock(ctx context.Context) error {
 	r.Operations = append(r.Operations, "ReleaseDBLock()")
 	if ctx.Err() != nil {
-		return fmt.Errorf("context error in ReleaseDBLock (%w)", ctx.Err())
+		return fmt.Errorf("context error in ReleaseDBLock: %w", ctx.Err())
 	}
 	return r.ReleaseDBLockError
 }
@@ -59,7 +59,7 @@ func (r *managerRecorder) ReleaseDBLock(ctx context.Context) error {
 func (r *managerRecorder) AcquireMigrationLock(ctx context.Context) error {
 	r.Operations = append(r.Operations, "AcquireMigrationLock()")
 	if ctx.Err() != nil {
-		return fmt.Errorf("context error in AcquireMigrationLock (%w)", ctx.Err())
+		return fmt.Errorf("context error in AcquireMigrationLock: %w", ctx.Err())
 	}
 	return r.MigrationLockError
 }
@@ -70,7 +70,7 @@ func (r *managerRecorder) MigrationLockHeartbeat(ctx context.Context) error {
 		r.Heartbeat <- struct{}{}
 	}
 	if ctx.Err() != nil {
-		return fmt.Errorf("context error in MigrationLockHeartbeat (%w)", ctx.Err())
+		return fmt.Errorf("context error in MigrationLockHeartbeat: %w", ctx.Err())
 	}
 	if len(r.HeartbeatErrors) > 0 {
 		index := r.HeartbeatCount - 1
@@ -84,7 +84,7 @@ func (r *managerRecorder) MigrationLockHeartbeat(ctx context.Context) error {
 func (r *managerRecorder) ListStatuses(ctx context.Context) ([]migration.PersistedStatus, error) {
 	r.Operations = append(r.Operations, "ListStatuses()")
 	if ctx.Err() != nil {
-		return nil, fmt.Errorf("context error in ListStatuses (%w)", ctx.Err())
+		return nil, fmt.Errorf("context error in ListStatuses: %w", ctx.Err())
 	}
 	return r.PersistedMigrations, r.ListStatusesError
 }
@@ -92,7 +92,7 @@ func (r *managerRecorder) ListStatuses(ctx context.Context) ([]migration.Persist
 func (r *managerRecorder) PersistStatus(ctx context.Context, order migration.Order, status migration.Status) error {
 	r.Operations = append(r.Operations, fmt.Sprintf("PersistStatus(order=%d, status=%s)", order, status))
 	if ctx.Err() != nil {
-		return fmt.Errorf("context error in PersistStatus (%w)", ctx.Err())
+		return fmt.Errorf("context error in PersistStatus: %w", ctx.Err())
 	}
 	if string(status) == r.FailOnStatus {
 		return errors.New("fail on " + string(status))
@@ -103,7 +103,7 @@ func (r *managerRecorder) PersistStatus(ctx context.Context, order migration.Ord
 func (r *managerRecorder) ReleaseMigrationLock(ctx context.Context) error {
 	r.MigrationUnlockCount++
 	if ctx.Err() != nil {
-		return fmt.Errorf("context error in ReleaseMigrationLock (%w)", ctx.Err())
+		return fmt.Errorf("context error in ReleaseMigrationLock: %w", ctx.Err())
 	}
 	return r.ReleaseMigrationLockError
 }
@@ -179,7 +179,7 @@ func TestMigrate_AcquireDBLockFails_ReturnsError(t *testing.T) {
 	reg := migration.NewRegistry()
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to acquire the database lock (AcquireDBLock error)")
+	assert.ErrorPart(t, err, "failed to acquire the database lock: AcquireDBLock error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 	}
@@ -195,7 +195,7 @@ func TestMigrate_EnsureDataStoresFails_ReturnsError(t *testing.T) {
 	reg := migration.NewRegistry()
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to ensure the data stores are created (EnsureDataStores error)")
+	assert.ErrorPart(t, err, "failed to ensure the data stores are created: EnsureDataStores error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -214,8 +214,8 @@ func TestMigrate_EnsureDataStoresAndReleaseDBLockFails_ReturnsError(t *testing.T
 	reg := migration.NewRegistry()
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to ensure the data stores are created (EnsureDataStores error)")
-	assert.ErrorPart(t, err, "failed to release the database lock (ReleaseDBLockError error)")
+	assert.ErrorPart(t, err, "failed to ensure the data stores are created: EnsureDataStores error")
+	assert.ErrorPart(t, err, "failed to release the database lock: ReleaseDBLockError error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -234,7 +234,7 @@ func TestMigrate_ReleaseDBLockFails_ReturnsError(t *testing.T) {
 	reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to release the database lock (ReleaseDBLock error)")
+	assert.ErrorPart(t, err, "failed to release the database lock: ReleaseDBLock error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -252,7 +252,7 @@ func TestMigrate_AcquireMigrationLockFails_ReturnsError(t *testing.T) {
 	reg := migration.NewRegistry()
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to acquire the migration lock (AcquireMigrationLock error)")
+	assert.ErrorPart(t, err, "failed to acquire the migration lock: AcquireMigrationLock error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -271,7 +271,7 @@ func TestMigrate_ListStatusesFails_ReturnsError(t *testing.T) {
 	reg := migration.NewRegistry()
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to list the persisted statuses (ListStatuses error)")
+	assert.ErrorPart(t, err, "failed to list the persisted statuses: ListStatuses error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -401,7 +401,7 @@ func TestMigrate_MigrateFunctionFails_ReturnsError(t *testing.T) {
 	})
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to complete the migration with order 1 (migrate error)")
+	assert.ErrorPart(t, err, "failed to complete the migration with order 1: migrate error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -433,8 +433,8 @@ func TestMigrate_MigrateFunctionFailsAndPersistFailedStatusFails_ReturnsBothErro
 	})
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to complete the migration with order 1 (migrate error)")
-	assert.ErrorPart(t, err, "failed to persist its status to FAILED (fail on FAILED)")
+	assert.ErrorPart(t, err, "failed to complete the migration with order 1: migrate error")
+	assert.ErrorPart(t, err, "failed to persist its status to FAILED: fail on FAILED")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -459,7 +459,7 @@ func TestMigrate_PersistStatusPendingFails_ReturnsError(t *testing.T) {
 	reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to persist the status PENDING for the migration order 1 (fail on PENDING)")
+	assert.ErrorPart(t, err, "failed to persist the status PENDING for the migration order 1: fail on PENDING")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -533,7 +533,7 @@ func TestMigrate_ReleaseMigrationLockFails_ReturnsError(t *testing.T) {
 	reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to release the migration lock (ReleaseMigrationLock error)")
+	assert.ErrorPart(t, err, "failed to release the migration lock: ReleaseMigrationLock error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -577,7 +577,7 @@ func TestMigrate_HeartbeatFailsContinuously_CancelsContextAndStopsMigrations(t *
 	assert.ErrorPart(t, err, "failed to complete the migration with order 1")
 	assert.ErrorPart(t, err, "failed to persist its status to FAILED")
 	assert.ErrorPart(t, err, "context canceled")
-	assert.ErrorPart(t, err, "heartbeat failed 3 time(s) with latest error of (heartbeat error)")
+	assert.ErrorPart(t, err, "heartbeat failed 3 time(s) with latest error of: heartbeat error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -623,8 +623,8 @@ func TestMigrate_HeartbeatAndReleaseMigrationLockFail_CancelsContextAndStopsMigr
 	assert.ErrorPart(t, err, "failed to complete the migration with order 1")
 	assert.ErrorPart(t, err, "failed to persist its status to FAILED")
 	assert.ErrorPart(t, err, "context canceled")
-	assert.ErrorPart(t, err, "heartbeat failed 3 time(s) with latest error of (heartbeat error)")
-	assert.ErrorPart(t, err, "failed to release the migration lock (ReleaseMigrationLockError error)")
+	assert.ErrorPart(t, err, "heartbeat failed 3 time(s) with latest error of: heartbeat error")
+	assert.ErrorPart(t, err, "failed to release the migration lock: ReleaseMigrationLockError error")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -809,7 +809,7 @@ func TestMigrate_PersistStatusStartedFails_ReturnsError(t *testing.T) {
 	reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to persist the status STARTED for the migration order 1 (fail on STARTED)")
+	assert.ErrorPart(t, err, "failed to persist the status STARTED for the migration order 1: fail on STARTED")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",
@@ -832,7 +832,7 @@ func TestMigrate_PersistStatusCompletedFails_ReturnsError(t *testing.T) {
 	reg.MustRegister(standardRegisteredMigration(manager, migration.Order(1)))
 	opts := []migration.Option{migration.WithRegistry(reg)}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to persist the status COMPLETED for the migration order 1 (fail on COMPLETED)")
+	assert.ErrorPart(t, err, "failed to persist the status COMPLETED for the migration order 1: fail on COMPLETED")
 	expectedOps := []string{
 		"AcquireDBLock()",
 		"EnsureDataStores()",

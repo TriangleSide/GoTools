@@ -38,7 +38,7 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 	migrateCfg := configure(opts...)
 	cfg, err := migrateCfg.configProvider()
 	if err != nil {
-		return fmt.Errorf("failed to get the migration configuration (%w)", err)
+		return fmt.Errorf("failed to get the migration configuration: %w", err)
 	}
 	reg := migrateCfg.registry
 	if reg == nil {
@@ -59,11 +59,11 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 	}()
 
 	if err = ensureDataStores(ctx, manager, cfg); err != nil {
-		return fmt.Errorf("failed to ensure the data stores are created (%w)", err)
+		return fmt.Errorf("failed to ensure the data stores are created: %w", err)
 	}
 
 	if err = manager.AcquireMigrationLock(ctx); err != nil {
-		return fmt.Errorf("failed to acquire the migration lock (%w)", err)
+		return fmt.Errorf("failed to acquire the migration lock: %w", err)
 	}
 
 	releaseMigrationLockWG.Go(func() {
@@ -74,11 +74,11 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 
 	var migrationsToRun []migrationToRun
 	if migrationsToRun, err = listMigrationsToRun(ctx, manager, reg); err != nil {
-		return fmt.Errorf("failed to list the migrations to run (%w)", err)
+		return fmt.Errorf("failed to list the migrations to run: %w", err)
 	}
 
 	if err = runMigrations(ctx, migrationsToRun, manager); err != nil {
-		return fmt.Errorf("error while running migrations (%w)", err)
+		return fmt.Errorf("error while running migrations: %w", err)
 	}
 
 	return nil
@@ -87,7 +87,7 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 // ensureDataStores acquires a DB lock, creates the migration data stores, then releases the DB lock.
 func ensureDataStores(ctx context.Context, manager Manager, cfg *Config) (returnErr error) {
 	if err := manager.AcquireDBLock(ctx); err != nil {
-		return fmt.Errorf("failed to acquire the database lock (%w)", err)
+		return fmt.Errorf("failed to acquire the database lock: %w", err)
 	}
 
 	defer func() {
@@ -95,12 +95,12 @@ func ensureDataStores(ctx context.Context, manager Manager, cfg *Config) (return
 		releaseCtx, releaseCancel := context.WithDeadline(context.WithoutCancel(ctx), releaseDeadline)
 		defer releaseCancel()
 		if releaseErr := manager.ReleaseDBLock(releaseCtx); releaseErr != nil {
-			returnErr = errors.Join(returnErr, fmt.Errorf("failed to release the database lock (%w)", releaseErr))
+			returnErr = errors.Join(returnErr, fmt.Errorf("failed to release the database lock: %w", releaseErr))
 		}
 	}()
 
 	if err := manager.EnsureDataStores(ctx); err != nil {
-		return fmt.Errorf("failed to ensure the data stores are created (%w)", err)
+		return fmt.Errorf("failed to ensure the data stores are created: %w", err)
 	}
 
 	return nil
@@ -114,7 +114,7 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 		releaseCtx, releaseCancel := context.WithDeadline(context.WithoutCancel(ctx), releaseDeadline)
 		defer releaseCancel()
 		if releaseErr := manager.ReleaseMigrationLock(releaseCtx); releaseErr != nil {
-			returnErr = errors.Join(returnErr, fmt.Errorf("failed to release the migration lock (%w)", releaseErr))
+			returnErr = errors.Join(returnErr, fmt.Errorf("failed to release the migration lock: %w", releaseErr))
 		}
 	}()
 
@@ -137,7 +137,7 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 			}
 		}
 		if successiveHeartbeatErrCount > cfg.MigrationHeartbeatFailureRetryCount {
-			return fmt.Errorf("heartbeat failed %d time(s) with latest error of (%w)", successiveHeartbeatErrCount, heartbeatErr)
+			return fmt.Errorf("heartbeat failed %d time(s) with latest error of: %w", successiveHeartbeatErrCount, heartbeatErr)
 		}
 	}
 }
@@ -146,12 +146,12 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 func fetchPersistedStatuses(ctx context.Context, manager Manager) (map[Order]Status, error) {
 	persistedStatuses, err := manager.ListStatuses(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list the persisted statuses (%w)", err)
+		return nil, fmt.Errorf("failed to list the persisted statuses: %w", err)
 	}
 	orderToPersistedStatus := make(map[Order]Status)
 	for _, persistedStatus := range persistedStatuses {
 		if err := validation.Struct(persistedStatus); err != nil {
-			return nil, fmt.Errorf("failed while validating the persisted status (%w)", err)
+			return nil, fmt.Errorf("failed while validating the persisted status: %w", err)
 		}
 		if _, alreadyFound := orderToPersistedStatus[persistedStatus.Order]; alreadyFound {
 			return nil, fmt.Errorf("found two persisted statuses with order %d", persistedStatus.Order)
@@ -172,7 +172,7 @@ type migrationToRun struct {
 func listMigrationsToRun(ctx context.Context, manager Manager, reg *Registry) ([]migrationToRun, error) {
 	orderToPersistedStatus, err := fetchPersistedStatuses(ctx, manager)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch the persisted statuses (%w)", err)
+		return nil, fmt.Errorf("failed to fetch the persisted statuses: %w", err)
 	}
 
 	orderedMigrations := reg.OrderedRegistrations()
@@ -263,7 +263,7 @@ func runMigrations(ctx context.Context, migrationsToRun []migrationToRun, manage
 	for _, mtr := range migrationsToRun {
 		if err := manager.PersistStatus(ctx, mtr.registration.Order, Pending); err != nil {
 			return fmt.Errorf(
-				"failed to persist the status %s for the migration order %d (%w)",
+				"failed to persist the status %s for the migration order %d: %w",
 				Pending, mtr.registration.Order, err)
 		}
 	}
@@ -271,19 +271,19 @@ func runMigrations(ctx context.Context, migrationsToRun []migrationToRun, manage
 	for _, mtr := range migrationsToRun {
 		if err := manager.PersistStatus(ctx, mtr.registration.Order, Started); err != nil {
 			return fmt.Errorf(
-				"failed to persist the status %s for the migration order %d (%w)",
+				"failed to persist the status %s for the migration order %d: %w",
 				Started, mtr.registration.Order, err)
 		}
 		if err := mtr.registration.Migrate(ctx, mtr.previousStatus); err != nil {
-			err = fmt.Errorf("failed to complete the migration with order %d (%w)", mtr.registration.Order, err)
+			err = fmt.Errorf("failed to complete the migration with order %d: %w", mtr.registration.Order, err)
 			if failedStatusErr := manager.PersistStatus(ctx, mtr.registration.Order, Failed); failedStatusErr != nil {
-				return fmt.Errorf("%w and failed to persist its status to %s (%w)", err, Failed, failedStatusErr)
+				return fmt.Errorf("%w and failed to persist its status to %s: %w", err, Failed, failedStatusErr)
 			}
 			return err
 		}
 		if err := manager.PersistStatus(ctx, mtr.registration.Order, Completed); err != nil {
 			return fmt.Errorf(
-				"failed to persist the status %s for the migration order %d (%w)",
+				"failed to persist the status %s for the migration order %d: %w",
 				Completed, mtr.registration.Order, err)
 		}
 	}

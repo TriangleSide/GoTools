@@ -19,7 +19,7 @@ type eddsaProvider struct{}
 func (e eddsaProvider) KeyGen() ([]byte, error) {
 	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate ed25519 key (%w)", err)
+		return nil, fmt.Errorf("failed to generate ed25519 key: %w", err)
 	}
 	return privateKey, nil
 }
@@ -28,7 +28,7 @@ func (e eddsaProvider) KeyGen() ([]byte, error) {
 func (e eddsaProvider) Sign(data []byte, key []byte) ([]byte, error) {
 	privateKey, err := deriveEdDSAPrivateKey(key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to use private key (%w)", err)
+		return nil, fmt.Errorf("failed to use private key: %w", err)
 	}
 	signature := ed25519.Sign(privateKey, data)
 	return signature, nil
@@ -38,7 +38,7 @@ func (e eddsaProvider) Sign(data []byte, key []byte) ([]byte, error) {
 func (e eddsaProvider) Verify(data []byte, signature []byte, key []byte) (bool, error) {
 	publicKey, err := deriveEdDSAPublicKey(key)
 	if err != nil {
-		return false, fmt.Errorf("failed to use public key (%w)", err)
+		return false, fmt.Errorf("failed to use public key: %w", err)
 	}
 	if len(signature) != ed25519.SignatureSize {
 		return false, errors.New("eddsa signature must be 64 bytes")
