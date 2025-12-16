@@ -148,5 +148,9 @@ func buildFieldTagLookupKeys[T any](reflect.Type) (*readonly.Map[Tag, LookupKeyT
 //	}
 func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonly.Map[Tag, LookupKeyToFieldName], error) {
 	reflectType := reflect.TypeFor[T]()
-	return lookupKeyExtractionCache.GetOrSet(reflectType, buildFieldTagLookupKeys[T])
+	result, err := lookupKeyExtractionCache.GetOrSet(reflectType, buildFieldTagLookupKeys[T])
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract field tag lookup keys (%w)", err)
+	}
+	return result, nil
 }

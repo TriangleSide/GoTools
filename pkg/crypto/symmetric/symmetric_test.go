@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"math/big"
 	"strconv"
 	"sync"
@@ -158,8 +159,10 @@ func TestDecrypt_CipherTextShorterThanNonceSize_ReturnsError(t *testing.T) {
 	var nonceSize int
 	randomDataFunc := symmetric.WithRandomDataFunc(func(buffer []byte) error {
 		nonceSize = len(buffer)
-		_, readErr := rand.Read(buffer)
-		return readErr
+		if _, readErr := rand.Read(buffer); readErr != nil {
+			return fmt.Errorf("failed to read random data (%w)", readErr)
+		}
+		return nil
 	})
 	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), randomDataFunc)
 	assert.NoError(t, err)
@@ -179,8 +182,10 @@ func TestDecrypt_CipherTextExactlyNonceSize_ReturnsError(t *testing.T) {
 	var nonceSize int
 	randomDataFunc := symmetric.WithRandomDataFunc(func(buffer []byte) error {
 		nonceSize = len(buffer)
-		_, readErr := rand.Read(buffer)
-		return readErr
+		if _, readErr := rand.Read(buffer); readErr != nil {
+			return fmt.Errorf("failed to read random data (%w)", readErr)
+		}
+		return nil
 	})
 	encryptor, err := symmetric.New("key"+strconv.Itoa(getRandomInt(t)), randomDataFunc)
 	assert.NoError(t, err)

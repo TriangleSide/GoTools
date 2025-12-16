@@ -60,3 +60,4 @@ linters:
     - usetesting
     - varnamelen
     - whitespace
+    - wrapcheck
