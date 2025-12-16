@@ -40,7 +40,7 @@ var (
 func keyGen(provider signatureProvider) ([]byte, string, error) {
 	key, err := provider.KeyGen()
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to generate the key for the JWT (%w)", err)
+		return nil, "", fmt.Errorf("failed to generate the key for the JWT: %w", err)
 	}
 	keyHash := sha256.Sum256(key)
 	keyID := base64.RawURLEncoding.EncodeToString(keyHash[:])

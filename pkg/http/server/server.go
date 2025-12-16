@@ -38,7 +38,7 @@ func New(opts ...Option) (*Server, error) {
 
 	envConfig, err := srvOpts.configProvider()
 	if err != nil {
-		return nil, fmt.Errorf("could not load configuration (%w)", err)
+		return nil, fmt.Errorf("could not load configuration: %w", err)
 	}
 
 	serveMux := configureServeMux(srvOpts)
@@ -88,7 +88,7 @@ func (server *Server) Run() error {
 
 	listener, err := server.listenerProvider()
 	if err != nil {
-		return fmt.Errorf("failed to create the network listener (%w)", err)
+		return fmt.Errorf("failed to create the network listener: %w", err)
 	}
 
 	if server.boundCallback != nil {
@@ -105,7 +105,7 @@ func (server *Server) Run() error {
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
-	return fmt.Errorf("error encountered while serving http requests (%w)", err)
+	return fmt.Errorf("error encountered while serving http requests: %w", err)
 }
 
 // Shutdown gracefully shuts down the server and waits for it to finish.
@@ -114,7 +114,7 @@ func (server *Server) Shutdown(ctx context.Context) error {
 	var err error
 	if !server.shutdown.Swap(true) {
 		if shutdownErr := server.srv.Shutdown(ctx); shutdownErr != nil {
-			err = fmt.Errorf("failed to shutdown the server (%w)", shutdownErr)
+			err = fmt.Errorf("failed to shutdown the server: %w", shutdownErr)
 		}
 	}
 	server.wg.Wait()
@@ -161,7 +161,7 @@ func configureTLS(envConfig *Config) (*tls.Config, error) {
 	case TLSModeTLS:
 		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
+			return nil, fmt.Errorf("failed to load the server certificates: %w", err)
 		}
 		return &tls.Config{
 			MinVersion:   tls.VersionTLS13,
@@ -173,11 +173,11 @@ func configureTLS(envConfig *Config) (*tls.Config, error) {
 		}
 		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load the server certificates (%w)", err)
+			return nil, fmt.Errorf("failed to load the server certificates: %w", err)
 		}
 		clientCAs, err := loadMutualTLSClientCAs(envConfig.HTTPServerClientCACerts)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load client CA certificates (%w)", err)
+			return nil, fmt.Errorf("failed to load client CA certificates: %w", err)
 		}
 		return &tls.Config{
 			MinVersion:   tls.VersionTLS13,
@@ -197,7 +197,7 @@ func loadMutualTLSClientCAs(clientCaCertPaths []string) (*x509.CertPool, error) 
 		cleanPath := filepath.Clean(caCertPath)
 		caCert, err := os.ReadFile(cleanPath)
 		if err != nil {
-			return nil, fmt.Errorf("could not read client CA certificate on path %s (%w)", cleanPath, err)
+			return nil, fmt.Errorf("could not read client CA certificate on path %s: %w", cleanPath, err)
 		}
 		if ok := clientCAs.AppendCertsFromPEM(caCert); !ok {
 			return nil, fmt.Errorf("failed to append client CA certificate (%s)", cleanPath)

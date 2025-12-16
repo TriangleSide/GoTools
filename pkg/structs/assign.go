@@ -18,7 +18,7 @@ func setStringIntoTextUnmarshaller(
 	if reflect.PointerTo(fieldType).Implements(reflect.TypeFor[encoding.TextUnmarshaler]()) {
 		unmarshaler := fieldPtr.Interface().(encoding.TextUnmarshaler)
 		if err := unmarshaler.UnmarshalText([]byte(stringEncodedValue)); err != nil {
-			return false, fmt.Errorf("text unmarshal error (%w)", err)
+			return false, fmt.Errorf("text unmarshal error: %w", err)
 		}
 		return true, nil
 	}
@@ -30,7 +30,7 @@ func setStringIntoJSONType(fieldPtr reflect.Value, fieldType reflect.Type, strin
 	switch fieldType.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Struct:
 		if err := json.Unmarshal([]byte(stringEncodedValue), fieldPtr.Interface()); err != nil {
-			return false, fmt.Errorf("json unmarshal error (%w)", err)
+			return false, fmt.Errorf("json unmarshal error: %w", err)
 		}
 		return true, nil
 	}
@@ -52,7 +52,7 @@ func setStringIntoInt(fieldPtr reflect.Value, fieldType reflect.Type, stringEnco
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		parsed, err := strconv.ParseInt(stringEncodedValue, 10, fieldType.Bits())
 		if err != nil {
-			return false, fmt.Errorf("int parsing error (%w)", err)
+			return false, fmt.Errorf("int parsing error: %w", err)
 		}
 		fieldPtr.Elem().SetInt(parsed)
 		return true, nil
@@ -66,7 +66,7 @@ func setStringIntoUint(fieldPtr reflect.Value, fieldType reflect.Type, stringEnc
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		parsed, err := strconv.ParseUint(stringEncodedValue, 10, fieldType.Bits())
 		if err != nil {
-			return false, fmt.Errorf("unsigned int parsing error (%w)", err)
+			return false, fmt.Errorf("unsigned int parsing error: %w", err)
 		}
 		fieldPtr.Elem().SetUint(parsed)
 		return true, nil
@@ -80,7 +80,7 @@ func setStringIntoFloat(fieldPtr reflect.Value, fieldType reflect.Type, stringEn
 	case reflect.Float32, reflect.Float64:
 		parsed, err := strconv.ParseFloat(stringEncodedValue, fieldType.Bits())
 		if err != nil {
-			return false, fmt.Errorf("float parsing error (%w)", err)
+			return false, fmt.Errorf("float parsing error: %w", err)
 		}
 		fieldPtr.Elem().SetFloat(parsed)
 		return true, nil
@@ -93,7 +93,7 @@ func setStringIntoBool(fieldPtr reflect.Value, fieldType reflect.Type, stringEnc
 	if fieldType.Kind() == reflect.Bool {
 		parsed, err := strconv.ParseBool(stringEncodedValue)
 		if err != nil {
-			return false, fmt.Errorf("bool parsing error (%w)", err)
+			return false, fmt.Errorf("bool parsing error: %w", err)
 		}
 		fieldPtr.Elem().SetBool(parsed)
 		return true, nil

@@ -8,7 +8,7 @@
 - Code must be compatible with Linux or macOS only.
 
 ## Errors
-- Wrap errors with contextual information using `fmt.Errorf("... (%w)", err)`.
+- Wrap errors with contextual information using `fmt.Errorf("...: %w", err)`.
 - Use `errors.New("...")` for errors that do not require formatting.
 
 ## Style

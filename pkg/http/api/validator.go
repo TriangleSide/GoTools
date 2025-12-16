@@ -77,7 +77,7 @@ func validateAPIPathString(path string) error {
 
 	parts := strings.Split(path, "/")
 	if err := validateAPIPathParts(parts[1:]); err != nil {
-		return fmt.Errorf("invalid path parts (%w)", err)
+		return fmt.Errorf("invalid path parts: %w", err)
 	}
 
 	return nil
@@ -88,7 +88,7 @@ func validateAPIPathParts(parts []string) error {
 	seenParts := make(map[string]struct{}, len(parts)-1)
 	for _, part := range parts {
 		if err := validateAPIPathPart(part); err != nil {
-			return fmt.Errorf("invalid path part (%w)", err)
+			return fmt.Errorf("invalid path part: %w", err)
 		}
 		if _, foundPart := seenParts[part]; foundPart {
 			return errors.New("the path parts must be unique")

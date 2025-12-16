@@ -45,7 +45,7 @@ func New(key string, opts ...Option) (*Cipher, error) {
 		blockCipherProvider: aes.NewCipher,
 		randomDataFunc: func(buffer []byte) error {
 			if _, err := io.ReadFull(rand.Reader, buffer); err != nil {
-				return fmt.Errorf("failed to read random data (%w)", err)
+				return fmt.Errorf("failed to read random data: %w", err)
 			}
 			return nil
 		},
@@ -62,12 +62,12 @@ func New(key string, opts ...Option) (*Cipher, error) {
 
 	block, err := cfg.blockCipherProvider(hash[:])
 	if err != nil {
-		return nil, fmt.Errorf("failed to create the block cipher (%w)", err)
+		return nil, fmt.Errorf("failed to create the block cipher: %w", err)
 	}
 
 	aead, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, fmt.Errorf("failed to configure AEAD mode (%w)", err)
+		return nil, fmt.Errorf("failed to configure AEAD mode: %w", err)
 	}
 
 	return &Cipher{
@@ -81,7 +81,7 @@ func New(key string, opts ...Option) (*Cipher, error) {
 func (cipher *Cipher) Encrypt(data []byte) ([]byte, error) {
 	nonce := make([]byte, cipher.aead.NonceSize())
 	if err := cipher.randomDataFunc(nonce); err != nil {
-		return nil, fmt.Errorf("failed to generate nonce (%w)", err)
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
 
 	return cipher.aead.Seal(nonce, nonce, data, nil), nil
@@ -101,7 +101,7 @@ func (cipher *Cipher) Decrypt(encryptedData []byte) ([]byte, error) {
 
 	plaintext, err := cipher.aead.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt cipher-text (%w)", err)
+		return nil, fmt.Errorf("failed to decrypt cipher-text: %w", err)
 	}
 
 	return plaintext, nil

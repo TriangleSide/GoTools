@@ -42,7 +42,7 @@ func (ts Timestamp) MarshalJSON() ([]byte, error) {
 	}
 	jsonBytes, err := json.Marshal(ts.time.Format(time.RFC3339))
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal timestamp (%w)", err)
+		return nil, fmt.Errorf("failed to marshal timestamp: %w", err)
 	}
 	return jsonBytes, nil
 }
@@ -51,14 +51,14 @@ func (ts Timestamp) MarshalJSON() ([]byte, error) {
 func (ts *Timestamp) UnmarshalJSON(data []byte) error {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
-		return fmt.Errorf("timestamp must be a string (%w)", err)
+		return fmt.Errorf("timestamp must be a string: %w", err)
 	}
 	if str == "" {
 		return errors.New("timestamp cannot be empty")
 	}
 	t, err := time.Parse(time.RFC3339, str)
 	if err != nil {
-		return fmt.Errorf("invalid RFC 3339 timestamp (%w)", err)
+		return fmt.Errorf("invalid RFC 3339 timestamp: %w", err)
 	}
 	ts.time = t.UTC()
 	return nil

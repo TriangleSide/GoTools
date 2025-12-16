@@ -296,7 +296,7 @@ func TestNew_ConfigProviderError_ReturnsError(t *testing.T) {
 	srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
 		return nil, errors.New("config error")
 	}))
-	assert.ErrorPart(t, err, "could not load configuration (config error)")
+	assert.ErrorPart(t, err, "could not load configuration: config error")
 	assert.Nil(t, srv)
 }
 
@@ -437,7 +437,7 @@ func TestRun_ListenerProviderError_ReturnsError(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, srv)
 	err = srv.Run()
-	assert.ErrorPart(t, err, "failed to create the network listener (listener error)")
+	assert.ErrorPart(t, err, "failed to create the network listener: listener error")
 }
 
 func TestRun_WithoutBoundCallback_Succeeds(t *testing.T) {
