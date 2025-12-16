@@ -6,30 +6,30 @@ import "context"
 type Manager interface {
 	// AcquireDBLock must acquire a database wide lock.
 	// It is used in conjunction with EnsureDataStores and ReleaseDBLock.
-	AcquireDBLock(context.Context) error
+	AcquireDBLock(ctx context.Context) error
 
 	// EnsureDataStores must ensure the migration data stores (collections, tables, ...) are created.
 	// There should be two data stores, one for the migration lock, and one for migration statuses.
-	EnsureDataStores(context.Context) error
+	EnsureDataStores(ctx context.Context) error
 
 	// ReleaseDBLock must release the DB lock acquired by AcquireDBLock.
-	ReleaseDBLock(context.Context) error
+	ReleaseDBLock(ctx context.Context) error
 
 	// AcquireMigrationLock must acquire a migration lock.
 	// This is to ensure only one migrator can run at any given time.
-	AcquireMigrationLock(context.Context) error
+	AcquireMigrationLock(ctx context.Context) error
 
 	// MigrationLockHeartbeat is called on a configurable frequency.
 	// It is meant to maintain the lock acquired with AcquireMigrationLock.
-	MigrationLockHeartbeat(context.Context) error
+	MigrationLockHeartbeat(ctx context.Context) error
 
 	// ListStatuses returns data previously stored with PersistStatus.
-	ListStatuses(context.Context) ([]PersistedStatus, error)
+	ListStatuses(ctx context.Context) ([]PersistedStatus, error)
 
 	// PersistStatus stores or overrides the status of a migration.
 	// Order must be unique in the data store.
-	PersistStatus(context.Context, Order, Status) error
+	PersistStatus(ctx context.Context, order Order, status Status) error
 
 	// ReleaseMigrationLock must release the migration lock acquired with AcquireMigrationLock.
-	ReleaseMigrationLock(context.Context) error
+	ReleaseMigrationLock(ctx context.Context) error
 }
