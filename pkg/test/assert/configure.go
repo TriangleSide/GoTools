@@ -3,8 +3,8 @@ package assert
 // Testing matches the functions on the testing.T struct.
 type Testing interface {
 	Helper()
-	Error(...any)
-	Fatal(...any)
+	Error(args ...any)
+	Fatal(args ...any)
 }
 
 // testContext implements the Testing interface. It can be configured using options.
