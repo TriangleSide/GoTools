@@ -113,7 +113,9 @@ func (server *Server) Run() error {
 func (server *Server) Shutdown(ctx context.Context) error {
 	var err error
 	if !server.shutdown.Swap(true) {
-		err = server.srv.Shutdown(ctx)
+		if shutdownErr := server.srv.Shutdown(ctx); shutdownErr != nil {
+			err = fmt.Errorf("failed to shutdown the server (%w)", shutdownErr)
+		}
 	}
 	server.wg.Wait()
 	return err

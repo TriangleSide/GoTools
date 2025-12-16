@@ -3,6 +3,7 @@ package jwt
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 )
 
 // SignatureAlgorithm is the name of the algorithm used to sign the JWT.
@@ -35,11 +36,11 @@ var (
 )
 
 // keyGen generates a new cryptographically secure signing key and key ID for the specified algorithm.
-// The key ID is derived from a SHA-256 hash of the key.
+// The key ID is derived from the SHA-256 hash of the key.
 func keyGen(provider signatureProvider) ([]byte, string, error) {
 	key, err := provider.KeyGen()
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("failed to generate the key for the JWT (%w)", err)
 	}
 	keyHash := sha256.Sum256(key)
 	keyID := base64.RawURLEncoding.EncodeToString(keyHash[:])

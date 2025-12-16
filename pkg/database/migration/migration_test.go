@@ -35,7 +35,7 @@ type managerRecorder struct {
 func (r *managerRecorder) AcquireDBLock(ctx context.Context) error {
 	r.Operations = append(r.Operations, "AcquireDBLock()")
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return fmt.Errorf("context error in AcquireDBLock (%w)", ctx.Err())
 	}
 	return r.AcquireDBLockError
 }
@@ -43,7 +43,7 @@ func (r *managerRecorder) AcquireDBLock(ctx context.Context) error {
 func (r *managerRecorder) EnsureDataStores(ctx context.Context) error {
 	r.Operations = append(r.Operations, "EnsureDataStores()")
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return fmt.Errorf("context error in EnsureDataStores (%w)", ctx.Err())
 	}
 	return r.EnsureDataStoresError
 }
@@ -51,7 +51,7 @@ func (r *managerRecorder) EnsureDataStores(ctx context.Context) error {
 func (r *managerRecorder) ReleaseDBLock(ctx context.Context) error {
 	r.Operations = append(r.Operations, "ReleaseDBLock()")
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return fmt.Errorf("context error in ReleaseDBLock (%w)", ctx.Err())
 	}
 	return r.ReleaseDBLockError
 }
@@ -59,7 +59,7 @@ func (r *managerRecorder) ReleaseDBLock(ctx context.Context) error {
 func (r *managerRecorder) AcquireMigrationLock(ctx context.Context) error {
 	r.Operations = append(r.Operations, "AcquireMigrationLock()")
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return fmt.Errorf("context error in AcquireMigrationLock (%w)", ctx.Err())
 	}
 	return r.MigrationLockError
 }
@@ -70,7 +70,7 @@ func (r *managerRecorder) MigrationLockHeartbeat(ctx context.Context) error {
 		r.Heartbeat <- struct{}{}
 	}
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return fmt.Errorf("context error in MigrationLockHeartbeat (%w)", ctx.Err())
 	}
 	if len(r.HeartbeatErrors) > 0 {
 		index := r.HeartbeatCount - 1
@@ -84,7 +84,7 @@ func (r *managerRecorder) MigrationLockHeartbeat(ctx context.Context) error {
 func (r *managerRecorder) ListStatuses(ctx context.Context) ([]migration.PersistedStatus, error) {
 	r.Operations = append(r.Operations, "ListStatuses()")
 	if ctx.Err() != nil {
-		return nil, ctx.Err()
+		return nil, fmt.Errorf("context error in ListStatuses (%w)", ctx.Err())
 	}
 	return r.PersistedMigrations, r.ListStatusesError
 }
@@ -92,7 +92,7 @@ func (r *managerRecorder) ListStatuses(ctx context.Context) ([]migration.Persist
 func (r *managerRecorder) PersistStatus(ctx context.Context, order migration.Order, status migration.Status) error {
 	r.Operations = append(r.Operations, fmt.Sprintf("PersistStatus(order=%d, status=%s)", order, status))
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return fmt.Errorf("context error in PersistStatus (%w)", ctx.Err())
 	}
 	if string(status) == r.FailOnStatus {
 		return errors.New("fail on " + string(status))
@@ -103,7 +103,7 @@ func (r *managerRecorder) PersistStatus(ctx context.Context, order migration.Ord
 func (r *managerRecorder) ReleaseMigrationLock(ctx context.Context) error {
 	r.MigrationUnlockCount++
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return fmt.Errorf("context error in ReleaseMigrationLock (%w)", ctx.Err())
 	}
 	return r.ReleaseMigrationLockError
 }
@@ -574,8 +574,9 @@ func TestMigrate_HeartbeatFailsContinuously_CancelsContextAndStopsMigrations(t *
 		migration.WithRegistry(reg),
 	}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to complete the migration with order 1 (context canceled)")
-	assert.ErrorPart(t, err, "failed to persist its status to FAILED (context canceled))")
+	assert.ErrorPart(t, err, "failed to complete the migration with order 1")
+	assert.ErrorPart(t, err, "failed to persist its status to FAILED")
+	assert.ErrorPart(t, err, "context canceled")
 	assert.ErrorPart(t, err, "heartbeat failed 3 time(s) with latest error of (heartbeat error)")
 	expectedOps := []string{
 		"AcquireDBLock()",
@@ -619,8 +620,9 @@ func TestMigrate_HeartbeatAndReleaseMigrationLockFail_CancelsContextAndStopsMigr
 		migration.WithRegistry(reg),
 	}
 	err := migration.Migrate(manager, opts...)
-	assert.ErrorPart(t, err, "failed to complete the migration with order 1 (context canceled)")
-	assert.ErrorPart(t, err, "failed to persist its status to FAILED (context canceled))")
+	assert.ErrorPart(t, err, "failed to complete the migration with order 1")
+	assert.ErrorPart(t, err, "failed to persist its status to FAILED")
+	assert.ErrorPart(t, err, "context canceled")
 	assert.ErrorPart(t, err, "heartbeat failed 3 time(s) with latest error of (heartbeat error)")
 	assert.ErrorPart(t, err, "failed to release the migration lock (ReleaseMigrationLockError error)")
 	expectedOps := []string{
