@@ -9,15 +9,16 @@ import (
 func camelToSnake(str string) string {
 	var snake strings.Builder
 
-	for i, currentRune := range str {
+	runes := []rune(str)
+	for i, currentRune := range runes {
 		isUpper := unicode.IsUpper(currentRune)
-		notFirstByte := i > 0
-		hasNextByte := i+1 < len(str)
-		nextByteIsLower := hasNextByte && unicode.IsLower(rune(str[i+1]))
-		prevByteIsLower := notFirstByte && unicode.IsLower(rune(str[i-1]))
-		shouldInsertUnderscore := notFirstByte && isUpper && (nextByteIsLower || prevByteIsLower)
+		notFirstRune := i > 0
+		hasNextRune := i+1 < len(runes)
+		nextRuneIsLower := hasNextRune && unicode.IsLower(runes[i+1])
+		prevRuneIsLower := notFirstRune && unicode.IsLower(runes[i-1])
+		shouldInsertUnderscore := notFirstRune && isUpper && (nextRuneIsLower || prevRuneIsLower)
 		if shouldInsertUnderscore {
-			snake.WriteRune('_')
+			snake.WriteByte('_')
 		}
 		snake.WriteRune(unicode.ToUpper(currentRune))
 	}

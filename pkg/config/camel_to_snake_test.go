@@ -94,3 +94,14 @@ func TestCamelToSnake_LowercaseStart_ConvertsToUppercase(t *testing.T) {
 	assert.NotNil(t, conf)
 	assert.Equals(t, conf.CamelCase, "lowercase_start")
 }
+
+func TestCamelToSnake_UnicodeLowerBeforeUpper_InsertsUnderscore(t *testing.T) {
+	type testStruct struct {
+		FóBA string `config:"ENV"` // nolint:asciicheck
+	}
+	t.Setenv("FÓ_BA", "unicode_split")
+	conf, err := config.ProcessAndValidate[testStruct]()
+	assert.NoError(t, err)
+	assert.NotNil(t, conf)
+	assert.Equals(t, conf.FóBA, "unicode_split")
+}
