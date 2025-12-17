@@ -1,7 +1,6 @@
 package responders_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,39 +11,6 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/http/responders"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
-
-func newJSONResponderTestServer[TRequest, TResponse any](
-	t *testing.T, handler func(*TRequest) (*TResponse, int, error),
-) (string, func(), func() error) {
-	t.Helper()
-
-	var writeErr error
-	writeErrorCallback := func(err error) {
-		writeErr = err
-	}
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSON[TRequest, TResponse](w, r, handler, responders.WithErrorCallback(writeErrorCallback))
-	}))
-
-	return server.URL, server.Close, func() error { return writeErr }
-}
-
-func postJSON(t *testing.T, url, body string) *http.Response {
-	t.Helper()
-	req, err := http.NewRequestWithContext(
-		context.Background(),
-		http.MethodPost,
-		url,
-		strings.NewReader(body),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	return response
-}
 
 type jsonRequestParams struct {
 	ID int `json:"id" validate:"gt=0"`
@@ -68,69 +34,86 @@ func jsonTestHandler(params *jsonRequestParams) (*jsonResponseBody, int, error) 
 func TestJSON_ValidRequest_RespondsWithJSONAndCorrectStatusCode(t *testing.T) {
 	t.Parallel()
 
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonResponseBody](t, jsonTestHandler)
-	defer cleanup()
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":123}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
 
-	response := postJSON(t, serverURL, `{"id":123}`)
-	defer func() { assert.NoError(t, response.Body.Close()) }()
+	var writeErr error
+	writeErrorCallback := func(err error) { writeErr = err }
 
-	assert.Equals(t, response.StatusCode, http.StatusOK)
-	assert.Equals(t, response.Header.Get(headers.ContentType), headers.ContentTypeApplicationJSON)
-	assert.NoError(t, writeErr())
+	responders.JSON[jsonRequestParams, jsonResponseBody](
+		recorder, req, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
+
+	assert.Equals(t, recorder.Code, http.StatusOK)
+	assert.Equals(t, recorder.Header().Get(headers.ContentType), headers.ContentTypeApplicationJSON)
+	assert.NoError(t, writeErr)
 
 	body := &jsonResponseBody{}
-	assert.NoError(t, json.NewDecoder(response.Body).Decode(body))
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(body))
 	assert.Equals(t, body.Message, "processed")
 }
 
 func TestJSON_ParameterDecoderFails_RespondsWithErrorJSONAndBadRequestStatus(t *testing.T) {
 	t.Parallel()
 
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonResponseBody](t, jsonTestHandler)
-	defer cleanup()
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":-1}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
 
-	response := postJSON(t, serverURL, `{"id":-1}`)
-	defer func() { assert.NoError(t, response.Body.Close()) }()
+	var writeErr error
+	writeErrorCallback := func(err error) { writeErr = err }
 
-	assert.Equals(t, response.StatusCode, http.StatusBadRequest)
-	assert.NoError(t, writeErr())
+	responders.JSON[jsonRequestParams, jsonResponseBody](
+		recorder, req, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
+
+	assert.Equals(t, recorder.Code, http.StatusBadRequest)
+	assert.NoError(t, writeErr)
 
 	body := &responders.StandardErrorResponse{}
-	assert.NoError(t, json.NewDecoder(response.Body).Decode(body))
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(body))
 	assert.Contains(t, body.Message, "validation failed on field 'ID'")
 }
 
 func TestJSON_CallbackReturnsError_RespondsWithErrorJSONAndBadRequestStatus(t *testing.T) {
 	t.Parallel()
 
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonResponseBody](t, jsonTestHandler)
-	defer cleanup()
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":456}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
 
-	response := postJSON(t, serverURL, `{"id":456}`)
-	defer func() { assert.NoError(t, response.Body.Close()) }()
+	var writeErr error
+	writeErrorCallback := func(err error) { writeErr = err }
 
-	assert.Equals(t, response.StatusCode, http.StatusBadRequest)
-	assert.NoError(t, writeErr())
+	responders.JSON[jsonRequestParams, jsonResponseBody](
+		recorder, req, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
+
+	assert.Equals(t, recorder.Code, http.StatusBadRequest)
+	assert.NoError(t, writeErr)
 
 	body := &responders.StandardErrorResponse{}
-	assert.NoError(t, json.NewDecoder(response.Body).Decode(body))
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(body))
 	assert.Equals(t, body.Message, "test error")
 }
 
 func TestJSON_UnencodableResponse_ReturnsInternalServerError(t *testing.T) {
 	t.Parallel()
 
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":456}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
+	var writeErr error
+	writeErrorCallback := func(err error) { writeErr = err }
+
 	responderFunc := func(*jsonRequestParams) (*jsonUnmarshalable, int, error) {
 		return &jsonUnmarshalable{}, http.StatusOK, nil
 	}
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonUnmarshalable](t, responderFunc)
-	defer cleanup()
 
-	response := postJSON(t, serverURL, `{"id":456}`)
-	defer func() { assert.NoError(t, response.Body.Close()) }()
+	responders.JSON[jsonRequestParams, jsonUnmarshalable](
+		recorder, req, responderFunc, responders.WithErrorCallback(writeErrorCallback))
 
-	assert.Equals(t, response.StatusCode, http.StatusInternalServerError)
-	assert.NoError(t, writeErr())
+	assert.Equals(t, recorder.Code, http.StatusInternalServerError)
+	assert.NoError(t, writeErr)
 }
 
 func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
@@ -142,50 +125,41 @@ func TestJSON_WriterReturnsError_CallsWriteErrorCallback(t *testing.T) {
 		ResponseWriter: recorder,
 	}
 
-	var writeError error
-	writeErrorCallback := func(err error) {
-		writeError = err
-	}
+	var writeErr error
+	writeErrorCallback := func(err error) { writeErr = err }
 
-	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		responders.JSON[jsonRequestParams, jsonResponseBody](
-			errWriter, r, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
-
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":123}`),
-	)
-	assert.NoError(t, err)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":123}`))
 	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
+
+	responders.JSON[jsonRequestParams, jsonResponseBody](
+		errWriter, req, jsonTestHandler, responders.WithErrorCallback(writeErrorCallback))
+
 	assert.True(t, errWriter.WriteFailed)
-	assert.ErrorPart(t, writeError, "simulated write failure")
-	assert.NoError(t, response.Body.Close())
+	assert.ErrorPart(t, writeErr, "simulated write failure")
 }
 
 func TestJSON_NilResponseBody_RespondsWithNullJSON(t *testing.T) {
 	t.Parallel()
 
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":123}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
+	var writeErr error
+	writeErrorCallback := func(err error) { writeErr = err }
+
 	responderFunc := func(*jsonRequestParams) (*jsonResponseBody, int, error) {
 		return nil, http.StatusOK, nil
 	}
-	serverURL, cleanup, writeErr := newJSONResponderTestServer[jsonRequestParams, jsonResponseBody](t, responderFunc)
-	defer cleanup()
 
-	response := postJSON(t, serverURL, `{"id":123}`)
-	defer func() { assert.NoError(t, response.Body.Close()) }()
+	responders.JSON[jsonRequestParams, jsonResponseBody](
+		recorder, req, responderFunc, responders.WithErrorCallback(writeErrorCallback))
 
-	assert.Equals(t, response.StatusCode, http.StatusOK)
-	assert.Equals(t, response.Header.Get(headers.ContentType), headers.ContentTypeApplicationJSON)
-	assert.NoError(t, writeErr())
+	assert.Equals(t, recorder.Code, http.StatusOK)
+	assert.Equals(t, recorder.Header().Get(headers.ContentType), headers.ContentTypeApplicationJSON)
+	assert.NoError(t, writeErr)
 
 	var body *jsonResponseBody
-	assert.NoError(t, json.NewDecoder(response.Body).Decode(&body))
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(&body))
 	assert.True(t, body == nil)
 }
