@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -13,7 +14,7 @@ type Violation struct {
 
 // NewViolation instantiates a *Violation.
 func NewViolation(params *CallbackParameters, err error) *Violation {
-	builder := strings.Builder{}
+	var builder strings.Builder
 	builder.WriteString("validation failed")
 	if params.IsStructValidation {
 		builder.WriteString(" on field '")
@@ -38,6 +39,14 @@ func NewViolation(params *CallbackParameters, err error) *Violation {
 // Error ensures Violation has the error interface.
 func (v *Violation) Error() string {
 	return v.err.Error()
+}
+
+// Unwrap returns the underlying wrapped error.
+func (v *Violation) Unwrap() error {
+	if v == nil || v.err == nil {
+		return nil
+	}
+	return errors.Unwrap(v.err)
 }
 
 // Violations represents a list of violations.
@@ -81,4 +90,20 @@ func (v *Violations) Error() string {
 		errorStrings = append(errorStrings, violation.Error())
 	}
 	return strings.Join(errorStrings, "; ")
+}
+
+// Unwrap returns the underlying violations as errors.
+func (v *Violations) Unwrap() []error {
+	if v == nil || len(v.violations) == 0 {
+		return nil
+	}
+
+	errs := make([]error, 0, len(v.violations))
+	for _, violation := range v.violations {
+		if violation == nil {
+			continue
+		}
+		errs = append(errs, violation)
+	}
+	return errs
 }

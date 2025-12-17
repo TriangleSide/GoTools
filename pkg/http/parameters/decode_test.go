@@ -173,7 +173,7 @@ func TestDecode_GenericNotStruct_ShouldPanic(t *testing.T) {
 	request = request.WithContext(context.Background())
 	assert.PanicPart(t, func() {
 		_, _ = parameters.Decode[string](request)
-	}, "the generic must be a struct")
+	}, "generic type must be a struct")
 }
 
 func TestDecode_GenericIsStructPointer_ShouldPanic(t *testing.T) {
@@ -186,7 +186,7 @@ func TestDecode_GenericIsStructPointer_ShouldPanic(t *testing.T) {
 	request = request.WithContext(context.Background())
 	assert.PanicPart(t, func() {
 		_, _ = parameters.Decode[*parameterParams](request)
-	}, "the generic must be a struct")
+	}, "generic type must be a struct")
 }
 
 func TestDecode_BodyFailsToClose_ShouldReturnError(t *testing.T) {

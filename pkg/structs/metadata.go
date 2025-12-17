@@ -43,7 +43,7 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 		reflectType = reflectType.Elem()
 	}
 	if reflectType.Kind() != reflect.Struct {
-		panic(fmt.Sprintf("Type must be a struct or a pointer to a struct but got %s.", reflectType.Kind().String()))
+		panic(fmt.Errorf("type must be a struct or a pointer to a struct, got %s", reflectType.Kind().String()))
 	}
 
 	for fieldIndex := range reflectType.NumField() {
@@ -57,7 +57,7 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 		}
 
 		if _, alreadyHasFieldName := fieldsToMetadata[field.Name]; alreadyHasFieldName {
-			panic(fmt.Sprintf("field %s is ambiguous", field.Name))
+			panic(fmt.Errorf("field %s is ambiguous", field.Name))
 		}
 
 		tagBuilder := readonly.NewMapBuilder[string, string]()

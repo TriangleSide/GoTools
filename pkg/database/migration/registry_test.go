@@ -34,7 +34,7 @@ func TestMustRegister_ValidationFails_Panics(t *testing.T) {
 			Migrate: nil,
 			Enabled: true,
 		})
-	}, "Validation failed for registration")
+	}, "validation failed for registration")
 }
 
 func TestOrderedRegistrations_MultipleRegistrations_ReturnsInOrder(t *testing.T) {

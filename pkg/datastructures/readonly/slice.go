@@ -1,6 +1,7 @@
 package readonly
 
 import (
+	"errors"
 	"iter"
 	"sync/atomic"
 )
@@ -49,7 +50,7 @@ func NewSliceBuilder[T any]() *SliceBuilder[T] {
 // Append adds elements to the SliceBuilder.
 func (b *SliceBuilder[T]) Append(elements ...T) *SliceBuilder[T] {
 	if b.built.Load() {
-		panic("Build has already been called on this SliceBuilder.")
+		panic(errors.New("build has already been called on this SliceBuilder"))
 	}
 	b.internalSlice = append(b.internalSlice, elements...)
 	return b
@@ -58,7 +59,7 @@ func (b *SliceBuilder[T]) Append(elements ...T) *SliceBuilder[T] {
 // Build creates a Slice from the SliceBuilder's elements.
 func (b *SliceBuilder[T]) Build() *Slice[T] {
 	if b.built.Swap(true) {
-		panic("Build has already been called on this SliceBuilder.")
+		panic(errors.New("build has already been called on this SliceBuilder"))
 	}
 	internalSlice := b.internalSlice
 	b.internalSlice = nil // This ensures the SliceBuilder no longer has access to the internal slice passed to Slice.

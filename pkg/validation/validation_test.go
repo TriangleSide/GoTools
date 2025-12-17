@@ -48,7 +48,7 @@ func TestVar_ViolationStopsValidation_SkipsRemainingValidators(t *testing.T) {
 	}
 	validation.MustRegisterValidator(firstName, firstCallback)
 	validation.MustRegisterValidator(secondName, func(*validation.CallbackParameters) *validation.CallbackResult {
-		panic("should not be called")
+		panic(errors.New("should not be called"))
 	})
 
 	err := validation.Var("anything", string(firstName)+validation.ValidatorsSep+string(secondName))
@@ -76,7 +76,7 @@ func TestStruct_NonStructParameter_Panics(t *testing.T) {
 
 	assert.PanicPart(t, func() {
 		_ = validation.Struct[int](1)
-	}, "validation parameter must be a struct but got int")
+	}, "validation parameter must be a struct, got int")
 }
 
 func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {

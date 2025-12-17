@@ -378,7 +378,7 @@ func TestRun_CalledTwice_Panics(t *testing.T) {
 
 	assert.PanicPart(t, func() {
 		_ = srv.Run()
-	}, "HTTP server can only be run once per instance")
+	}, "http server can only be run once per instance")
 
 	shutdownErr := srv.Shutdown(context.Background())
 	assert.NoError(t, shutdownErr)

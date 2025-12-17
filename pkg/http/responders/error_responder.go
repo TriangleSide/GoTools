@@ -22,22 +22,22 @@ func findRegistryMatchAndPerformCallback(err error) (int, any, bool) {
 		return 0, nil, false
 	}
 
-	var allErrs []error
-	if uw, ok := err.(errJoinUnwrap); ok {
-		allErrs = uw.Unwrap()
-	} else {
-		allErrs = []error{err}
+	errType := normalizeErrorTypeForRegistry(reflect.TypeOf(err))
+	if registeredErrorNotCast, found := registeredErrorResponses.Load(errType); found {
+		registeredErr := registeredErrorNotCast.(*registeredErrorResponse)
+		return registeredErr.Status, registeredErr.Callback(err), true
 	}
 
-	for _, workErr := range allErrs {
-		errType := normalizeErrorTypeForRegistry(reflect.TypeOf(workErr))
-		if registeredErrorNotCast, found := registeredErrorResponses.Load(errType); found {
-			registeredErr := registeredErrorNotCast.(*registeredErrorResponse)
-			return registeredErr.Status, registeredErr.Callback(workErr), true
+	if uw, ok := err.(errJoinUnwrap); ok {
+		for _, joinErr := range uw.Unwrap() {
+			if status, result, found := findRegistryMatchAndPerformCallback(joinErr); found {
+				return status, result, true
+			}
 		}
-		if status, result, found := findRegistryMatchAndPerformCallback(errors.Unwrap(workErr)); found {
-			return status, result, true
-		}
+	}
+
+	if status, result, found := findRegistryMatchAndPerformCallback(errors.Unwrap(err)); found {
+		return status, result, true
 	}
 
 	return 0, nil, false
