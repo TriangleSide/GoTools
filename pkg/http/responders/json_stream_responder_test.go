@@ -24,158 +24,110 @@ type jsonStreamResponseBody struct {
 func TestJSONStream_SuccessfulCallback_RespondsWithCorrectJSONStreamAndStatusCode(t *testing.T) {
 	t.Parallel()
 
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":1}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
 	var writeError error
 	writeErrorCallback := func(err error) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
-			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
-			) {
-				responseChan := make(chan *jsonStreamResponseBody)
-				go func() {
-					defer close(responseChan)
-					responseChan <- &jsonStreamResponseBody{Message: "first"}
-					responseChan <- &jsonStreamResponseBody{Message: "second"}
-				}()
-				return responseChan, http.StatusOK, nil
-			}, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
+	responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+		recorder, req, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			responseChan := make(chan *jsonStreamResponseBody)
+			go func() {
+				defer close(responseChan)
+				responseChan <- &jsonStreamResponseBody{Message: "first"}
+				responseChan <- &jsonStreamResponseBody{Message: "second"}
+			}()
+			return responseChan, http.StatusOK, nil
+		}, responders.WithErrorCallback(writeErrorCallback))
 
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":1}`),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusOK)
+	assert.Equals(t, recorder.Code, http.StatusOK)
 	assert.NoError(t, writeError)
 
-	decoder := json.NewDecoder(response.Body)
+	decoder := json.NewDecoder(recorder.Body)
 	responseObj := &jsonStreamResponseBody{}
 	assert.NoError(t, decoder.Decode(responseObj))
 	assert.Equals(t, responseObj.Message, "first")
 	assert.NoError(t, decoder.Decode(responseObj))
 	assert.Equals(t, responseObj.Message, "second")
-	assert.NoError(t, response.Body.Close())
 }
 
 func TestJSONStream_ParameterDecoderFails_RespondsWithErrorJSONAndBadRequest(t *testing.T) {
 	t.Parallel()
 
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":-1}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
 	var writeError error
 	writeErrorCallback := func(err error) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
-			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
-			) {
-				return nil, http.StatusOK, nil
-			}, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
+	responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+		recorder, req, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			return nil, http.StatusOK, nil
+		}, responders.WithErrorCallback(writeErrorCallback))
 
-	req, err := http.NewRequestWithContext(
-		context.Background(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":-1}`),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusBadRequest)
+	assert.Equals(t, recorder.Code, http.StatusBadRequest)
 	assert.NoError(t, writeError)
 
 	responseObj := &responders.StandardErrorResponse{}
-	assert.NoError(t, json.NewDecoder(response.Body).Decode(responseObj))
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(responseObj))
 	assert.Contains(t, responseObj.Message, "validation failed on field 'ID'")
-	assert.NoError(t, response.Body.Close())
 }
 
 func TestJSONStream_CallbackReturnsError_RespondsWithErrorJSONAndBadRequest(t *testing.T) {
 	t.Parallel()
 
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":2}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
 	var writeError error
 	writeErrorCallback := func(err error) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
-			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
-			) {
-				return nil, 0, &testError{}
-			}, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
+	responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+		recorder, req, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			return nil, 0, &testError{}
+		}, responders.WithErrorCallback(writeErrorCallback))
 
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":2}`),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusBadRequest)
+	assert.Equals(t, recorder.Code, http.StatusBadRequest)
 	assert.NoError(t, writeError)
 
 	responseObj := &responders.StandardErrorResponse{}
-	assert.NoError(t, json.NewDecoder(response.Body).Decode(responseObj))
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(responseObj))
 	assert.Equals(t, responseObj.Message, "test error")
-	assert.NoError(t, response.Body.Close())
 }
 
 func TestJSONStream_CallbackReturnsNilChannel_RespondsWithInternalServerError(t *testing.T) {
 	t.Parallel()
 
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":2}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
 	var writeError error
 	writeErrorCallback := func(err error) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
-			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
-			) {
-				return nil, http.StatusOK, nil
-			}, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
+	responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+		recorder, req, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			return nil, http.StatusOK, nil
+		}, responders.WithErrorCallback(writeErrorCallback))
 
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":2}`),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusInternalServerError)
+	assert.Equals(t, recorder.Code, http.StatusInternalServerError)
 	assert.NoError(t, writeError)
 
 	responseObj := &responders.StandardErrorResponse{}
-	assert.NoError(t, json.NewDecoder(response.Body).Decode(responseObj))
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(responseObj))
 	assert.Equals(t, responseObj.Message, http.StatusText(http.StatusInternalServerError))
-	assert.NoError(t, response.Body.Close())
 }
 
 func TestJSONStream_UnencodableResponse_DoesNotWriteBody(t *testing.T) {
@@ -185,89 +137,64 @@ func TestJSONStream_UnencodableResponse_DoesNotWriteBody(t *testing.T) {
 		ChanField chan int `json:"chan_field"`
 	}
 
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":3}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
 	var writeError error
 	writeErrorCallback := func(err error) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, unmarshalableResponse](
-			w, r, func(*jsonStreamRequestParams) (<-chan *unmarshalableResponse, int, error,
-			) {
-				ch := make(chan *unmarshalableResponse, 1)
-				go func() {
-					defer close(ch)
-					ch <- &unmarshalableResponse{}
-				}()
-				return ch, http.StatusOK, nil
-			}, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
+	responders.JSONStream[jsonStreamRequestParams, unmarshalableResponse](
+		recorder, req, func(*jsonStreamRequestParams) (<-chan *unmarshalableResponse, int, error) {
+			ch := make(chan *unmarshalableResponse, 1)
+			go func() {
+				defer close(ch)
+				ch <- &unmarshalableResponse{}
+			}()
+			return ch, http.StatusOK, nil
+		}, responders.WithErrorCallback(writeErrorCallback))
 
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":3}`),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusOK)
+	assert.Equals(t, recorder.Code, http.StatusOK)
 	assert.Error(t, writeError)
 
 	body := make(map[string]any)
-	err = json.NewDecoder(response.Body).Decode(&body)
+	err := json.NewDecoder(recorder.Body).Decode(&body)
 	assert.Error(t, err)
-	assert.NoError(t, response.Body.Close())
 }
 
 func TestJSONStream_RequestContextCancelled_DoesNotWriteData(t *testing.T) {
 	t.Parallel()
 
+	recorder := httptest.NewRecorder()
+	ctx, cancel := context.WithCancel(t.Context())
+	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/", strings.NewReader(`{"id":4}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+	cancel()
+
 	var writeError error
 	writeErrorCallback := func(err error) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		ctx, cancel := context.WithCancel(request.Context())
-		request = request.WithContext(ctx)
-		cancel()
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
-			writer, request, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
-			) {
-				<-request.Context().Done()
-				ch := make(chan *jsonStreamResponseBody)
-				go func() {
-					defer close(ch)
-					ch <- &jsonStreamResponseBody{Message: "first"}
-				}()
-				return ch, http.StatusOK, nil
-			}, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
+	responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+		recorder, req, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			<-req.Context().Done()
+			ch := make(chan *jsonStreamResponseBody)
+			go func() {
+				defer close(ch)
+				ch <- &jsonStreamResponseBody{Message: "first"}
+			}()
+			return ch, http.StatusOK, nil
+		}, responders.WithErrorCallback(writeErrorCallback))
 
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":4}`),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusOK)
+	assert.Equals(t, recorder.Code, http.StatusOK)
 	assert.NoError(t, writeError)
 
 	body := make(map[string]any)
-	err = json.NewDecoder(response.Body).Decode(&body)
+	err := json.NewDecoder(recorder.Body).Decode(&body)
 	assert.ErrorPart(t, err, "EOF")
-	assert.NoError(t, response.Body.Close())
 }
 
 func TestJSONStream_WriterFails_CallsErrorCallback(t *testing.T) {
@@ -279,78 +206,52 @@ func TestJSONStream_WriterFails_CallsErrorCallback(t *testing.T) {
 		ResponseWriter: recorder,
 	}
 
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":3}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
 	var writeError error
 	writeErrorCallback := func(err error) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
-			errWriter, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
-			) {
-				responseChan := make(chan *jsonStreamResponseBody, 1)
-				go func() {
-					defer close(responseChan)
-					responseChan <- &jsonStreamResponseBody{}
-				}()
-				return responseChan, http.StatusOK, nil
-			}, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
+	responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+		errWriter, req, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			responseChan := make(chan *jsonStreamResponseBody, 1)
+			go func() {
+				defer close(responseChan)
+				responseChan <- &jsonStreamResponseBody{}
+			}()
+			return responseChan, http.StatusOK, nil
+		}, responders.WithErrorCallback(writeErrorCallback))
 
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":3}`),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusOK)
 	assert.ErrorPart(t, writeError, "simulated write failure")
-	assert.NoError(t, response.Body.Close())
 }
 
 func TestJSONStream_ChannelClosedImmediately_RespondsWithEmptyBody(t *testing.T) {
 	t.Parallel()
 
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":1}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
 	var writeError error
 	writeErrorCallback := func(err error) {
 		writeError = err
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
-			w, r, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error,
-			) {
-				ch := make(chan *jsonStreamResponseBody)
-				go func() {
-					close(ch)
-				}()
-				return ch, http.StatusOK, nil
-			}, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
+	responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+		recorder, req, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			ch := make(chan *jsonStreamResponseBody)
+			go func() {
+				close(ch)
+			}()
+			return ch, http.StatusOK, nil
+		}, responders.WithErrorCallback(writeErrorCallback))
 
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":1}`),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusOK)
+	assert.Equals(t, recorder.Code, http.StatusOK)
 	assert.NoError(t, writeError)
 
 	body := make(map[string]any)
-	err = json.NewDecoder(response.Body).Decode(&body)
+	err := json.NewDecoder(recorder.Body).Decode(&body)
 	assert.ErrorPart(t, err, "EOF")
-	assert.NoError(t, response.Body.Close())
 }
