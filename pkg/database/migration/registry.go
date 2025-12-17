@@ -41,10 +41,10 @@ func NewRegistry() *Registry {
 // MustRegister stores a migration registration in the registry.
 func (r *Registry) MustRegister(registration *Registration) {
 	if err := validation.Struct(registration); err != nil {
-		panic(fmt.Sprintf("Validation failed for registration (%s).", err.Error()))
+		panic(fmt.Errorf("validation failed for registration: %w", err))
 	}
 	if _, ok := r.registrations[registration.Order]; ok {
-		panic(fmt.Sprintf("Registration with order %d already exists.", registration.Order))
+		panic(fmt.Errorf("registration with order %d already exists", registration.Order))
 	}
 	r.registrations[registration.Order] = registration
 }

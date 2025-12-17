@@ -18,10 +18,10 @@ type SourceFunc func(fieldName string, fieldMetadata *structs.FieldMetadata) (st
 // MustRegisterProcessor registers a SourceFunc for a given processor name.
 func MustRegisterProcessor(name string, fn SourceFunc) {
 	if fn == nil {
-		panic(fmt.Sprintf("Must register a non-nil SourceFunc for the %s configuration processor.", name))
+		panic(fmt.Errorf("must register a non-nil SourceFunc for the %s configuration processor", name))
 	}
 	_, found := processors.LoadOrStore(name, fn)
 	if found {
-		panic(fmt.Sprintf("Processor with name %q already registered.", name))
+		panic(fmt.Errorf("processor with name %q already registered", name))
 	}
 }

@@ -199,7 +199,7 @@ func TestAssert_DifferentCases_ShouldWorkCorrectly(t *testing.T) {
 		{
 			name: "Panic positive case - Function panics as expected",
 			callback: func(tr *testRecorder, opts ...assert.Option) {
-				assert.Panic(tr, func() { panic("test panic") }, opts...)
+				assert.Panic(tr, func() { panic(errors.New("test panic")) }, opts...)
 			},
 			expectLogs: []string{},
 		},
@@ -211,9 +211,9 @@ func TestAssert_DifferentCases_ShouldWorkCorrectly(t *testing.T) {
 			expectLogs: []string{"Expected panic to occur but none occurred."},
 		},
 		{
-			name: "Panic positive case - Function panics with integer",
+			name: "Panic positive case - Function panics with error",
 			callback: func(tr *testRecorder, opts ...assert.Option) {
-				assert.Panic(tr, func() { panic(42) }, opts...)
+				assert.Panic(tr, func() { panic(errors.New("42")) }, opts...)
 			},
 			expectLogs: []string{},
 		},
@@ -228,32 +228,30 @@ func TestAssert_DifferentCases_ShouldWorkCorrectly(t *testing.T) {
 		{
 			name: "PanicExact positive case - Panic with exact message",
 			callback: func(tr *testRecorder, opts ...assert.Option) {
-				assert.PanicExact(tr, func() { panic("exact message") }, "exact message", opts...)
+				assert.PanicExact(tr, func() { panic(errors.New("exact message")) }, "exact message", opts...)
 			},
 			expectLogs: []string{},
 		},
 		{
 			name: "PanicExact negative case - Panic message differs",
 			callback: func(tr *testRecorder, opts ...assert.Option) {
-				assert.PanicExact(tr, func() { panic("wrong message") }, "exact message", opts...)
+				assert.PanicExact(tr, func() { panic(errors.New("wrong message")) }, "exact message", opts...)
 			},
 			expectLogs: []string{
 				"Expected panic message to equal 'exact message' but got 'wrong message'.",
 			},
 		},
 		{
-			name: "PanicExact negative case - Panic with non-string message",
+			name: "PanicExact positive case - Panic with error message",
 			callback: func(tr *testRecorder, opts ...assert.Option) {
-				assert.PanicExact(tr, func() { panic(42) }, "42", opts...)
+				assert.PanicExact(tr, func() { panic(errors.New("42")) }, "42", opts...)
 			},
-			expectLogs: []string{
-				"Could not extract error message from panic.",
-			},
+			expectLogs: []string{},
 		},
 		{
 			name: "PanicExact positive case - Panic with empty string message",
 			callback: func(tr *testRecorder, opts ...assert.Option) {
-				assert.PanicExact(tr, func() { panic("") }, "", opts...)
+				assert.PanicExact(tr, func() { panic(errors.New("")) }, "", opts...)
 			},
 			expectLogs: []string{},
 		},
@@ -267,7 +265,7 @@ func TestAssert_DifferentCases_ShouldWorkCorrectly(t *testing.T) {
 		{
 			name: "PanicPart negative case - Panic message does not contain expected part",
 			callback: func(tr *testRecorder, opts ...assert.Option) {
-				assert.PanicPart(tr, func() { panic("wrong message") }, "expected part", opts...)
+				assert.PanicPart(tr, func() { panic(errors.New("wrong message")) }, "expected part", opts...)
 			},
 			expectLogs: []string{
 				"Expected panic message to contain 'expected part' but got 'wrong message'.",
@@ -276,20 +274,18 @@ func TestAssert_DifferentCases_ShouldWorkCorrectly(t *testing.T) {
 		{
 			name: "PanicPart negative case - Panic message missing part",
 			callback: func(tr *testRecorder, opts ...assert.Option) {
-				assert.PanicPart(tr, func() { panic("other message") }, "some part", opts...)
+				assert.PanicPart(tr, func() { panic(errors.New("other message")) }, "some part", opts...)
 			},
 			expectLogs: []string{
 				"Expected panic message to contain 'some part' but got 'other message'.",
 			},
 		},
 		{
-			name: "PanicPart negative case - Panic with non-string message",
+			name: "PanicPart positive case - Panic with error message",
 			callback: func(tr *testRecorder, opts ...assert.Option) {
-				assert.PanicPart(tr, func() { panic(42) }, "42", opts...)
+				assert.PanicPart(tr, func() { panic(errors.New("42")) }, "42", opts...)
 			},
-			expectLogs: []string{
-				"Could not extract error message from panic.",
-			},
+			expectLogs: []string{},
 		},
 		{
 			name: "Error positive case - Error is not nil",
@@ -652,7 +648,7 @@ func TestAssert_ConcurrentUsage_ShouldWorkCorrectly(t *testing.T) {
 				assert.NoError(t, nil)
 				assert.Contains(t, "hello world", "world")
 				assert.FloatEquals(t, 1.0, 1.0, 0.1)
-				assert.Panic(t, func() { panic("test") })
+				assert.Panic(t, func() { panic(errors.New("test")) })
 			}
 		}()
 	}

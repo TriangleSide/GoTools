@@ -37,11 +37,11 @@ func NewHTTPAPIBuilder() *HTTPAPIBuilder {
 // duplicates are not registered. If the path and method is already registered, this function panics.
 func (builder *HTTPAPIBuilder) MustRegister(path Path, method Method, handler *Handler) {
 	if err := validation.Var(string(path), pathValidationTag); err != nil {
-		panic(fmt.Sprintf("The API path '%s' is not correctly formatted (%s).", path, err.Error()))
+		panic(fmt.Errorf("api path %q is not correctly formatted: %w", path, err))
 	}
 
 	if err := validation.Var(string(method), "oneof=GET POST HEAD PUT PATCH DELETE CONNECT OPTIONS TRACE"); err != nil {
-		panic(fmt.Sprintf("HTTP method '%s' is invalid (%s).", method, err.Error()))
+		panic(fmt.Errorf("http method %q is invalid: %w", method, err))
 	}
 
 	// The handler can be nil in cases like cors requests. The Go HTTP server needs the route
@@ -63,7 +63,7 @@ func (builder *HTTPAPIBuilder) MustRegister(path Path, method Method, handler *H
 	}
 
 	if _, methodAlreadyRegistered := methodToHandlerMap[method]; methodAlreadyRegistered {
-		panic(fmt.Sprintf("method '%s' already registered for path '%s'", method, path))
+		panic(fmt.Errorf("method %q already registered for path %q", method, path))
 	}
 
 	methodToHandlerMap[method] = handler

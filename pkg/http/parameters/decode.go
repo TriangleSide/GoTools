@@ -25,14 +25,14 @@ func Decode[T any](request *http.Request) (returnParams *T, returnErr error) {
 		}
 	}()
 
-	params := new(T)
-	if reflect.ValueOf(*params).Kind() != reflect.Struct {
-		panic("the generic must be a struct")
+	if reflect.TypeFor[T]().Kind() != reflect.Struct {
+		panic(errors.New("generic type must be a struct"))
 	}
 
+	params := new(T)
 	tagToLookupKeyToFieldName, err := ExtractAndValidateFieldTagLookupKeys[T]()
 	if err != nil {
-		panic(fmt.Sprintf("tags are not correctly formatted (%s)", err.Error()))
+		panic(fmt.Errorf("tags are not correctly formatted: %w", err))
 	}
 
 	if err := decodeJSONBodyParameters(params, request); err != nil {

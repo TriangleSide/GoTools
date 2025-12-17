@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 )
 
@@ -21,7 +22,7 @@ type Middleware func(next http.HandlerFunc) http.HandlerFunc
 // CreateChain returns a http.HandlerFunc that invokes each middleware in order then the final http.HandlerFunc.
 func CreateChain(middlewares []Middleware, finalHandlerFunc http.HandlerFunc) http.HandlerFunc {
 	if finalHandlerFunc == nil {
-		panic("the final handler cannot be nil")
+		panic(errors.New("final handler cannot be nil"))
 	}
 	if len(middlewares) == 0 {
 		return finalHandlerFunc

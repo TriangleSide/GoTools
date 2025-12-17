@@ -89,12 +89,9 @@ func TestCreateChain_MultipleMiddlewares_InvokesInOrder(t *testing.T) {
 func TestCreateChain_NilFinalHandler_Panics(t *testing.T) {
 	t.Parallel()
 
-	defer func() {
-		r := recover()
-		assert.NotNil(t, r)
-		assert.Equals(t, r, "the final handler cannot be nil")
-	}()
-	middleware.CreateChain(nil, nil)
+	assert.PanicExact(t, func() {
+		middleware.CreateChain(nil, nil)
+	}, "final handler cannot be nil")
 }
 
 func TestCreateChain_AllNilMiddlewareEntries_OnlyCallsHandler(t *testing.T) {

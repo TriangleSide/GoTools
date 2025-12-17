@@ -1,6 +1,7 @@
 package responders
 
 import (
+	"errors"
 	"net/http"
 	"reflect"
 	"sync"
@@ -34,12 +35,12 @@ var (
 func MustRegisterErrorResponse[T any](status int, callback func(err *T) *StandardErrorResponse) {
 	errorType := reflect.TypeFor[T]()
 	if errorType.Kind() == reflect.Ptr {
-		panic("The generic for registered error types cannot be a pointer.")
+		panic(errors.New("generic for registered error types cannot be a pointer"))
 	}
 
 	errorType = normalizeErrorTypeForRegistry(errorType)
 	if !errorType.Implements(reflect.TypeFor[error]()) {
-		panic("The generic for registered error types must implement the error interface.")
+		panic(errors.New("generic for registered error types must implement the error interface"))
 	}
 
 	errorResponse := &registeredErrorResponse{
@@ -50,7 +51,7 @@ func MustRegisterErrorResponse[T any](status int, callback func(err *T) *Standar
 	}
 	_, alreadyRegistered := registeredErrorResponses.LoadOrStore(errorType, errorResponse)
 	if alreadyRegistered {
-		panic("The error type has already been registered.")
+		panic(errors.New("error type has already been registered"))
 	}
 }
 

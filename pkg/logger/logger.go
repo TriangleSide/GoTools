@@ -2,10 +2,8 @@ package logger
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
-	"strings"
 
 	"github.com/TriangleSide/GoTools/pkg/config"
 )
@@ -14,7 +12,7 @@ import (
 type ctxKey struct{}
 
 // ctxKeyInstance is the context key for the logger.
-var ctxKeyInstance = ctxKey{}
+var ctxKeyInstance ctxKey
 
 // getLogLevelFromEnv retrieves the log level from environment variables.
 func getLogLevelFromEnv() slog.Level {
@@ -24,30 +22,17 @@ func getLogLevelFromEnv() slog.Level {
 
 	cfg, err := config.Process[Config]()
 	if err != nil {
-		slog.Error(err.Error())
 		return slog.LevelInfo
 	}
 
-	strLevel := strings.ToLower(cfg.LogLevel)
-	var level = slog.LevelInfo
-
-	switch strLevel {
-	case "error":
-		level = slog.LevelError
-	case "warn":
-		level = slog.LevelWarn
-	case "info":
-		level = slog.LevelInfo
-	case "debug":
-		level = slog.LevelDebug
-	default:
-		slog.Error(fmt.Sprintf("Invalid log level '%s', defaulting to INFO.", strLevel))
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(cfg.LogLevel)); err != nil {
+		return slog.LevelInfo
 	}
-
 	return level
 }
 
-// new creates a new slog.Logger with a JSON handler writing to stdout.
+// newLogger creates a new slog.Logger with a JSON handler writing to stdout.
 func newLogger() *slog.Logger {
 	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: getLogLevelFromEnv(),
@@ -58,9 +43,7 @@ func newLogger() *slog.Logger {
 // FromContext retrieves the logger from the context.
 // If no logger is found, it returns a new default logger.
 func FromContext(ctx context.Context) (context.Context, *slog.Logger) {
-	loggerUncast := ctx.Value(ctxKeyInstance)
-	if loggerUncast != nil {
-		logger := loggerUncast.(*slog.Logger)
+	if logger, ok := ctx.Value(ctxKeyInstance).(*slog.Logger); ok {
 		return ctx, logger
 	}
 	logger := newLogger()
@@ -72,10 +55,10 @@ func FromContext(ctx context.Context) (context.Context, *slog.Logger) {
 // If no logger exists in the context, a new one is created.
 func WithAttrs(ctx context.Context, attrs ...slog.Attr) (context.Context, *slog.Logger) {
 	ctx, logger := FromContext(ctx)
-	anySlice := make([]any, 0, len(attrs))
-	for _, attr := range attrs {
-		anySlice = append(anySlice, attr)
+	args := make([]any, len(attrs))
+	for i, attr := range attrs {
+		args[i] = attr
 	}
-	loggerWithAttrs := logger.With(anySlice...)
+	loggerWithAttrs := logger.With(args...)
 	return context.WithValue(ctx, ctxKeyInstance, loggerWithAttrs), loggerWithAttrs
 }

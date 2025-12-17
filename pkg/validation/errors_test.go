@@ -161,3 +161,36 @@ func TestViolations_Error_MultipleViolations_ReturnsJoinedMessages(t *testing.T)
 	expectedErr += "; validation failed with validator 'second' because second message"
 	assert.Equals(t, violations.Error(), expectedErr)
 }
+
+func TestViolation_Unwrap_CauseIsDiscoverableViaErrorsIs(t *testing.T) {
+	t.Parallel()
+	cause := errors.New("cause")
+	violation := validation.NewViolation(&validation.CallbackParameters{
+		Validator:          "test",
+		IsStructValidation: false,
+		Value:              reflect.ValueOf(1),
+	}, cause)
+
+	assert.True(t, errors.Is(violation, cause))
+}
+
+func TestViolations_Unwrap_CausesAreDiscoverableViaErrorsIs(t *testing.T) {
+	t.Parallel()
+	firstCause := errors.New("first")
+	secondCause := errors.New("second")
+
+	violations := validation.NewViolations()
+	violations.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+		Validator:          "first",
+		IsStructValidation: false,
+		Value:              reflect.ValueOf(1),
+	}, firstCause))
+	violations.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+		Validator:          "second",
+		IsStructValidation: false,
+		Value:              reflect.ValueOf(2),
+	}, secondCause))
+
+	assert.True(t, errors.Is(violations, firstCause))
+	assert.True(t, errors.Is(violations, secondCause))
+}
