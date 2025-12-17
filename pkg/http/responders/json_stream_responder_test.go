@@ -3,6 +3,7 @@ package responders_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -254,4 +255,50 @@ func TestJSONStream_ChannelClosedImmediately_RespondsWithEmptyBody(t *testing.T)
 	body := make(map[string]any)
 	err := json.NewDecoder(recorder.Body).Decode(&body)
 	assert.ErrorPart(t, err, "EOF")
+}
+
+type contextCancellingErrorWriter struct {
+	http.ResponseWriter
+
+	CancelFunc  context.CancelFunc
+	WriteFailed bool
+}
+
+func (w *contextCancellingErrorWriter) Write([]byte) (int, error) {
+	w.WriteFailed = true
+	w.CancelFunc()
+	return 0, errors.New("simulated write failure due to context cancellation")
+}
+
+func TestJSONStream_WriterFailsWhenContextCancelled_DoesNotCallErrorCallback(t *testing.T) {
+	t.Parallel()
+
+	recorder := httptest.NewRecorder()
+	ctx, cancel := context.WithCancel(t.Context())
+	errWriter := &contextCancellingErrorWriter{
+		ResponseWriter: recorder,
+		CancelFunc:     cancel,
+		WriteFailed:    false,
+	}
+
+	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/", strings.NewReader(`{"id":3}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
+	var writeError error
+	writeErrorCallback := func(err error) {
+		writeError = err
+	}
+
+	responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+		errWriter, req, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			responseChan := make(chan *jsonStreamResponseBody, 1)
+			go func() {
+				defer close(responseChan)
+				responseChan <- &jsonStreamResponseBody{}
+			}()
+			return responseChan, http.StatusOK, nil
+		}, responders.WithErrorCallback(writeErrorCallback))
+
+	assert.True(t, errWriter.WriteFailed)
+	assert.NoError(t, writeError)
 }
