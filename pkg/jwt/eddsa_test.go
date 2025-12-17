@@ -29,7 +29,7 @@ func TestEdDSAProvider_InvalidVerifyingKey_ReturnsError(t *testing.T) {
 	token, _, _, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err = jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return []byte("short"), jwt.EdDSA, nil
 	})
@@ -43,7 +43,7 @@ func TestEdDSAProvider_VerifyWithGeneratedPrivateKey_Succeeds(t *testing.T) {
 	token, key, _, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	decoded, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return key, jwt.EdDSA, nil
 	})
@@ -61,7 +61,7 @@ func TestEdDSAProvider_VerifyWithDerivedPublicKey_Succeeds(t *testing.T) {
 	privateKey := ed25519.PrivateKey(key)
 	publicKey := privateKey.Public().(ed25519.PublicKey)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	decoded, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return publicKey, jwt.EdDSA, nil
 	})
@@ -83,7 +83,7 @@ func TestEdDSAProvider_InvalidSignatureLength_ReturnsError(t *testing.T) {
 	parts[2] = base64.RawURLEncoding.EncodeToString([]byte("short"))
 	token = strings.Join(parts, ".")
 
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err = jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return publicKey, jwt.EdDSA, nil
 	})
@@ -100,7 +100,7 @@ func TestEdDSAProvider_VerifyWithWrongKey_Fails(t *testing.T) {
 	secondarySeed := sha256.Sum256([]byte("eddsa-provider-secondary"))
 	secondaryPrivateKey := ed25519.NewKeyFromSeed(secondarySeed[:])
 
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err = jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return secondaryPrivateKey, jwt.EdDSA, nil
 	})
@@ -128,7 +128,7 @@ func TestEdDSAProvider_TamperedPayload_RejectsToken(t *testing.T) {
 	parts[1] = tamperedParts[1]
 	tampered := strings.Join(parts, ".")
 
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err = jwt.Decode(ctx, tampered, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return publicKey, jwt.EdDSA, nil
 	})
@@ -145,7 +145,7 @@ func TestEdDSAProvider_MismatchedAlgorithm_ReturnsError(t *testing.T) {
 	privateKey := ed25519.PrivateKey(key)
 	publicKey := privateKey.Public().(ed25519.PublicKey)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	_, err = jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return publicKey, jwt.SignatureAlgorithm("RS256"), nil
 	})

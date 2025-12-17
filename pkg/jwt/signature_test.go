@@ -70,7 +70,7 @@ func TestEdDSA_ModifiedSignature_FailsVerification(t *testing.T) {
 	token, key, keyID, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	wrongKeyCallback := func(_ context.Context, reqKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, reqKeyID, keyID)
 		return secondaryPublicKey, jwt.EdDSA, nil
@@ -115,7 +115,7 @@ func TestEdDSA_InvalidBase64Signature_ReturnsDecodeError(t *testing.T) {
 	token, key, keyID, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	keyCallback := func(_ context.Context, reqKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, reqKeyID, keyID)
 		return secondaryPublicKey, jwt.EdDSA, nil
@@ -163,7 +163,7 @@ func TestEncode_EdDSA_ReturnsValidKeyAndKeyID(t *testing.T) {
 	assert.NotEquals(t, keyID, "")
 	assert.NotEquals(t, token, "")
 
-	ctx := context.Background()
+	ctx := t.Context()
 	keyProvider := func(_ context.Context, reqKeyId string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, reqKeyId, keyID)
 		return key, jwt.EdDSA, nil
