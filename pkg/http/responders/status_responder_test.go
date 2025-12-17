@@ -23,76 +23,61 @@ func statusHandler(params *statusRequestParams) (int, error) {
 	return 0, &testError{}
 }
 
-func statusErrorMessageTest(t *testing.T, jsonBody, expectedError string) {
-	t.Helper()
-
-	var writeError error
-	writeErrorCallback := func(err error) {
-		writeError = err
-	}
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.Status[statusRequestParams](w, r, statusHandler, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
-
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(jsonBody),
-	)
-	assert.NoError(t, err)
-	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusBadRequest)
-	assert.NoError(t, writeError)
-
-	responseBody := &responders.StandardErrorResponse{}
-	assert.NoError(t, json.NewDecoder(response.Body).Decode(responseBody))
-	assert.Contains(t, responseBody.Message, expectedError)
-	assert.NoError(t, response.Body.Close())
-}
-
 func TestStatus_CallbackSuccess_ReturnsCorrectStatusCode(t *testing.T) {
 	t.Parallel()
 
-	var writeError error
-	writeErrorCallback := func(err error) {
-		writeError = err
-	}
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responders.Status[statusRequestParams](w, r, statusHandler, responders.WithErrorCallback(writeErrorCallback))
-	}))
-	defer server.Close()
-
-	req, err := http.NewRequestWithContext(
-		t.Context(),
-		http.MethodPost,
-		server.URL,
-		strings.NewReader(`{"id":123}`),
-	)
-	assert.NoError(t, err)
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":123}`))
 	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	client := &http.Client{}
-	response, err := client.Do(req)
-	t.Cleanup(func() {
-		assert.NoError(t, response.Body.Close())
-	})
-	assert.NoError(t, err)
-	assert.Equals(t, response.StatusCode, http.StatusOK)
-	assert.NoError(t, writeError)
+
+	var writeErr error
+	writeErrorCallback := func(err error) { writeErr = err }
+
+	responders.Status[statusRequestParams](
+		recorder, req, statusHandler, responders.WithErrorCallback(writeErrorCallback))
+
+	assert.Equals(t, recorder.Code, http.StatusOK)
+	assert.NoError(t, writeErr)
 }
 
 func TestStatus_ParameterDecoderFails_ReturnsErrorResponse(t *testing.T) {
 	t.Parallel()
-	statusErrorMessageTest(t, `{"id":-1}`, "validation failed on field 'ID'")
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":-1}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
+	var writeErr error
+	writeErrorCallback := func(err error) { writeErr = err }
+
+	responders.Status[statusRequestParams](
+		recorder, req, statusHandler, responders.WithErrorCallback(writeErrorCallback))
+
+	assert.Equals(t, recorder.Code, http.StatusBadRequest)
+	assert.NoError(t, writeErr)
+
+	body := &responders.StandardErrorResponse{}
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(body))
+	assert.Contains(t, body.Message, "validation failed on field 'ID'")
 }
 
 func TestStatus_CallbackReturnsError_ReturnsErrorResponse(t *testing.T) {
 	t.Parallel()
-	statusErrorMessageTest(t, `{"id":456}`, "test error")
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"id":456}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
+	var writeErr error
+	writeErrorCallback := func(err error) { writeErr = err }
+
+	responders.Status[statusRequestParams](
+		recorder, req, statusHandler, responders.WithErrorCallback(writeErrorCallback))
+
+	assert.Equals(t, recorder.Code, http.StatusBadRequest)
+	assert.NoError(t, writeErr)
+
+	body := &responders.StandardErrorResponse{}
+	assert.NoError(t, json.NewDecoder(recorder.Body).Decode(body))
+	assert.Equals(t, body.Message, "test error")
 }
