@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"sync"
 )
 
 // Equals checks if two values are equal.
@@ -29,37 +28,38 @@ func NotEquals(t Testing, first any, second any, options ...Option) {
 func assertPanic(tCtx *testContext, panicFunc func(), msg *string, exact bool) {
 	tCtx.Helper()
 
-	panicOccurred := false
-	recoverMsg := ""
+	type panicResult struct {
+		occurred bool
+		msg      string
+	}
 
-	waitGroup := sync.WaitGroup{}
-	waitGroup.Add(1)
-
+	resultChan := make(chan panicResult, 1)
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				panicOccurred = true
-				recoverMsg = fmt.Sprint(r)
+				resultChan <- panicResult{occurred: true, msg: fmt.Sprint(r)}
+				return
 			}
-			waitGroup.Done()
+			resultChan <- panicResult{}
 		}()
 		panicFunc()
 	}()
-	waitGroup.Wait()
 
-	if !panicOccurred {
+	result := <-resultChan
+
+	if !result.occurred {
 		tCtx.fail("Expected panic to occur but none occurred.")
 		return
 	}
 
 	if msg != nil {
 		if exact {
-			if recoverMsg != *msg {
-				tCtx.fail(fmt.Sprintf("Expected panic message to equal '%s' but got '%s'.", *msg, recoverMsg))
+			if result.msg != *msg {
+				tCtx.fail(fmt.Sprintf("Expected panic message to equal '%s' but got '%s'.", *msg, result.msg))
 			}
 		} else {
-			if !strings.Contains(recoverMsg, *msg) {
-				tCtx.fail(fmt.Sprintf("Expected panic message to contain '%s' but got '%s'.", *msg, recoverMsg))
+			if !strings.Contains(result.msg, *msg) {
+				tCtx.fail(fmt.Sprintf("Expected panic message to contain '%s' but got '%s'.", *msg, result.msg))
 			}
 		}
 	}
