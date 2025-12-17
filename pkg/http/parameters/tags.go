@@ -63,16 +63,11 @@ var (
 
 	// lookupKeyFollowsNamingConvention verifies that a tag's lookup key follows
 	// the naming convention defined by TagLookupKeyNamingConvention.
-	lookupKeyFollowsNamingConvention func(lookupKey string) bool
+	lookupKeyFollowsNamingConvention = regexp.MustCompile(TagLookupKeyNamingConvention).MatchString
 
 	// lookupKeyExtractionCache stores the results of the ExtractAndValidateFieldTagLookupKeys function.
 	lookupKeyExtractionCache = cache.New[reflect.Type, *readonly.Map[Tag, LookupKeyToFieldName]]()
 )
-
-// init creates the variables needed by the processor.
-func init() {
-	lookupKeyFollowsNamingConvention = regexp.MustCompile(TagLookupKeyNamingConvention).MatchString
-}
 
 // TagLookupKeyFollowsNamingConvention verifies if the tag value (the lookup key) follows the naming convention.
 func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
@@ -80,7 +75,7 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 }
 
 // buildFieldTagLookupKeys extracts and validates field tag lookup keys for type T.
-func buildFieldTagLookupKeys[T any](reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], *time.Duration, error) {
+func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], *time.Duration, error) {
 	fieldsMetadata := structs.Metadata[T]()
 
 	tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)
