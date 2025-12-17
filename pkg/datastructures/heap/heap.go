@@ -1,6 +1,7 @@
 package heap
 
 import (
+	"errors"
 	"sync"
 )
 
@@ -172,6 +173,9 @@ func (h *Heap[T]) bubbleDown() T {
 func (h *Heap[T]) Pop() T {
 	h.lock.Lock()
 	defer h.lock.Unlock()
+	if len(h.tree) == 0 {
+		panic(errors.New("heap is empty"))
+	}
 	return h.bubbleDown()
 }
 
@@ -199,5 +203,8 @@ func (h *Heap[T]) CompareAndPop(shouldPop func(T) bool) (T, bool) {
 func (h *Heap[T]) Peek() T {
 	h.lock.RLock()
 	defer h.lock.RUnlock()
+	if len(h.tree) == 0 {
+		panic(errors.New("heap is empty"))
+	}
 	return h.tree[0]
 }
