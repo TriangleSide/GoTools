@@ -148,10 +148,10 @@ func TestPop_WhenPoppingFromEmptyHeap_ShouldPanic(t *testing.T) {
 	t.Parallel()
 
 	maxHeap := heap.New(func(a, b int) bool { return a > b })
-	assert.Panic(t, func() { maxHeap.Pop() })
+	assert.PanicExact(t, func() { maxHeap.Pop() }, "heap is empty")
 
 	minHeap := heap.New(func(a, b int) bool { return a < b })
-	assert.Panic(t, func() { minHeap.Pop() })
+	assert.PanicExact(t, func() { minHeap.Pop() }, "heap is empty")
 }
 
 func TestPeek_WhenPeekingElements_ShouldReturnRootWithoutRemoving(t *testing.T) {
@@ -176,10 +176,10 @@ func TestPeek_WhenPeekingOnEmptyHeap_ShouldPanic(t *testing.T) {
 	t.Parallel()
 
 	maxHeap := heap.New(func(a, b int) bool { return a > b })
-	assert.Panic(t, func() { maxHeap.Peek() })
+	assert.PanicExact(t, func() { maxHeap.Peek() }, "heap is empty")
 
 	minHeap := heap.New(func(a, b int) bool { return a < b })
-	assert.Panic(t, func() { minHeap.Peek() })
+	assert.PanicExact(t, func() { minHeap.Peek() }, "heap is empty")
 }
 
 func TestHeap_WhenValuesAreAddedRandomly_ShouldRetainHeapProperties(t *testing.T) {
