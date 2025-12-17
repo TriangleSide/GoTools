@@ -16,6 +16,7 @@ const (
 func envSource(fieldName string, _ *structs.FieldMetadata) (string, bool, error) {
 	formattedEnvName := camelToSnake(fieldName)
 	envValue, hasEnvValue := os.LookupEnv(formattedEnvName)
+
 	return envValue, hasEnvValue, nil
 }
 
