@@ -222,6 +222,8 @@ func TestProcessAndValidate_SourceFuncReturnsError_ReturnsError(t *testing.T) {
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
+	assert.ErrorPart(t, err, "failed to process configuration")
+	assert.ErrorPart(t, err, "failed to fetch value for field Value using processor ERROR_PROCESSOR")
 	assert.ErrorPart(t, err, customErr.Error())
 	assert.Nil(t, conf)
 }
@@ -233,6 +235,7 @@ func TestProcessAndValidate_ProcessorNotRegistered_ReturnsError(t *testing.T) {
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
+	assert.ErrorPart(t, err, "failed to process configuration")
 	assert.ErrorPart(t, err, "processor DOES_NOT_EXIST not registered")
 	assert.Nil(t, conf)
 }
