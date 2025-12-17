@@ -1,6 +1,7 @@
 package responders
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -39,12 +40,26 @@ func JSONStream[RequestParameters any, ResponseBody any](
 	writer.Header().Set(headers.TransferEncoding, headers.TransferEncodingChunked)
 	writer.WriteHeader(status)
 
-	ctx := request.Context()
+	streamResponses(request.Context(), writer, responseChan, cfg)
+}
+
+// streamResponses writes responses from the channel to the writer until the channel closes or context is cancelled.
+func streamResponses[ResponseBody any](
+	ctx context.Context,
+	writer http.ResponseWriter,
+	responseChan <-chan *ResponseBody,
+	cfg *config,
+) {
 	flusher, isFlusher := writer.(http.Flusher)
 	jsonEncoder := json.NewEncoder(writer)
 
 	for {
-		select {
+		select { // This additional select is because of the non-deterministic nature of select below.
+		case <-ctx.Done():
+			return
+		default:
+		}
+		select { // Select is non-deterministic if multiple cases are ready.
 		case <-ctx.Done():
 			return
 		case response, isOpen := <-responseChan:
