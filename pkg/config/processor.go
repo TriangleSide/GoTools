@@ -44,10 +44,12 @@ func Process[T any]() (*T, error) {
 			if !hasDefaultTag {
 				return nil, fmt.Errorf("no value found for field %s", fieldName)
 			}
+
 			value = defaultValue
 			if err := structs.AssignToField(conf, fieldName, value); err != nil {
 				return nil, fmt.Errorf("failed to assign default value %s to field %s: %w", value, fieldName, err)
 			}
+
 			continue
 		}
 
@@ -65,8 +67,10 @@ func ProcessAndValidate[T any]() (*T, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if err := validation.Struct(conf); err != nil {
 		return nil, fmt.Errorf("failed while validating the configuration: %w", err)
 	}
+
 	return conf, nil
 }

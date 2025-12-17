@@ -135,7 +135,7 @@ func TestJSONStream_UnencodableResponse_DoesNotWriteBody(t *testing.T) {
 	t.Parallel()
 
 	type unmarshalableResponse struct {
-		ChanField chan int `json:"chan_field"`
+		ChanField chan int `json:"chanField"`
 	}
 
 	recorder := httptest.NewRecorder()
