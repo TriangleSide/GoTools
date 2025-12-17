@@ -67,7 +67,9 @@ func streamResponses[ResponseBody any](
 				return
 			}
 			if encoderError := jsonEncoder.Encode(response); encoderError != nil {
-				cfg.errorCallback(encoderError)
+				if ctx.Err() == nil {
+					cfg.errorCallback(encoderError)
+				}
 				return
 			}
 			if isFlusher {
