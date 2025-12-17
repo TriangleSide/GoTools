@@ -105,7 +105,7 @@ func TestCallbackResult_WithStop_SkipsRemainingValidators(t *testing.T) {
 		return validation.NewCallbackResult().WithStop()
 	})
 	validation.MustRegisterValidator(panicName, func(*validation.CallbackParameters) *validation.CallbackResult {
-		panic("should not be called")
+		panic(errors.New("should not be called"))
 	})
 
 	err := validation.Var("anything", string(stopName)+validation.ValidatorsSep+string(panicName))

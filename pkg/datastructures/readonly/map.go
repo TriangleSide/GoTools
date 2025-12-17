@@ -1,6 +1,7 @@
 package readonly
 
 import (
+	"errors"
 	"iter"
 	"maps"
 	"sync/atomic"
@@ -83,7 +84,7 @@ func NewMapBuilder[Key comparable, Value any]() *MapBuilder[Key, Value] {
 // Set adds entries to the MapBuilder.
 func (b *MapBuilder[Key, Value]) Set(entries ...MapEntry[Key, Value]) *MapBuilder[Key, Value] {
 	if b.built.Load() {
-		panic("Build has already been called on this MapBuilder.")
+		panic(errors.New("build has already been called on this MapBuilder"))
 	}
 	for _, entry := range entries {
 		b.internalMap[entry.Key] = entry.Value
@@ -94,7 +95,7 @@ func (b *MapBuilder[Key, Value]) Set(entries ...MapEntry[Key, Value]) *MapBuilde
 // SetMap adds entries from another map to the MapBuilder.
 func (b *MapBuilder[Key, Value]) SetMap(otherMap map[Key]Value) *MapBuilder[Key, Value] {
 	if b.built.Load() {
-		panic("Build has already been called on this MapBuilder.")
+		panic(errors.New("build has already been called on this MapBuilder"))
 	}
 	maps.Copy(b.internalMap, otherMap)
 	return b
@@ -103,7 +104,7 @@ func (b *MapBuilder[Key, Value]) SetMap(otherMap map[Key]Value) *MapBuilder[Key,
 // Build creates a Map from the MapBuilder's entries.
 func (b *MapBuilder[Key, Value]) Build() *Map[Key, Value] {
 	if b.built.Swap(true) {
-		panic("Build has already been called on this MapBuilder.")
+		panic(errors.New("build has already been called on this MapBuilder"))
 	}
 	internalMap := b.internalMap
 	b.internalMap = nil // This ensures the MapBuilder no longer has access to the internal map passed to Map.

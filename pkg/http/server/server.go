@@ -81,7 +81,7 @@ func New(opts ...Option) (*Server, error) {
 // This function blocks as long as its serving HTTP requests.
 func (server *Server) Run() error {
 	if server.ran.Swap(true) {
-		panic("HTTP server can only be run once per instance")
+		panic(errors.New("http server can only be run once per instance"))
 	}
 	server.wg.Add(1)
 	defer func() { server.wg.Done() }()

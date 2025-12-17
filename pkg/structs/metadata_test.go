@@ -13,7 +13,7 @@ func TestMetadata_NonStructType_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
 		_ = structs.Metadata[int]()
-	}, "Type must be a struct or a pointer to a struct")
+	}, "type must be a struct or a pointer to a struct")
 }
 
 func TestMetadata_PointerToStruct_ReturnsStructMeta(t *testing.T) {
@@ -226,7 +226,7 @@ func TestMetadataFromType_NonStructType_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
 		_ = structs.MetadataFromType(reflect.TypeFor[int]())
-	}, "Type must be a struct or a pointer to a struct")
+	}, "type must be a struct or a pointer to a struct")
 }
 
 func TestMetadataFromType_PointerToStruct_ReturnsMetadata(t *testing.T) {

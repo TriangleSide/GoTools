@@ -30,7 +30,6 @@ func assertPanic(tCtx *testContext, panicFunc func(), msg *string, exact bool) {
 	tCtx.Helper()
 
 	panicOccurred := false
-	gotRecoverMsg := false
 	recoverMsg := ""
 
 	waitGroup := sync.WaitGroup{}
@@ -40,13 +39,7 @@ func assertPanic(tCtx *testContext, panicFunc func(), msg *string, exact bool) {
 		defer func() {
 			if r := recover(); r != nil {
 				panicOccurred = true
-				if castErrStr, castErrStrOk := r.(string); castErrStrOk {
-					gotRecoverMsg = true
-					recoverMsg = castErrStr
-				} else if castErr, castErrOk := r.(error); castErrOk {
-					gotRecoverMsg = true
-					recoverMsg = castErr.Error()
-				}
+				recoverMsg = fmt.Sprint(r)
 			}
 			waitGroup.Done()
 		}()
@@ -60,10 +53,6 @@ func assertPanic(tCtx *testContext, panicFunc func(), msg *string, exact bool) {
 	}
 
 	if msg != nil {
-		if !gotRecoverMsg {
-			tCtx.fail("Could not extract error message from panic.")
-			return
-		}
 		if exact {
 			if recoverMsg != *msg {
 				tCtx.fail(fmt.Sprintf("Expected panic message to equal '%s' but got '%s'.", *msg, recoverMsg))

@@ -63,6 +63,6 @@ type CallbackParameters struct {
 func MustRegisterValidator(name Validator, callback Callback) {
 	_, alreadyExists := registeredValidations.LoadOrStore(string(name), callback)
 	if alreadyExists {
-		panic(fmt.Sprintf("Validation named %s already exists.", name))
+		panic(fmt.Errorf("validation named %s already exists", name))
 	}
 }

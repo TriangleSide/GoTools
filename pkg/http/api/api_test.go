@@ -51,7 +51,7 @@ func TestMustRegister_DuplicatePathAndMethod_Panics(t *testing.T) {
 			Middleware: nil,
 			Handler:    func(http.ResponseWriter, *http.Request) {},
 		})
-	}, "method 'GET' already registered for path '/'")
+	}, "method \"GET\" already registered for path \"/\"")
 }
 
 func TestMustRegister_NilHandler_ReturnsNotImplemented(t *testing.T) {
