@@ -21,7 +21,7 @@ type jsonResponseBody struct {
 }
 
 type jsonUnmarshalable struct {
-	ChanField chan int `json:"chan_field"`
+	ChanField chan int `json:"chanField"`
 }
 
 func jsonTestHandler(params *jsonRequestParams) (*jsonResponseBody, int, error) {
