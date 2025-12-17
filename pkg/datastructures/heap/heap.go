@@ -76,6 +76,11 @@ import (
 //    /              /
 //   8              15
 
+var (
+	// errEmptyHeap occurs when attempting to access an element from an empty heap.
+	errEmptyHeap = errors.New("heap is empty")
+)
+
 // Heap is a tree-based data structure optimized for quickly accessing the minimum or maximum element,
 // depending on the comparator. It supports O(log n) insertion and deletion operations. It is commonly
 // used in priority queues, heap sort, and graph algorithms.
@@ -174,7 +179,7 @@ func (h *Heap[T]) Pop() T {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	if len(h.tree) == 0 {
-		panic(errors.New("heap is empty"))
+		panic(errEmptyHeap)
 	}
 	return h.bubbleDown()
 }
@@ -204,7 +209,7 @@ func (h *Heap[T]) Peek() T {
 	h.lock.RLock()
 	defer h.lock.RUnlock()
 	if len(h.tree) == 0 {
-		panic(errors.New("heap is empty"))
+		panic(errEmptyHeap)
 	}
 	return h.tree[0]
 }
