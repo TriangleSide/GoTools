@@ -35,6 +35,7 @@ func assertPanic(tCtx *testContext, panicFunc func(), msg *string, exact bool) {
 
 	resultChan := make(chan panicResult, 1)
 	go func() {
+		defer close(resultChan)
 		defer func() {
 			if r := recover(); r != nil {
 				resultChan <- panicResult{occurred: true, msg: fmt.Sprint(r)}
