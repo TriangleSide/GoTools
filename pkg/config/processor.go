@@ -36,7 +36,7 @@ func Process[T any]() (*T, error) {
 
 		value, found, err := fetcher(fieldName, fieldMetadata)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to fetch value for field %s using processor %s: %w", fieldName, processorType, err)
 		}
 
 		if !found {
@@ -65,7 +65,7 @@ func Process[T any]() (*T, error) {
 func ProcessAndValidate[T any]() (*T, error) {
 	conf, err := Process[T]()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to process configuration: %w", err)
 	}
 
 	if err := validation.Struct(conf); err != nil {
