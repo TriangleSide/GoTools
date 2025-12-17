@@ -2,7 +2,6 @@ package parameters_test
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"net"
 	"net/http"
@@ -36,7 +35,7 @@ func TestDecode_TagValidationFails_ShouldPanic(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	assert.PanicPart(t, func() {
 		_, _ = parameters.Decode[struct {
 			Field string `json:"-" urlQuery:"a*"`
@@ -49,7 +48,7 @@ func TestDecode_JsonWithUnknownField_ShouldFailToDecode(t *testing.T) {
 	jsonBody := `{"fieldThatDoesNotExist":"value"}`
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(jsonBody))
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
 	_, err = parameters.Decode[struct {
 		Field string `json:"myJsonField"`
@@ -62,7 +61,7 @@ func TestDecode_JsonNotProperlyFormatted_ShouldFailToDecode(t *testing.T) {
 	jsonBody := `{"myJsonField":"value"`
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(jsonBody))
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
 	_, err = parameters.Decode[struct {
 		Field string `json:"myJsonField"`
@@ -74,7 +73,7 @@ func TestDecode_MultipleValuesForQueryParameter_ShouldFailToDecode(t *testing.T)
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/?TestQuery=value1&TestQuery=value2", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	_, err = parameters.Decode[struct {
 		Field string `json:"-" urlQuery:"TestQuery"`
 	}](request)
@@ -85,7 +84,7 @@ func TestDecode_QueryParameterFieldCannotBeSet_ShouldFailToDecode(t *testing.T) 
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/?TestQuery=NotAnInt", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	_, err = parameters.Decode[struct {
 		Field int `json:"-" urlQuery:"TestQuery"`
 	}](request)
@@ -96,7 +95,7 @@ func TestDecode_MultipleValuesForHeader_ShouldFailToDecode(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	request.Header["TestHeader"] = []string{"value1", "value2"}
 	_, err = parameters.Decode[struct {
 		Field string `httpHeader:"TestHeader" json:"-"`
@@ -108,7 +107,7 @@ func TestDecode_HeaderFieldCannotBeSet_ShouldFailToDecode(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	request.Header["TestHeader"] = []string{"NotAndInt"}
 	_, err = parameters.Decode[struct {
 		Field int `httpHeader:"TestHeader" json:"-"`
@@ -159,7 +158,7 @@ func TestDecode_ValidationFails_ShouldFailToDecode(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	_, err = parameters.Decode[struct {
 		Field string `httpHeader:"TestHeader" json:"-" validate:"required"`
 	}](request)
@@ -170,7 +169,7 @@ func TestDecode_GenericNotStruct_ShouldPanic(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	assert.PanicPart(t, func() {
 		_, _ = parameters.Decode[string](request)
 	}, "generic type must be a struct")
@@ -183,7 +182,7 @@ func TestDecode_GenericIsStructPointer_ShouldPanic(t *testing.T) {
 	}
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	assert.PanicPart(t, func() {
 		_, _ = parameters.Decode[*parameterParams](request)
 	}, "generic type must be a struct")
@@ -198,7 +197,7 @@ func TestDecode_BodyFailsToClose_ShouldReturnError(t *testing.T) {
 	}
 	request.Body = readCloser
 	request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	decoded, err := parameters.Decode[struct {
 		Field string `json:"message"`
 	}](request)
@@ -216,7 +215,7 @@ func TestDecode_BodyFailsToCloseWithDecodeError_ShouldReturnBothErrors(t *testin
 	}
 	request.Body = readCloser
 	request.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	decoded, err := parameters.Decode[struct {
 		Field string `json:"message" validate:"oneof=NOT_EXISTS"`
 	}](request)
@@ -230,7 +229,7 @@ func TestDecode_NoContentTypeHeader_ShouldSkipJsonParsing(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/?QueryParam=value", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	decoded, err := parameters.Decode[struct {
 		QueryParam string `json:"-" urlQuery:"QueryParam" validate:"required"`
 	}](request)
@@ -242,7 +241,7 @@ func TestDecode_NilRequestBody_ShouldSucceed(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	request.Body = nil
 	decoded, err := parameters.Decode[struct {
 		Field string `json:"field"`
@@ -255,7 +254,7 @@ func TestDecode_EmptyStruct_ShouldSucceed(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	decoded, err := parameters.Decode[struct{}](request)
 	assert.NoError(t, err)
 	assert.NotNil(t, decoded)
@@ -267,7 +266,7 @@ func TestDecode_NonJsonContentType_ShouldSkipJsonParsing(t *testing.T) {
 	url := "/?QueryParam=value"
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, url, strings.NewReader(jsonBody))
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	request.Header.Set(headers.ContentType, "text/plain")
 	decoded, err := parameters.Decode[struct {
 		QueryParam string `json:"-"     urlQuery:"QueryParam" validate:"required"`
@@ -282,7 +281,7 @@ func TestDecode_ContentTypeCaseInsensitive_ShouldDecodeJson(t *testing.T) {
 	t.Parallel()
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/", strings.NewReader(`{"field":"value"}`))
 	assert.NoError(t, err)
-	request = request.WithContext(context.Background())
+	request = request.WithContext(t.Context())
 	request.Header.Set(headers.ContentType, "APPLICATION/JSON")
 	decoded, err := parameters.Decode[struct {
 		Field string `json:"field" validate:"required"`

@@ -380,7 +380,7 @@ func TestRun_CalledTwice_Panics(t *testing.T) {
 		_ = srv.Run()
 	}, "http server can only be run once per instance")
 
-	shutdownErr := srv.Shutdown(context.Background())
+	shutdownErr := srv.Shutdown(t.Context())
 	assert.NoError(t, shutdownErr)
 }
 
@@ -399,7 +399,7 @@ func TestShutdown_CalledMultipleTimes_Succeeds(t *testing.T) {
 	}()
 	<-waitUntilReady
 	for range 3 {
-		assert.NoError(t, srv.Shutdown(context.Background()))
+		assert.NoError(t, srv.Shutdown(t.Context()))
 	}
 }
 
@@ -981,7 +981,7 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 					if testCase.body != nil {
 						body = testCase.body()
 					}
-					ctx, cancel := context.WithCancel(context.Background())
+					ctx, cancel := context.WithCancel(t.Context())
 					request, err := http.NewRequestWithContext(ctx, testCase.method, "http://"+serverAddress+testCase.path, body)
 					if err != nil {
 						cancel()
