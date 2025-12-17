@@ -11,6 +11,10 @@
 - Wrap errors with contextual information using `fmt.Errorf("...: %w", err)`.
 - Use `errors.New("...")` for errors that do not require formatting.
 
+## Panics
+- Use `fmt.Errorf("...")` as the panic argument when formatting is needed.
+- Use `errors.New("...")` as the panic argument when formatting is not needed.
+
 ## Style
 - Write early exit guards to reduce nesting.
 
@@ -40,13 +44,11 @@
 
 ## Pull Requests
 - Before creating a new branch, follow these steps one at a time:
-  1. `git add -A`
-  2. `git stash`
-  3. `git checkout main`
-  4. `git pull`
-  5. `git stash pop`
-  6. `git add -A`
-  7. Resolve any merge conflicts.
+  1. `git stash --all`
+  2. `git checkout main`
+  3. `git pull origin main`
+  4. `git stash pop`
+  5. Resolve any merge conflicts.
 - Use `git checkout -b <short-description>` to create a new branch.
 - Use `git commit -m "<message>"` with a very terse commit message summarizing the change at a high level. End the commit message with a period.
 - Do not co-author commits; keep the current git user as the sole author.
