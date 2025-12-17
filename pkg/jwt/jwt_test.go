@@ -32,7 +32,7 @@ func TestEncode_WithEdDSA_ReturnsValidTokenKeyAndKeyID(t *testing.T) {
 
 func TestDecode_EmptyToken_ReturnsError(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	claims, err := jwt.Decode(ctx, "", func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, jwt.EdDSA, nil
 	})
@@ -42,7 +42,7 @@ func TestDecode_EmptyToken_ReturnsError(t *testing.T) {
 
 func TestDecode_OneSegment_ReturnsError(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	claims, err := jwt.Decode(ctx, "header-only", func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, jwt.EdDSA, nil
 	})
@@ -52,7 +52,7 @@ func TestDecode_OneSegment_ReturnsError(t *testing.T) {
 
 func TestDecode_TwoSegments_ReturnsError(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	claims, err := jwt.Decode(ctx, "header.body", func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, jwt.EdDSA, nil
 	})
@@ -62,7 +62,7 @@ func TestDecode_TwoSegments_ReturnsError(t *testing.T) {
 
 func TestDecode_FourSegments_ReturnsError(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	keyProvider := func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, jwt.EdDSA, nil
 	}
@@ -73,7 +73,7 @@ func TestDecode_FourSegments_ReturnsError(t *testing.T) {
 
 func TestDecode_InvalidBase64Header_ReturnsError(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	keyProvider := func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, jwt.EdDSA, nil
 	}
@@ -84,7 +84,7 @@ func TestDecode_InvalidBase64Header_ReturnsError(t *testing.T) {
 
 func TestDecode_InvalidJSONHeader_ReturnsError(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	invalidHeader := base64.RawURLEncoding.EncodeToString([]byte("not-json"))
 	keyProvider := func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, jwt.EdDSA, nil
@@ -102,7 +102,7 @@ func TestDecode_KeyProviderReturnsError_ReturnsError(t *testing.T) {
 	token, _, _, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	decodedClaims, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return nil, "", errors.New("key not found")
 	})
@@ -119,7 +119,7 @@ func TestDecode_AlgorithmMismatch_ReturnsError(t *testing.T) {
 	token, key, _, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	decodedClaims, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return key, jwt.SignatureAlgorithm("HS256"), nil
 	})
@@ -134,7 +134,7 @@ func TestDecode_UnknownAlgorithm_ReturnsError(t *testing.T) {
 	signature := base64.RawURLEncoding.EncodeToString([]byte("fake-signature"))
 	token := header + "." + body + "." + signature
 
-	ctx := context.Background()
+	ctx := t.Context()
 	decodedClaims, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return []byte("key"), jwt.SignatureAlgorithm("Unknown"), nil
 	})
@@ -158,7 +158,7 @@ func TestDecode_InvalidBase64Body_ReturnsError(t *testing.T) {
 	encodedSignature := base64.RawURLEncoding.EncodeToString(signature)
 	token := signedData + "." + encodedSignature
 
-	ctx := context.Background()
+	ctx := t.Context()
 	decodedClaims, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return privateKey, jwt.EdDSA, nil
 	})
@@ -182,7 +182,7 @@ func TestDecode_InvalidJSONBody_ReturnsError(t *testing.T) {
 	encodedSignature := base64.RawURLEncoding.EncodeToString(signature)
 	token := signedData + "." + encodedSignature
 
-	ctx := context.Background()
+	ctx := t.Context()
 	decodedClaims, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return privateKey, jwt.EdDSA, nil
 	})
@@ -201,7 +201,7 @@ func TestDecode_ValidToken_ReturnsClaims(t *testing.T) {
 	token, key, keyID, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	keyProvider := func(_ context.Context, reqKeyID string) ([]byte, jwt.SignatureAlgorithm, error) {
 		assert.Equals(t, reqKeyID, keyID)
 		return key, jwt.EdDSA, nil
@@ -224,7 +224,7 @@ func TestDecode_WithContext_PassesContextToKeyProvider(t *testing.T) {
 	token, key, _, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.WithValue(context.Background(), contextKey("test-key"), "test-value")
+	ctx := context.WithValue(t.Context(), contextKey("test-key"), "test-value")
 	decodedClaims, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		val := ctx.Value(contextKey("test-key"))
 		assert.NotNil(t, val)
@@ -250,7 +250,7 @@ func TestDecode_CorruptedSignature_ReturnsError(t *testing.T) {
 	parts[2] = base64.RawURLEncoding.EncodeToString(sigBytes)
 	corruptedToken := strings.Join(parts, ".")
 
-	ctx := context.Background()
+	ctx := t.Context()
 	keyProvider := func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return key, jwt.EdDSA, nil
 	}
@@ -271,7 +271,7 @@ func TestDecode_ValidTokenWithTimestampClaims_ReturnsClaimsWithTimestamps(t *tes
 	token, key, _, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	ctx := t.Context()
 	decodedClaims, err := jwt.Decode(ctx, token, func(context.Context, string) ([]byte, jwt.SignatureAlgorithm, error) {
 		return key, jwt.EdDSA, nil
 	})
