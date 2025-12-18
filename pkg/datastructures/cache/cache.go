@@ -25,10 +25,7 @@ type Cache[Key comparable, Value any] struct {
 // New creates a new Cache instance. The benefit of using Cache instead of a regular map is that
 // Cache is thread safe. It also handles expiring items.
 func New[Key comparable, Value any]() *Cache[Key, Value] {
-	return &Cache[Key, Value]{
-		getOrSetKeyLocks: sync.Map{},
-		keyToItem:        sync.Map{},
-	}
+	return &Cache[Key, Value]{}
 }
 
 // item is what is stored in the internal map of the cache.
@@ -39,20 +36,15 @@ type item[Value any] struct {
 
 // Set sets a value and time-to-live in the cache.
 func (c *Cache[Key, Value]) Set(key Key, value Value, ttl *time.Duration) {
-	var itemToAdd *item[Value]
+	var expiry *time.Time
 	if ttl != nil {
 		expireTime := time.Now().Add(*ttl)
-		itemToAdd = &item[Value]{
-			value:  value,
-			expiry: &expireTime,
-		}
-	} else {
-		itemToAdd = &item[Value]{
-			value:  value,
-			expiry: nil,
-		}
+		expiry = &expireTime
 	}
-	c.keyToItem.Store(key, itemToAdd)
+	c.keyToItem.Store(key, &item[Value]{
+		value:  value,
+		expiry: expiry,
+	})
 }
 
 // Get retrieves a value from the cache if present.
