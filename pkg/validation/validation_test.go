@@ -475,16 +475,14 @@ func TestStruct_ConcurrentValidations_ReturnExpectedResults(t *testing.T) {
 	errs := make(chan error, workers)
 
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(workers)
 	for workerIdx := range workers {
-		go func(idx int) {
-			defer waitGroup.Done()
-			if idx%2 == 0 {
+		waitGroup.Go(func() {
+			if workerIdx%2 == 0 {
 				errs <- validation.Struct(&testStruct{Value: ""})
 				return
 			}
 			errs <- validation.Struct(&testStruct{Value: "ok"})
-		}(workerIdx)
+		})
 	}
 	waitGroup.Wait()
 	close(errs)
