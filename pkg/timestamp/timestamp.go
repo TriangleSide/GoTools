@@ -66,3 +66,24 @@ func (ts *Timestamp) UnmarshalJSON(data []byte) error {
 	ts.time = t.UTC()
 	return nil
 }
+
+// MarshalText implements encoding.TextMarshaler using RFC 3339 format.
+func (ts Timestamp) MarshalText() ([]byte, error) {
+	if ts.time.IsZero() {
+		return nil, errors.New("timestamp is zero while marshaling")
+	}
+	return []byte(ts.time.Format(time.RFC3339)), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler expecting RFC 3339 format.
+func (ts *Timestamp) UnmarshalText(data []byte) error {
+	if len(data) == 0 {
+		return errors.New("timestamp cannot be empty")
+	}
+	t, err := time.Parse(time.RFC3339, string(data))
+	if err != nil {
+		return fmt.Errorf("invalid RFC 3339 timestamp: %w", err)
+	}
+	ts.time = t.UTC()
+	return nil
+}

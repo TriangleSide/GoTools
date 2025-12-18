@@ -99,3 +99,48 @@ func TestTime_ReturnsUnderlyingTime(t *testing.T) {
 	ts := timestamp.New(expected)
 	assert.Equals(t, ts.Time(), expected)
 }
+
+func TestMarshalText_WhenTimestampIsZero_ReturnsError(t *testing.T) {
+	t.Parallel()
+	var ts timestamp.Timestamp
+	_, err := ts.MarshalText()
+	assert.ErrorPart(t, err, "timestamp is zero while marshaling")
+}
+
+func TestMarshalText_WhenTimestampIsNonZero_MarshalToRFC3339String(t *testing.T) {
+	t.Parallel()
+	ts := timestamp.New(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+	data, err := ts.MarshalText()
+	assert.NoError(t, err)
+	assert.Equals(t, string(data), "2024-06-01T12:00:00Z")
+}
+
+func TestUnmarshalText_ValidRFC3339String_Succeeds(t *testing.T) {
+	t.Parallel()
+	var ts timestamp.Timestamp
+	err := ts.UnmarshalText([]byte("2024-06-01T12:00:00Z"))
+	assert.NoError(t, err)
+	assert.Equals(t, ts.Time(), time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+}
+
+func TestUnmarshalText_EmptyData_ReturnsError(t *testing.T) {
+	t.Parallel()
+	var ts timestamp.Timestamp
+	err := ts.UnmarshalText([]byte(""))
+	assert.ErrorPart(t, err, "timestamp cannot be empty")
+}
+
+func TestUnmarshalText_InvalidRFC3339String_ReturnsError(t *testing.T) {
+	t.Parallel()
+	var ts timestamp.Timestamp
+	err := ts.UnmarshalText([]byte("not-a-timestamp"))
+	assert.ErrorPart(t, err, "invalid RFC 3339 timestamp")
+}
+
+func TestUnmarshalText_TimezoneOffset_ConvertsToUTC(t *testing.T) {
+	t.Parallel()
+	var ts timestamp.Timestamp
+	err := ts.UnmarshalText([]byte("2024-06-01T17:00:00+05:00"))
+	assert.NoError(t, err)
+	assert.Equals(t, ts.Time(), time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+}
