@@ -403,6 +403,64 @@ func TestShutdown_CalledMultipleTimes_Succeeds(t *testing.T) {
 	}
 }
 
+func TestShutdown_WithExpiredContext_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	handlerStarted := make(chan struct{})
+	handlerBlocking := make(chan struct{})
+
+	waitUntilReady := make(chan struct{})
+	var serverAddr string
+	srv, err := server.New(
+		server.WithBoundCallback(func(addr *net.TCPAddr) {
+			serverAddr = addr.String()
+			close(waitUntilReady)
+		}),
+		server.WithConfigProvider(func() (*server.Config, error) {
+			return getDefaultConfig(t), nil
+		}),
+		server.WithEndpointHandlers(&testHandler{
+			Path:   "/slow",
+			Method: http.MethodGet,
+			Handler: func(writer http.ResponseWriter, _ *http.Request) {
+				close(handlerStarted)
+				<-handlerBlocking
+				writer.WriteHeader(http.StatusOK)
+			},
+		}),
+	)
+	assert.NoError(t, err)
+	assert.NotNil(t, srv)
+
+	serverDone := make(chan struct{})
+	go func() {
+		_ = srv.Run()
+		close(serverDone)
+	}()
+	<-waitUntilReady
+
+	clientChan := make(chan struct{})
+	go func() {
+		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://"+serverAddr+"/slow", nil)
+		response, clientErr := http.DefaultClient.Do(req)
+		assert.NoError(t, clientErr)
+		assert.NoError(t, response.Body.Close())
+		close(clientChan)
+	}()
+
+	<-handlerStarted
+
+	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Millisecond)
+	defer cancel()
+
+	err = srv.Shutdown(ctx)
+	assert.ErrorPart(t, err, "failed to shutdown the server")
+
+	close(handlerBlocking)
+	<-serverDone
+	<-clientChan
+}
+
 func TestRun_ListenerClosedUnexpectedly_ReturnsError(t *testing.T) {
 	t.Parallel()
 	listener, err := net.ListenTCP("tcp6", &net.TCPAddr{IP: net.ParseIP("::1"), Port: 0})
