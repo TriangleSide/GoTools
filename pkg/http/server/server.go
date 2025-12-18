@@ -79,7 +79,7 @@ func (server *Server) Run() error {
 		panic(errors.New("http server can only be run once per instance"))
 	}
 	server.wg.Add(1)
-	defer func() { server.wg.Done() }()
+	defer server.wg.Done()
 
 	listener, err := server.listenerProvider()
 	if err != nil {
