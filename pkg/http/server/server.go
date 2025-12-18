@@ -61,9 +61,6 @@ func New(opts ...Option) (*Server, error) {
 			MaxHeaderBytes:    envConfig.HTTPServerMaxHeaderBytes,
 			TLSConfig:         tlsConfig,
 		},
-		ran:      atomic.Bool{},
-		shutdown: atomic.Bool{},
-		wg:       sync.WaitGroup{},
 		listenerProvider: func() (*net.TCPListener, error) {
 			return srvOpts.listenerProvider(envConfig.HTTPServerBindIP, envConfig.HTTPServerBindPort)
 		},
@@ -71,8 +68,6 @@ func New(opts ...Option) (*Server, error) {
 	}
 
 	srv.srv.SetKeepAlivesEnabled(envConfig.HTTPServerKeepAlive)
-	srv.ran.Store(false)
-	srv.shutdown.Store(false)
 
 	return srv, nil
 }

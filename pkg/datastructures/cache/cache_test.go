@@ -216,7 +216,7 @@ func TestCache_Concurrency_UniqueSequentialOperations(t *testing.T) {
 	testCache := cache.New[string, string]()
 	const threadCount = 4
 	const loopCount = 10000
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	startChan := make(chan struct{})
 	for threadIdx := range threadCount {
 		waitGroup.Go(func() {
@@ -252,7 +252,7 @@ func TestCache_Concurrency_GetSetRemove(t *testing.T) {
 	testCache := cache.New[string, string]()
 	const threadCount = 4
 	const loopCount = 10000
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	startChan := make(chan struct{})
 	for range threadCount {
 		waitGroup.Go(func() {
@@ -278,7 +278,7 @@ func TestCache_Concurrency_GetOrSet(t *testing.T) {
 	testCache := cache.New[string, string]()
 	const threadCount = 4
 	const loopCount = 10000
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	startChan := make(chan struct{})
 	for range threadCount {
 		waitGroup.Go(func() {
@@ -300,7 +300,7 @@ func TestCache_Concurrency_GetOrSet(t *testing.T) {
 func TestGetOrSet_ConcurrentCalls_ReturnsFirstCallersValue(t *testing.T) {
 	t.Parallel()
 	testCache := cache.New[string, string]()
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	const key = "key"
 	const threadCount = 4
 

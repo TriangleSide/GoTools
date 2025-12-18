@@ -248,7 +248,7 @@ func TestMetadata_ConcurrentAccess_NoErrors(t *testing.T) {
 
 	const threadCount = 8
 	const loopCount = 1000
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	waitChan := make(chan struct{})
 
 	for range threadCount {

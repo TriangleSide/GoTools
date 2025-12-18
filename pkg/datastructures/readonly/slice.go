@@ -40,11 +40,7 @@ type SliceBuilder[T any] struct {
 
 // NewSliceBuilder returns a new SliceBuilder.
 func NewSliceBuilder[T any]() *SliceBuilder[T] {
-	builder := &SliceBuilder[T]{
-		built:         atomic.Bool{},
-		internalSlice: make([]T, 0),
-	}
-	return builder
+	return &SliceBuilder[T]{}
 }
 
 // Append adds elements to the SliceBuilder.
