@@ -131,6 +131,9 @@ func heartbeatAndRelease(ctx context.Context, manager Manager, cfg *Config) (ret
 			return nil
 		case <-heartbeatTicker.C:
 			if heartbeatErr = manager.MigrationLockHeartbeat(ctx); heartbeatErr != nil {
+				if ctx.Err() != nil {
+					return nil
+				}
 				successiveHeartbeatErrCount++
 			} else {
 				successiveHeartbeatErrCount = 0

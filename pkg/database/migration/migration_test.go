@@ -16,11 +16,12 @@ type managerRecorder struct {
 	Operations          []string
 	PersistedMigrations []migration.PersistedStatus
 
-	Heartbeat            chan struct{}
-	HeartbeatErrors      []error
-	HeartbeatCount       int
-	MigrationUnlockCount int
-	FailOnStatus         string
+	Heartbeat                      chan struct{}
+	HeartbeatErrors                []error
+	HeartbeatCount                 int
+	HeartbeatBlockUntilContextDone bool
+	MigrationUnlockCount           int
+	FailOnStatus                   string
 
 	AcquireDBLockError          error
 	EnsureDataStoresError       error
@@ -68,6 +69,10 @@ func (r *managerRecorder) MigrationLockHeartbeat(ctx context.Context) error {
 	r.HeartbeatCount++
 	if r.Heartbeat != nil {
 		r.Heartbeat <- struct{}{}
+	}
+	if r.HeartbeatBlockUntilContextDone {
+		<-ctx.Done()
+		return fmt.Errorf("context error in MigrationLockHeartbeat: %w", ctx.Err())
 	}
 	if ctx.Err() != nil {
 		return fmt.Errorf("context error in MigrationLockHeartbeat: %w", ctx.Err())
@@ -1036,4 +1041,46 @@ func TestMigrate_PersistedStatusFailed_PassesFailedToPreviousStatus(t *testing.T
 		"PersistStatus(order=1, status=COMPLETED)",
 	}
 	assert.Equals(t, expectedOps, manager.Operations)
+}
+
+func TestMigrate_HeartbeatErrorAfterContextCanceled_ReturnsNilWithoutCountingFailure(t *testing.T) {
+	t.Parallel()
+	manager := &managerRecorder{
+		Heartbeat:                      make(chan struct{}),
+		HeartbeatBlockUntilContextDone: true,
+	}
+	reg := migration.NewRegistry()
+	reg.MustRegister(&migration.Registration{
+		Order: 1,
+		Migrate: func(_ context.Context, _ migration.Status) error {
+			<-manager.Heartbeat
+			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
+			return nil
+		},
+		Enabled: true,
+	})
+	opts := []migration.Option{
+		migration.WithConfigProvider(func() (*migration.Config, error) {
+			cfg, _ := config.Process[migration.Config]()
+			cfg.MigrationHeartbeatIntervalMillis = 1
+			return cfg, nil
+		}),
+		migration.WithRegistry(reg),
+	}
+	err := migration.Migrate(manager, opts...)
+	assert.NoError(t, err)
+	expectedOps := []string{
+		"AcquireDBLock()",
+		"EnsureDataStores()",
+		"ReleaseDBLock()",
+		"AcquireMigrationLock()",
+		"ListStatuses()",
+		"PersistStatus(order=1, status=PENDING)",
+		"PersistStatus(order=1, status=STARTED)",
+		"Migration1.Migrate()",
+		"PersistStatus(order=1, status=COMPLETED)",
+	}
+	assert.Equals(t, expectedOps, manager.Operations)
+	assert.Equals(t, manager.HeartbeatCount, 1)
+	assert.Equals(t, manager.MigrationUnlockCount, 1)
 }
