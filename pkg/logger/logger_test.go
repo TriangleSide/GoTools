@@ -84,6 +84,16 @@ func TestFromContext_WithInvalidLogLevel_ReturnsLoggerWithInfoLevel(t *testing.T
 	assert.False(t, log.Enabled(ctx, slog.LevelDebug))
 }
 
+func TestFromContext_WithNoLogLevel_ReturnsLoggerWithInfoLevel(t *testing.T) {
+	t.Setenv("NOT_LOG_LEVEL", "SOMETHING_ELSE")
+	ctx := t.Context()
+	resultCtx, log := logger.FromContext(ctx)
+	assert.NotNil(t, resultCtx)
+	assert.NotNil(t, log)
+	assert.True(t, log.Enabled(ctx, slog.LevelInfo))
+	assert.False(t, log.Enabled(ctx, slog.LevelDebug))
+}
+
 func TestWithAttrs_ExistingLogger_AddsAttrsToExistingLogger(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()

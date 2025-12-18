@@ -17,7 +17,7 @@ var ctxKeyInstance ctxKey
 // getLogLevelFromEnv retrieves the log level from environment variables.
 func getLogLevelFromEnv() slog.Level {
 	type Config struct {
-		LogLevel string `config:"ENV" config_default:"INFO"`
+		LogLevel string `config:"ENV"`
 	}
 
 	cfg, err := config.Process[Config]()
