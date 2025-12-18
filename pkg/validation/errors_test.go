@@ -162,6 +162,12 @@ func TestViolations_Error_MultipleViolations_ReturnsJoinedMessages(t *testing.T)
 	assert.Equals(t, violations.Error(), expectedErr)
 }
 
+func TestViolation_Unwrap_NilViolation_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	var violation *validation.Violation
+	assert.Nil(t, violation.Unwrap())
+}
+
 func TestViolation_Unwrap_CauseIsDiscoverableViaErrorsIs(t *testing.T) {
 	t.Parallel()
 	cause := errors.New("cause")
