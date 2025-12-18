@@ -69,9 +69,11 @@ func forEachValidatorAndInstruction(
 			return strings.Join(namesToInstructions[instructionIdx+1:], ValidatorsSep)
 		}
 
-		if shouldContinue, err := callback(validatorName, validatorInstructions, restOfValidationTag); err != nil {
+		shouldContinue, err := callback(validatorName, validatorInstructions, restOfValidationTag)
+		if err != nil {
 			return err
-		} else if !shouldContinue {
+		}
+		if !shouldContinue {
 			return nil
 		}
 	}

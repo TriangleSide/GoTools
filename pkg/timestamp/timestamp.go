@@ -43,11 +43,7 @@ func (ts Timestamp) MarshalJSON() ([]byte, error) {
 	if ts.time.IsZero() {
 		return nil, errors.New("timestamp is zero while marshaling")
 	}
-	jsonBytes, err := json.Marshal(ts.time.Format(time.RFC3339))
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal timestamp: %w", err)
-	}
-	return jsonBytes, nil
+	return json.Marshal(ts.time.Format(time.RFC3339)) // nolint:wrapcheck
 }
 
 // UnmarshalJSON implements json.Unmarshaler expecting RFC 3339 format.
