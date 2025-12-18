@@ -1,4 +1,4 @@
-package jwt
+package timestamp
 
 import (
 	"encoding/json"
@@ -8,12 +8,15 @@ import (
 )
 
 // Timestamp represents a point in time stored as an RFC 3339 string for universal compatibility.
+// It is implemented as a struct with a private field rather than a type alias (type Timestamp time.Time)
+// to enforce the invariant that all timestamps are normalized to UTC. This prevents callers from
+// bypassing the constructor and creating timestamps in non-UTC timezones.
 type Timestamp struct {
 	time time.Time
 }
 
-// NewTimestamp creates a Timestamp from a time.Time value.
-func NewTimestamp(t time.Time) Timestamp {
+// New creates a Timestamp from a time.Time value.
+func New(t time.Time) Timestamp {
 	return Timestamp{time: t.UTC()}
 }
 

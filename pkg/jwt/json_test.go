@@ -10,14 +10,15 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/jwt"
 	"github.com/TriangleSide/GoTools/pkg/ptr"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/timestamp"
 )
 
 func TestEncode_StableJSONMarshaller_EncodesFieldsInSortedOrder(t *testing.T) {
 	t.Parallel()
 
-	exp := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
-	nbf := jwt.NewTimestamp(time.Date(2021, 3, 20, 8, 30, 0, 0, time.UTC))
-	iat := jwt.NewTimestamp(time.Date(2018, 1, 10, 4, 15, 0, 0, time.UTC))
+	exp := timestamp.New(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+	nbf := timestamp.New(time.Date(2021, 3, 20, 8, 30, 0, 0, time.UTC))
+	iat := timestamp.New(time.Date(2018, 1, 10, 4, 15, 0, 0, time.UTC))
 
 	claims := jwt.Claims{
 		Issuer:    ptr.Of("issuer"),
@@ -58,7 +59,7 @@ func TestEncode_StableJSONMarshaller_EncodesFieldsInSortedOrder(t *testing.T) {
 func TestEncode_ZeroValues_OmitsEmptyFields(t *testing.T) {
 	t.Parallel()
 
-	exp := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+	exp := timestamp.New(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
 
 	claims := jwt.Claims{
 		Subject:   ptr.Of("subject"),
@@ -116,9 +117,9 @@ func TestEncode_TimestampsWithDifferentTimezones_NormalizesToUTC(t *testing.T) {
 
 	claims := jwt.Claims{
 		Audience:  ptr.Of("timezone-audience"),
-		ExpiresAt: ptr.Of(jwt.NewTimestamp(time.Date(2030, 12, 25, 10, 30, 0, 0, time.FixedZone("EST", -5*3600)))),
-		IssuedAt:  ptr.Of(jwt.NewTimestamp(time.Date(2020, 6, 15, 14, 45, 0, 0, time.FixedZone("PST", -8*3600)))),
-		NotBefore: ptr.Of(jwt.NewTimestamp(time.Date(2025, 9, 1, 0, 0, 0, 0, time.FixedZone("CET", 1*3600)))),
+		ExpiresAt: ptr.Of(timestamp.New(time.Date(2030, 12, 25, 10, 30, 0, 0, time.FixedZone("EST", -5*3600)))),
+		IssuedAt:  ptr.Of(timestamp.New(time.Date(2020, 6, 15, 14, 45, 0, 0, time.FixedZone("PST", -8*3600)))),
+		NotBefore: ptr.Of(timestamp.New(time.Date(2025, 9, 1, 0, 0, 0, 0, time.FixedZone("CET", 1*3600)))),
 		Subject:   ptr.Of("subject"),
 	}
 
@@ -139,9 +140,9 @@ func TestEncode_ZeroTimestampFields_OmitsFromEncodedBody(t *testing.T) {
 
 	claims := jwt.Claims{
 		Subject:   ptr.Of("subject"),
-		ExpiresAt: ptr.Of(jwt.Timestamp{}),
-		NotBefore: ptr.Of(jwt.Timestamp{}),
-		IssuedAt:  ptr.Of(jwt.Timestamp{}),
+		ExpiresAt: ptr.Of(timestamp.Timestamp{}),
+		NotBefore: ptr.Of(timestamp.Timestamp{}),
+		IssuedAt:  ptr.Of(timestamp.Timestamp{}),
 	}
 
 	token, _, _, err := jwt.Encode(claims, jwt.EdDSA)
@@ -158,7 +159,7 @@ func TestEncode_ZeroTimestampFields_OmitsFromEncodedBody(t *testing.T) {
 func TestEncode_EmptyStringFields_OmitsFromEncodedBody(t *testing.T) {
 	t.Parallel()
 
-	exp := jwt.NewTimestamp(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
+	exp := timestamp.New(time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC))
 
 	claims := jwt.Claims{
 		Subject:   ptr.Of("subject"),
