@@ -46,7 +46,7 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 	}
 
 	var releaseMigrationLockErr error
-	releaseMigrationLockWG := sync.WaitGroup{}
+	var releaseMigrationLockWG sync.WaitGroup
 
 	ctxDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.MigrationDeadlineMillis))
 	ctx, cancel := context.WithDeadline(context.Background(), ctxDeadline)
@@ -224,7 +224,7 @@ func latestCompletedMigrationOrder(orderToPersistedStatus map[Order]Status, orde
 func enabledMigrationsThatArentCompleted(
 	orderToPersistedStatus map[Order]Status, orderedMigrations []*Registration,
 ) []migrationToRun {
-	migrationsToRun := make([]migrationToRun, 0)
+	migrationsToRun := make([]migrationToRun, 0, len(orderedMigrations))
 	for _, registeredMigration := range orderedMigrations {
 		if !registeredMigration.Enabled {
 			continue

@@ -245,7 +245,7 @@ func TestMap_WhenManyThreadsUseMap_ShouldHaveNoIssues(t *testing.T) {
 
 	const entryCount = 1000
 	const goRoutineCount = 8
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	waitToStart := make(chan struct{})
 
 	builder := readonly.NewMapBuilder[int, int]()

@@ -27,7 +27,7 @@ func Metadata[T any]() *readonly.Map[string, *FieldMetadata] {
 func MetadataFromType(reflectType reflect.Type) *readonly.Map[string, *FieldMetadata] {
 	getOrSetFn := func(reflectType reflect.Type) (*readonly.Map[string, *FieldMetadata], *time.Duration, error) {
 		fieldsToMetadata := make(map[string]*FieldMetadata)
-		processType(reflectType, fieldsToMetadata, make([]string, 0))
+		processType(reflectType, fieldsToMetadata, []string{})
 		readOnlyMap := readonly.NewMapBuilder[string, *FieldMetadata]().SetMap(fieldsToMetadata).Build()
 		return readOnlyMap, nil, nil
 	}

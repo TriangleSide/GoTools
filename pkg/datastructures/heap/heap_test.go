@@ -235,7 +235,7 @@ func TestHeap_WhenAccessedConcurrently_ShouldHaveNoIssues(t *testing.T) {
 	const countPerRoutine = 5000
 	const routineCount = 4
 
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	waitToStart := make(chan struct{})
 
 	for range routineCount {

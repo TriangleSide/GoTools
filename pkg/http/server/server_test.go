@@ -967,7 +967,7 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 			"", http.StatusOK},
 	}
 
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	waitToStart := make(chan struct{})
 	totalGoRoutinesPerOperation := 2
 	totalRequestsPerGoRoutine := 1000
