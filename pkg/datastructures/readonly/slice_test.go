@@ -123,7 +123,7 @@ func TestSlice_ConcurrentAccess_NoIssues(t *testing.T) {
 
 	const entryCount = 1000
 	const goRoutineCount = 4
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	waitToStart := make(chan struct{})
 
 	builder := readonly.NewSliceBuilder[int]()

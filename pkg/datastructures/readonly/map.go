@@ -74,11 +74,9 @@ type MapBuilder[Key comparable, Value any] struct {
 
 // NewMapBuilder returns a new MapBuilder.
 func NewMapBuilder[Key comparable, Value any]() *MapBuilder[Key, Value] {
-	builder := &MapBuilder[Key, Value]{
-		built:       atomic.Bool{},
+	return &MapBuilder[Key, Value]{
 		internalMap: make(map[Key]Value),
 	}
-	return builder
 }
 
 // Set adds entries to the MapBuilder.

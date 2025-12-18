@@ -633,7 +633,7 @@ func TestAssert_ConcurrentUsage_ShouldWorkCorrectly(t *testing.T) {
 	t.Parallel()
 	const goroutines = 8
 	const iterations = 1000
-	waitGroup := sync.WaitGroup{}
+	var waitGroup sync.WaitGroup
 	waitGroup.Add(goroutines)
 	for range goroutines {
 		go func() {

@@ -95,7 +95,6 @@ func New[T any](hasPriority func(a T, b T) bool) *Heap[T] {
 	return &Heap[T]{
 		hasPriority: hasPriority,
 		tree:        make([]T, 0, 1),
-		lock:        sync.RWMutex{},
 	}
 }
 
@@ -116,12 +115,11 @@ func (h *Heap[T]) Push(value T) {
 	index := len(h.tree) - 1
 	for index > 0 {
 		parentIndex := (index - 1) / 2 // nolint:mnd
-		if h.hasPriority(h.tree[index], h.tree[parentIndex]) {
-			h.tree[index], h.tree[parentIndex] = h.tree[parentIndex], h.tree[index]
-			index = parentIndex
-		} else {
+		if !h.hasPriority(h.tree[index], h.tree[parentIndex]) {
 			break
 		}
+		h.tree[index], h.tree[parentIndex] = h.tree[parentIndex], h.tree[index]
+		index = parentIndex
 	}
 }
 
@@ -134,12 +132,10 @@ func (h *Heap[T]) bubbleDown() T {
 	index := 0
 	for {
 		leftIndex := (index * 2) + 1 // nolint:mnd
-		var swapLeft bool
-		if leftIndex < len(h.tree) {
-			swapLeft = h.hasPriority(h.tree[leftIndex], h.tree[index])
-		} else {
+		if leftIndex >= len(h.tree) {
 			break
 		}
+		swapLeft := h.hasPriority(h.tree[leftIndex], h.tree[index])
 
 		rightIndex := (index * 2) + 2 // nolint:mnd
 		var swapRight bool
