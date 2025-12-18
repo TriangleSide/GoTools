@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/TriangleSide/GoTools/pkg/timestamp"
 )
 
 const (
@@ -25,13 +27,13 @@ type Header struct {
 
 // Claims represents the claims (body) of a JSON Web Token.
 type Claims struct {
-	Issuer    *string    `json:"iss"`
-	Subject   *string    `json:"sub"`
-	Audience  *string    `json:"aud"`
-	ExpiresAt *Timestamp `json:"exp"`
-	NotBefore *Timestamp `json:"nbf"`
-	IssuedAt  *Timestamp `json:"iat"`
-	TokenID   *string    `json:"jti"`
+	Issuer    *string              `json:"iss"`
+	Subject   *string              `json:"sub"`
+	Audience  *string              `json:"aud"`
+	ExpiresAt *timestamp.Timestamp `json:"exp"`
+	NotBefore *timestamp.Timestamp `json:"nbf"`
+	IssuedAt  *timestamp.Timestamp `json:"iat"`
+	TokenID   *string              `json:"jti"`
 }
 
 // Encode converts the provided claims into a signed JWT string using the specified algorithm.

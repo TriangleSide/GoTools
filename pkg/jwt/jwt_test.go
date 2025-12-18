@@ -13,6 +13,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/jwt"
 	"github.com/TriangleSide/GoTools/pkg/ptr"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/timestamp"
 )
 
 func TestEncode_WithEdDSA_ReturnsValidTokenKeyAndKeyID(t *testing.T) {
@@ -264,9 +265,9 @@ func TestDecode_ValidTokenWithTimestampClaims_ReturnsClaimsWithTimestamps(t *tes
 	now := time.Now().UTC().Truncate(time.Second)
 	claims := jwt.Claims{
 		Issuer:    ptr.Of("test-issuer"),
-		ExpiresAt: ptr.Of(jwt.NewTimestamp(now.Add(time.Hour))),
-		NotBefore: ptr.Of(jwt.NewTimestamp(now.Add(-time.Minute))),
-		IssuedAt:  ptr.Of(jwt.NewTimestamp(now)),
+		ExpiresAt: ptr.Of(timestamp.New(now.Add(time.Hour))),
+		NotBefore: ptr.Of(timestamp.New(now.Add(-time.Minute))),
+		IssuedAt:  ptr.Of(timestamp.New(now)),
 	}
 	token, key, _, err := jwt.Encode(claims, jwt.EdDSA)
 	assert.NoError(t, err)

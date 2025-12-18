@@ -9,6 +9,7 @@ import (
 
 	"github.com/TriangleSide/GoTools/pkg/reflection"
 	"github.com/TriangleSide/GoTools/pkg/structs"
+	"github.com/TriangleSide/GoTools/pkg/timestamp"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 
 var (
 	// timestampType holds the reflect.Type for the Timestamp struct.
-	timestampType = reflect.TypeFor[Timestamp]()
+	timestampType = reflect.TypeFor[timestamp.Timestamp]()
 )
 
 // marshalToStableJSON takes a struct and marshals it to a JSON string with stable field ordering.
@@ -44,7 +45,7 @@ func marshalToStableJSON(v any) string {
 		}
 		var valueStr string
 		if structValue.Type() == timestampType {
-			ts := structValue.Interface().(Timestamp)
+			ts := structValue.Interface().(timestamp.Timestamp)
 			valueStr = strconv.Quote(ts.Time().Format(time.RFC3339))
 		} else {
 			valueStr = strconv.Quote(structValue.String())
