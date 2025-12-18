@@ -6,6 +6,7 @@ import (
 
 	"github.com/TriangleSide/GoTools/pkg/jwt"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/timestamp"
 )
 
 func TestNewClaimsVerifier_NoOptions_UsesDefaultValues(t *testing.T) {
@@ -102,7 +103,7 @@ func TestClaimsVerifierVerify_TokenExpired_ReturnsError(t *testing.T) {
 	t.Parallel()
 	fixedTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	verifier := jwt.NewClaimsVerifier(jwt.WithTimeFunc(func() time.Time { return fixedTime }))
-	expiredTime := jwt.NewTimestamp(fixedTime.Add(-1 * time.Hour))
+	expiredTime := timestamp.New(fixedTime.Add(-1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{ExpiresAt: &expiredTime})
 	assert.ErrorExact(t, err, "token has expired")
 }
@@ -111,7 +112,7 @@ func TestClaimsVerifierVerify_TokenNotExpired_Succeeds(t *testing.T) {
 	t.Parallel()
 	fixedTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	verifier := jwt.NewClaimsVerifier(jwt.WithTimeFunc(func() time.Time { return fixedTime }))
-	futureTime := jwt.NewTimestamp(fixedTime.Add(1 * time.Hour))
+	futureTime := timestamp.New(fixedTime.Add(1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{ExpiresAt: &futureTime})
 	assert.NoError(t, err)
 }
@@ -130,7 +131,7 @@ func TestClaimsVerifierVerify_ExpirationVerificationDisabled_SkipsExpirationChec
 		jwt.WithTimeFunc(func() time.Time { return fixedTime }),
 		jwt.WithVerifyExpiresAt(false),
 	)
-	expiredTime := jwt.NewTimestamp(fixedTime.Add(-1 * time.Hour))
+	expiredTime := timestamp.New(fixedTime.Add(-1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{ExpiresAt: &expiredTime})
 	assert.NoError(t, err)
 }
@@ -142,7 +143,7 @@ func TestClaimsVerifierVerify_TokenExpiredWithinClockSkew_Succeeds(t *testing.T)
 		jwt.WithTimeFunc(func() time.Time { return fixedTime }),
 		jwt.WithClockSkew(2*time.Minute),
 	)
-	expiredTime := jwt.NewTimestamp(fixedTime.Add(-1 * time.Minute))
+	expiredTime := timestamp.New(fixedTime.Add(-1 * time.Minute))
 	err := verifier.Verify(&jwt.Claims{ExpiresAt: &expiredTime})
 	assert.NoError(t, err)
 }
@@ -151,7 +152,7 @@ func TestClaimsVerifierVerify_TokenNotYetValid_ReturnsError(t *testing.T) {
 	t.Parallel()
 	fixedTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	verifier := jwt.NewClaimsVerifier(jwt.WithTimeFunc(func() time.Time { return fixedTime }))
-	futureTime := jwt.NewTimestamp(fixedTime.Add(1 * time.Hour))
+	futureTime := timestamp.New(fixedTime.Add(1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{NotBefore: &futureTime})
 	assert.ErrorExact(t, err, "token is not yet valid")
 }
@@ -160,7 +161,7 @@ func TestClaimsVerifierVerify_TokenValidBasedOnNotBefore_Succeeds(t *testing.T) 
 	t.Parallel()
 	fixedTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	verifier := jwt.NewClaimsVerifier(jwt.WithTimeFunc(func() time.Time { return fixedTime }))
-	pastTime := jwt.NewTimestamp(fixedTime.Add(-1 * time.Hour))
+	pastTime := timestamp.New(fixedTime.Add(-1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{NotBefore: &pastTime})
 	assert.NoError(t, err)
 }
@@ -179,7 +180,7 @@ func TestClaimsVerifierVerify_NotBeforeVerificationDisabled_SkipsNotBeforeCheck(
 		jwt.WithTimeFunc(func() time.Time { return fixedTime }),
 		jwt.WithVerifyNotBefore(false),
 	)
-	futureTime := jwt.NewTimestamp(fixedTime.Add(1 * time.Hour))
+	futureTime := timestamp.New(fixedTime.Add(1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{NotBefore: &futureTime})
 	assert.NoError(t, err)
 }
@@ -191,7 +192,7 @@ func TestClaimsVerifierVerify_TokenNotYetValidWithinClockSkew_Succeeds(t *testin
 		jwt.WithTimeFunc(func() time.Time { return fixedTime }),
 		jwt.WithClockSkew(2*time.Minute),
 	)
-	futureTime := jwt.NewTimestamp(fixedTime.Add(1 * time.Minute))
+	futureTime := timestamp.New(fixedTime.Add(1 * time.Minute))
 	err := verifier.Verify(&jwt.Claims{NotBefore: &futureTime})
 	assert.NoError(t, err)
 }
@@ -203,7 +204,7 @@ func TestClaimsVerifierVerify_IssuedAtEnabledAndTokenIssuedInFuture_ReturnsError
 		jwt.WithTimeFunc(func() time.Time { return fixedTime }),
 		jwt.WithVerifyIssuedAt(true),
 	)
-	futureTime := jwt.NewTimestamp(fixedTime.Add(1 * time.Hour))
+	futureTime := timestamp.New(fixedTime.Add(1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{IssuedAt: &futureTime})
 	assert.ErrorExact(t, err, "token was issued in the future")
 }
@@ -215,7 +216,7 @@ func TestClaimsVerifierVerify_IssuedAtEnabledAndTokenIssuedInPast_Succeeds(t *te
 		jwt.WithTimeFunc(func() time.Time { return fixedTime }),
 		jwt.WithVerifyIssuedAt(true),
 	)
-	pastTime := jwt.NewTimestamp(fixedTime.Add(-1 * time.Hour))
+	pastTime := timestamp.New(fixedTime.Add(-1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{IssuedAt: &pastTime})
 	assert.NoError(t, err)
 }
@@ -234,7 +235,7 @@ func TestClaimsVerifierVerify_IssuedAtDisabled_SkipsIssuedAtCheck(t *testing.T) 
 		jwt.WithTimeFunc(func() time.Time { return fixedTime }),
 		jwt.WithVerifyIssuedAt(false),
 	)
-	futureTime := jwt.NewTimestamp(fixedTime.Add(1 * time.Hour))
+	futureTime := timestamp.New(fixedTime.Add(1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{IssuedAt: &futureTime})
 	assert.NoError(t, err)
 }
@@ -247,7 +248,7 @@ func TestClaimsVerifierVerify_IssuedAtEnabledAndTokenIssuedInFutureWithinClockSk
 		jwt.WithVerifyIssuedAt(true),
 		jwt.WithClockSkew(2*time.Minute),
 	)
-	futureTime := jwt.NewTimestamp(fixedTime.Add(1 * time.Minute))
+	futureTime := timestamp.New(fixedTime.Add(1 * time.Minute))
 	err := verifier.Verify(&jwt.Claims{IssuedAt: &futureTime})
 	assert.NoError(t, err)
 }
@@ -265,9 +266,9 @@ func TestClaimsVerifierVerify_AllClaimsValid_Succeeds(t *testing.T) {
 	issuer := "my-issuer"
 	subject := "my-subject"
 	audience := "my-audience"
-	issuedAt := jwt.NewTimestamp(fixedTime.Add(-1 * time.Hour))
-	notBefore := jwt.NewTimestamp(fixedTime.Add(-30 * time.Minute))
-	expiresAt := jwt.NewTimestamp(fixedTime.Add(1 * time.Hour))
+	issuedAt := timestamp.New(fixedTime.Add(-1 * time.Hour))
+	notBefore := timestamp.New(fixedTime.Add(-30 * time.Minute))
+	expiresAt := timestamp.New(fixedTime.Add(1 * time.Hour))
 	err := verifier.Verify(&jwt.Claims{
 		Issuer:    &issuer,
 		Subject:   &subject,
@@ -283,7 +284,7 @@ func TestClaimsVerifierVerify_TokenExpiresExactlyAtCurrentTime_Succeeds(t *testi
 	t.Parallel()
 	fixedTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	verifier := jwt.NewClaimsVerifier(jwt.WithTimeFunc(func() time.Time { return fixedTime }))
-	expiresAt := jwt.NewTimestamp(fixedTime)
+	expiresAt := timestamp.New(fixedTime)
 	err := verifier.Verify(&jwt.Claims{ExpiresAt: &expiresAt})
 	assert.NoError(t, err)
 }
@@ -292,7 +293,7 @@ func TestClaimsVerifierVerify_NotBeforeExactlyAtCurrentTime_Succeeds(t *testing.
 	t.Parallel()
 	fixedTime := time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC)
 	verifier := jwt.NewClaimsVerifier(jwt.WithTimeFunc(func() time.Time { return fixedTime }))
-	notBefore := jwt.NewTimestamp(fixedTime)
+	notBefore := timestamp.New(fixedTime)
 	err := verifier.Verify(&jwt.Claims{NotBefore: &notBefore})
 	assert.NoError(t, err)
 }
@@ -304,7 +305,7 @@ func TestClaimsVerifierVerify_IssuedAtExactlyAtCurrentTime_Succeeds(t *testing.T
 		jwt.WithTimeFunc(func() time.Time { return fixedTime }),
 		jwt.WithVerifyIssuedAt(true),
 	)
-	issuedAt := jwt.NewTimestamp(fixedTime)
+	issuedAt := timestamp.New(fixedTime)
 	err := verifier.Verify(&jwt.Claims{IssuedAt: &issuedAt})
 	assert.NoError(t, err)
 }
