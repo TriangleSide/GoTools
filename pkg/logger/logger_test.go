@@ -111,16 +111,14 @@ func TestFromContext_ConcurrentAccess_IsThreadSafe(t *testing.T) {
 	ctx, _ = logger.FromContext(ctx)
 
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer waitGroup.Done()
+		waitGroup.Go(func() {
 			for range iterations {
 				_, log := logger.FromContext(ctx)
 				assert.NotNil(t, log, assert.Continue())
 			}
-		}()
+		})
 	}
 
 	waitGroup.Wait()
@@ -134,17 +132,15 @@ func TestWithAttrs_ConcurrentAccess_IsThreadSafe(t *testing.T) {
 	ctx := t.Context()
 
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(goroutines)
 
 	for goroutineIdx := range goroutines {
-		go func(id int) {
-			defer waitGroup.Done()
+		waitGroup.Go(func() {
 			for j := range iterations {
-				localCtx, log := logger.WithAttrs(ctx, slog.Int("goroutine", id), slog.Int("iteration", j))
+				localCtx, log := logger.WithAttrs(ctx, slog.Int("goroutine", goroutineIdx), slog.Int("iteration", j))
 				assert.NotNil(t, localCtx, assert.Continue())
 				assert.NotNil(t, log, assert.Continue())
 			}
-		}(goroutineIdx)
+		})
 	}
 
 	waitGroup.Wait()

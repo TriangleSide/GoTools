@@ -634,10 +634,8 @@ func TestAssert_ConcurrentUsage_ShouldWorkCorrectly(t *testing.T) {
 	const goroutines = 8
 	const iterations = 1000
 	var waitGroup sync.WaitGroup
-	waitGroup.Add(goroutines)
 	for range goroutines {
-		go func() {
-			defer waitGroup.Done()
+		waitGroup.Go(func() {
 			for range iterations {
 				assert.Equals(t, 1, 1)
 				assert.NotEquals(t, 1, 2)
@@ -650,7 +648,7 @@ func TestAssert_ConcurrentUsage_ShouldWorkCorrectly(t *testing.T) {
 				assert.FloatEquals(t, 1.0, 1.0, 0.1)
 				assert.Panic(t, func() { panic(errors.New("test")) })
 			}
-		}()
+		})
 	}
 	waitGroup.Wait()
 }
