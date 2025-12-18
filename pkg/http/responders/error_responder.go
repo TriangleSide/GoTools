@@ -60,16 +60,16 @@ func Error(writer http.ResponseWriter, err error, opts ...Option) {
 		}
 	}
 
-	jsonBytes, err := cfg.jsonMarshal(errResponse)
-	if err != nil {
-		cfg.errorCallback(err)
+	jsonBytes, marshalErr := cfg.jsonMarshal(errResponse)
+	if marshalErr != nil {
+		cfg.errorCallback(marshalErr)
 		statusCode = http.StatusInternalServerError
 		errResponse = StandardErrorResponse{
 			Message: http.StatusText(http.StatusInternalServerError),
 		}
-		jsonBytes, err = cfg.jsonMarshal(errResponse)
-		if err != nil {
-			cfg.errorCallback(err)
+		jsonBytes, marshalErr = cfg.jsonMarshal(errResponse)
+		if marshalErr != nil {
+			cfg.errorCallback(marshalErr)
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
