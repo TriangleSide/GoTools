@@ -100,10 +100,8 @@ func (v *Violations) Unwrap() []error {
 
 	errs := make([]error, 0, len(v.violations))
 	for _, violation := range v.violations {
-		if violation == nil {
-			continue
-		}
 		errs = append(errs, violation)
 	}
+
 	return errs
 }

@@ -180,6 +180,18 @@ func TestViolation_Unwrap_CauseIsDiscoverableViaErrorsIs(t *testing.T) {
 	assert.True(t, errors.Is(violation, cause))
 }
 
+func TestViolations_Unwrap_NilViolations_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	var violations *validation.Violations
+	assert.Nil(t, violations.Unwrap())
+}
+
+func TestViolations_Unwrap_EmptyViolations_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	violations := validation.NewViolations()
+	assert.Nil(t, violations.Unwrap())
+}
+
 func TestViolations_Unwrap_CausesAreDiscoverableViaErrorsIs(t *testing.T) {
 	t.Parallel()
 	firstCause := errors.New("first")
