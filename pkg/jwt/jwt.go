@@ -37,15 +37,15 @@ type Claims struct {
 }
 
 // Encode converts the provided claims into a signed JWT string using the specified algorithm.
-// It generates a new key internally and returns the encoded JWT, the key used, the key ID, and any error.
-// The key and key ID must be persisted by the caller for future verification.
-func Encode(claims Claims, algorithm SignatureAlgorithm) (string, []byte, string, error) {
+// It generates a new key pair internally and returns the encoded JWT, the public key, the key ID, and any error.
+// The public key and key ID must be persisted by the caller for future verification.
+func Encode(claims Claims, algorithm SignatureAlgorithm) (string, PublicKey, string, error) {
 	provider, ok := signatureProviders[algorithm]
 	if !ok {
 		return "", nil, "", errors.New("failed to resolve signature provider")
 	}
 
-	key, keyID, err := keyGen(provider)
+	publicKey, privateKey, keyID, err := keyGen(provider)
 	if err != nil {
 		return "", nil, "", fmt.Errorf("failed to generate signing key: %w", err)
 	}
@@ -57,7 +57,7 @@ func Encode(claims Claims, algorithm SignatureAlgorithm) (string, []byte, string
 	bodyJSON := marshalToStableJSON(claims)
 	encodedBody := base64.RawURLEncoding.EncodeToString([]byte(bodyJSON))
 
-	signatureBytes, err := provider.Sign([]byte(encodedHeader+"."+encodedBody), key)
+	signatureBytes, err := provider.Sign([]byte(encodedHeader+"."+encodedBody), privateKey)
 	if err != nil {
 		return "", nil, "", fmt.Errorf("failed to sign token: %w", err)
 	}
@@ -65,11 +65,11 @@ func Encode(claims Claims, algorithm SignatureAlgorithm) (string, []byte, string
 	encodedSignature := base64.RawURLEncoding.EncodeToString(signatureBytes)
 	jwt := strings.Join([]string{encodedHeader, encodedBody, encodedSignature}, ".")
 
-	return jwt, key, keyID, nil
+	return jwt, publicKey, keyID, nil
 }
 
-// KeyProvider is a function type that retrieves the signing key and algorithm based on the provided context and key ID.
-type KeyProvider func(ctx context.Context, keyId string) ([]byte, SignatureAlgorithm, error)
+// KeyProvider is a function type that retrieves the public key and algorithm based on the provided context and key ID.
+type KeyProvider func(ctx context.Context, keyId string) (PublicKey, SignatureAlgorithm, error)
 
 // Decode validates the supplied token string using the key and algorithm from the provider.
 // It returns the decoded claims if the token is valid, or an error otherwise.
@@ -118,7 +118,7 @@ func Decode(ctx context.Context, token string, keyProvider KeyProvider) (*Claims
 }
 
 // validateSignature checks if the signature of the JWT is valid using the provided key and algorithm.
-func validateSignature(parts []string, key []byte, algorithm SignatureAlgorithm) error {
+func validateSignature(parts []string, key PublicKey, algorithm SignatureAlgorithm) error {
 	provider, ok := signatureProviders[algorithm]
 	if !ok {
 		return errors.New("failed to resolve signature provider")
