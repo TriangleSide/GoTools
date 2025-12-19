@@ -162,11 +162,6 @@ func checkValidatorsAgainstValue(
 	return violations, err
 }
 
-// validateNestedStruct validates a nested struct and returns any violations.
-func validateNestedStruct(depth int, val reflect.Value) ([]*Violation, error) {
-	return validateStructInternal(val.Interface(), depth+1)
-}
-
 // validateContainerElements validates elements within slices, arrays, and maps.
 func validateContainerElements(depth int, val reflect.Value) ([]*Violation, error) {
 	var violations []*Violation
@@ -193,6 +188,8 @@ func validateContainerElements(depth int, val reflect.Value) ([]*Violation, erro
 			}
 			violations = append(violations, valueViolations...)
 		}
+	default:
+		// Not a container type; skipping.
 	}
 	return violations, nil
 }
@@ -212,7 +209,7 @@ func validateRecursively(depth int, val reflect.Value) ([]*Violation, error) {
 	}
 
 	if val.Kind() == reflect.Struct {
-		return validateNestedStruct(depth, val)
+		return validateStructInternal(val, depth+1)
 	}
 	return validateContainerElements(depth, val)
 }
@@ -220,7 +217,11 @@ func validateRecursively(depth int, val reflect.Value) ([]*Violation, error) {
 // Struct validates all struct fields using their validation tags, returning an error if any fail.
 // In the case that the struct has tag violations, the violations are joined with errors.Join.
 func Struct[T any](val T) error {
-	violations, err := validateStructInternal(val, 0)
+	reflectValue, err := dereferenceAndNilCheck(reflect.ValueOf(val))
+	if err != nil {
+		return err
+	}
+	violations, err := validateStructInternal(reflectValue, 0)
 	if err != nil {
 		return err
 	}
@@ -228,24 +229,20 @@ func Struct[T any](val T) error {
 }
 
 // validateStructInternal is a helper for the Struct and validateRecursively functions.
-func validateStructInternal[T any](val T, depth int) ([]*Violation, error) {
-	reflectValue, err := dereferenceAndNilCheck(reflect.ValueOf(val))
-	if err != nil {
-		return nil, err
-	}
-	if reflectValue.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("validation parameter must be a struct but got %s", reflectValue.Kind())
+func validateStructInternal(val reflect.Value, depth int) ([]*Violation, error) {
+	if val.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("validation parameter must be a struct but got %s", val.Kind())
 	}
 
 	var violations []*Violation
-	structMetadataMap := structs.MetadataFromType(reflectValue.Type())
+	structMetadataMap := structs.MetadataFromType(val.Type())
 
 	for fieldName, fieldMetadata := range structMetadataMap.All() {
-		fieldValueFromStruct, _ := structs.ValueFromName(val, fieldName)
+		fieldValueFromStruct, _ := structs.ValueFromName(val.Interface(), fieldName)
 
 		if validationTag, hasValidationTag := fieldMetadata.Tags().Fetch(Tag); hasValidationTag {
 			fieldViolations, err := checkValidatorsAgainstValue(
-				true, reflectValue, fieldName, fieldValueFromStruct, validationTag)
+				true, val, fieldName, fieldValueFromStruct, validationTag)
 			if err != nil {
 				return nil, err
 			}
