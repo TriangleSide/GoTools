@@ -81,6 +81,15 @@ var (
 	errEmptyHeap = errors.New("heap is empty")
 )
 
+const (
+	// heapBranchingFactor is the number of children per heap node.
+	heapBranchingFactor = 2
+	// heapLeftChildOffset is the index delta from a parent to its left child.
+	heapLeftChildOffset = 1
+	// heapRightChildOffset is the index delta from a parent to its right child.
+	heapRightChildOffset = 2
+)
+
 // Heap is a tree-based data structure optimized for quickly accessing the minimum or maximum element,
 // depending on the comparator. It supports O(log n) insertion and deletion operations. It is commonly
 // used in priority queues, heap sort, and graph algorithms.
@@ -114,7 +123,7 @@ func (h *Heap[T]) Push(value T) {
 
 	index := len(h.tree) - 1
 	for index > 0 {
-		parentIndex := (index - 1) / 2 // nolint:mnd
+		parentIndex := (index - 1) / heapBranchingFactor
 		if !h.hasPriority(h.tree[index], h.tree[parentIndex]) {
 			break
 		}
@@ -131,13 +140,13 @@ func (h *Heap[T]) bubbleDown() T {
 
 	index := 0
 	for {
-		leftIndex := (index * 2) + 1 // nolint:mnd
+		leftIndex := (index * heapBranchingFactor) + heapLeftChildOffset
 		if leftIndex >= len(h.tree) {
 			break
 		}
 		swapLeft := h.hasPriority(h.tree[leftIndex], h.tree[index])
 
-		rightIndex := (index * 2) + 2 // nolint:mnd
+		rightIndex := (index * heapBranchingFactor) + heapRightChildOffset
 		var swapRight bool
 		if rightIndex < len(h.tree) {
 			swapRight = h.hasPriority(h.tree[rightIndex], h.tree[index])
