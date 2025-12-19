@@ -21,7 +21,7 @@ func init() {
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewViolation(params, err))
+			return result.WithError(NewViolationError(params, err))
 		}
 
 		if value.Kind() != reflect.String {
@@ -30,15 +30,15 @@ func init() {
 
 		strValue := value.String()
 		if !filepath.IsAbs(strValue) {
-			return result.WithError(NewViolation(params, fmt.Errorf("the path '%s' is not absolute", strValue)))
+			return result.WithError(NewViolationError(params, fmt.Errorf("the path '%s' is not absolute", strValue)))
 		}
 
 		if fsPath := absolutePathToFSPath(strValue); fsPath != "" && !fs.ValidPath(fsPath) {
-			return result.WithError(NewViolation(params, fmt.Errorf("the path '%s' is not valid", strValue)))
+			return result.WithError(NewViolationError(params, fmt.Errorf("the path '%s' is not valid", strValue)))
 		}
 
 		if _, err := os.Stat(strValue); err != nil {
-			return result.WithError(NewViolation(params, fmt.Errorf("the path '%s' is not accessible", strValue)))
+			return result.WithError(NewViolationError(params, fmt.Errorf("the path '%s' is not accessible", strValue)))
 		}
 
 		return nil

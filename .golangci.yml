@@ -21,6 +21,7 @@ linters:
     - embeddedstructfieldcheck
     - errcheck
     - errchkjson
+    - errname
     - errorlint
     - errorlint
     - inamedparam

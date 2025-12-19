@@ -11,7 +11,7 @@ import (
 
 func TestNewViolation_StructValidationWithParameters_ReturnsFormattedMessage(t *testing.T) {
 	t.Parallel()
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: true,
 		StructValue: reflect.ValueOf(struct {
@@ -27,7 +27,7 @@ func TestNewViolation_StructValidationWithParameters_ReturnsFormattedMessage(t *
 
 func TestNewViolation_StructValidationWithoutParameters_ReturnsFormattedMessage(t *testing.T) {
 	t.Parallel()
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: true,
 		StructValue: reflect.ValueOf(struct {
@@ -42,7 +42,7 @@ func TestNewViolation_StructValidationWithoutParameters_ReturnsFormattedMessage(
 
 func TestNewViolation_NonStructValidationWithParameters_ReturnsFormattedMessage(t *testing.T) {
 	t.Parallel()
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
@@ -54,7 +54,7 @@ func TestNewViolation_NonStructValidationWithParameters_ReturnsFormattedMessage(
 
 func TestNewViolation_NonStructValidationWithoutParameters_ReturnsFormattedMessage(t *testing.T) {
 	t.Parallel()
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
@@ -65,31 +65,31 @@ func TestNewViolation_NonStructValidationWithoutParameters_ReturnsFormattedMessa
 
 func TestNewViolations_ReturnsEmptyViolations(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
+	violations := validation.NewViolationsError()
 	assert.NotNil(t, violations)
 	assert.Nil(t, violations.NilIfEmpty())
 }
 
 func TestViolations_AddViolations_NilViolations_DoesNotPanic(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
+	violations := validation.NewViolationsError()
 	violations.AddViolations(nil)
 	assert.Nil(t, violations.NilIfEmpty())
 }
 
 func TestViolations_AddViolations_EmptyViolations_RemainsEmpty(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
-	other := validation.NewViolations()
+	violations := validation.NewViolationsError()
+	other := validation.NewViolationsError()
 	violations.AddViolations(other)
 	assert.Nil(t, violations.NilIfEmpty())
 }
 
 func TestViolations_AddViolations_NonEmptyViolations_AppendsViolations(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
-	other := validation.NewViolations()
-	other.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+	violations := validation.NewViolationsError()
+	other := validation.NewViolationsError()
+	other.AddViolation(validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
@@ -100,15 +100,15 @@ func TestViolations_AddViolations_NonEmptyViolations_AppendsViolations(t *testin
 
 func TestViolations_AddViolation_NilViolation_DoesNotAdd(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
+	violations := validation.NewViolationsError()
 	violations.AddViolation(nil)
 	assert.Nil(t, violations.NilIfEmpty())
 }
 
 func TestViolations_AddViolation_NonNilViolation_AddsViolation(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
-	violations.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+	violations := validation.NewViolationsError()
+	violations.AddViolation(validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
@@ -118,14 +118,14 @@ func TestViolations_AddViolation_NonNilViolation_AddsViolation(t *testing.T) {
 
 func TestViolations_NilIfEmpty_EmptyViolations_ReturnsNil(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
+	violations := validation.NewViolationsError()
 	assert.Nil(t, violations.NilIfEmpty())
 }
 
 func TestViolations_NilIfEmpty_NonEmptyViolations_ReturnsViolations(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
-	violations.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+	violations := validation.NewViolationsError()
+	violations.AddViolation(validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
@@ -135,8 +135,8 @@ func TestViolations_NilIfEmpty_NonEmptyViolations_ReturnsViolations(t *testing.T
 
 func TestViolations_Error_SingleViolation_ReturnsSingleMessage(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
-	violations.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+	violations := validation.NewViolationsError()
+	violations.AddViolation(validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
@@ -146,13 +146,13 @@ func TestViolations_Error_SingleViolation_ReturnsSingleMessage(t *testing.T) {
 
 func TestViolations_Error_MultipleViolations_ReturnsJoinedMessages(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
-	violations.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+	violations := validation.NewViolationsError()
+	violations.AddViolation(validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "first",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
 	}, errors.New("first message")))
-	violations.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+	violations.AddViolation(validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "second",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(2),
@@ -164,14 +164,14 @@ func TestViolations_Error_MultipleViolations_ReturnsJoinedMessages(t *testing.T)
 
 func TestViolation_Unwrap_NilViolation_ReturnsNil(t *testing.T) {
 	t.Parallel()
-	var violation *validation.Violation
+	var violation *validation.ViolationError
 	assert.Nil(t, violation.Unwrap())
 }
 
 func TestViolation_Unwrap_CauseIsDiscoverableViaErrorsIs(t *testing.T) {
 	t.Parallel()
 	cause := errors.New("cause")
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
@@ -182,13 +182,13 @@ func TestViolation_Unwrap_CauseIsDiscoverableViaErrorsIs(t *testing.T) {
 
 func TestViolations_Unwrap_NilViolations_ReturnsNil(t *testing.T) {
 	t.Parallel()
-	var violations *validation.Violations
+	var violations *validation.ViolationsError
 	assert.Nil(t, violations.Unwrap())
 }
 
 func TestViolations_Unwrap_EmptyViolations_ReturnsNil(t *testing.T) {
 	t.Parallel()
-	violations := validation.NewViolations()
+	violations := validation.NewViolationsError()
 	assert.Nil(t, violations.Unwrap())
 }
 
@@ -197,13 +197,13 @@ func TestViolations_Unwrap_CausesAreDiscoverableViaErrorsIs(t *testing.T) {
 	firstCause := errors.New("first")
 	secondCause := errors.New("second")
 
-	violations := validation.NewViolations()
-	violations.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+	violations := validation.NewViolationsError()
+	violations.AddViolation(validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "first",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
 	}, firstCause))
-	violations.AddViolation(validation.NewViolation(&validation.CallbackParameters{
+	violations.AddViolation(validation.NewViolationError(&validation.CallbackParameters{
 		Validator:          "second",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(2),

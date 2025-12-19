@@ -62,9 +62,9 @@ func normalizeErrorTypeForRegistry(errType reflect.Type) reflect.Type {
 
 // init registers standard error messages for the responder.
 func init() {
-	MustRegisterErrorResponse[validation.Violations](
+	MustRegisterErrorResponse[validation.ViolationsError](
 		http.StatusBadRequest,
-		func(err *validation.Violations) *StandardErrorResponse {
+		func(err *validation.ViolationsError) *StandardErrorResponse {
 			return &StandardErrorResponse{
 				Message: err.Error(),
 			}

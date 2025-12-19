@@ -43,16 +43,16 @@ func (t *testHandler) AcceptHTTPAPIBuilder(builder *api.HTTPAPIBuilder) {
 	})
 }
 
-type testErrorResponse struct{}
+type testResponseError struct{}
 
-func (t *testErrorResponse) Error() string {
+func (t *testResponseError) Error() string {
 	return "test error response"
 }
 
 func init() {
 	responders.MustRegisterErrorResponse(
 		http.StatusInternalServerError,
-		func(err *testErrorResponse) *responders.StandardErrorResponse {
+		func(err *testResponseError) *responders.StandardErrorResponse {
 			return &responders.StandardErrorResponse{
 				Message: err.Error(),
 			}
@@ -959,7 +959,7 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 			Path:   "/error",
 			Method: http.MethodGet,
 			Handler: func(writer http.ResponseWriter, _ *http.Request) {
-				responders.Error(writer, &testErrorResponse{})
+				responders.Error(writer, &testResponseError{})
 			},
 		},
 		&testHandler{
