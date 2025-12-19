@@ -16,6 +16,27 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/timestamp"
 )
 
+// failingReader is a reader that always returns an error.
+// This is for testing error handling when random data generation fails.
+type failingReader struct{}
+
+func (f failingReader) Read([]byte) (int, error) {
+	return 0, errors.New("random reader failed")
+}
+
+func TestEncode_WithFailingRandomReader_ReturnsError(t *testing.T) {
+	t.Parallel()
+	claims := jwt.Claims{
+		Issuer: ptr.Of("test-issuer"),
+	}
+	token, publicKey, keyID, err := jwt.Encode(claims, jwt.EdDSA, jwt.WithRandomReader(failingReader{}))
+	assert.Equals(t, token, "")
+	assert.Equals(t, len(publicKey), 0)
+	assert.Equals(t, keyID, "")
+	assert.ErrorPart(t, err, "failed to generate signing key")
+	assert.ErrorPart(t, err, "random reader failed")
+}
+
 func TestEncode_WithEdDSA_ReturnsValidTokenKeyAndKeyID(t *testing.T) {
 	t.Parallel()
 	claims := jwt.Claims{
