@@ -795,7 +795,7 @@ func TestRun_TLSModeWithProperClient_Succeeds(t *testing.T) {
 	assertRootRequestSuccess(t, httpClient, serverAddress, true)
 }
 
-func TestRun_TLSModeWithInsecureClient_Succeeds(t *testing.T) {
+func TestRun_TLSModeWithClientCA_Succeeds(t *testing.T) {
 	t.Parallel()
 	fixture := setupTLSTestFixture(t)
 	serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
@@ -803,11 +803,15 @@ func TestRun_TLSModeWithInsecureClient_Succeeds(t *testing.T) {
 		cfg.HTTPServerTLSMode = server.TLSModeTLS
 		return cfg, nil
 	}))
+	caCertPEM, err := os.ReadFile(fixture.ClientCACertPath)
+	assert.NoError(t, err)
+	caCertPool := x509.NewCertPool()
+	assert.True(t, caCertPool.AppendCertsFromPEM(caCertPEM))
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // nolint:gosec
-				MinVersion:         tls.VersionTLS13,
+				RootCAs:    caCertPool,
+				MinVersion: tls.VersionTLS13,
 			},
 		},
 	}

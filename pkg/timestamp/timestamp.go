@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -43,7 +44,7 @@ func (ts Timestamp) MarshalJSON() ([]byte, error) {
 	if ts.time.IsZero() {
 		return nil, errors.New("timestamp is zero while marshaling")
 	}
-	return json.Marshal(ts.time.Format(time.RFC3339)) // nolint:wrapcheck
+	return []byte(strconv.Quote(ts.Time().Format(time.RFC3339))), nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler expecting RFC 3339 format.

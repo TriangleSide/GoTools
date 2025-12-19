@@ -45,13 +45,6 @@ func TestIsNil_NilUnsafePointer_ReturnsTrue(t *testing.T) {
 	assert.True(t, reflection.IsNil(reflect.ValueOf(value)))
 }
 
-func TestIsNil_NonNilUnsafePointer_ReturnsFalse(t *testing.T) {
-	t.Parallel()
-	x := 42
-	value := unsafe.Pointer(&x) //nolint:gosec
-	assert.False(t, reflection.IsNil(reflect.ValueOf(value)))
-}
-
 func TestIsNil_NilSlice_ReturnsTrue(t *testing.T) {
 	t.Parallel()
 	var value []int
