@@ -218,7 +218,7 @@ func validateRecursively(depth int, val reflect.Value) ([]*Violation, error) {
 }
 
 // Struct validates all struct fields using their validation tags, returning an error if any fail.
-// In the case that the struct has tag violations, a Violations error is returned.
+// In the case that the struct has tag violations, the violations are joined with errors.Join.
 func Struct[T any](val T) error {
 	violations, err := validateStructInternal(val, 0)
 	if err != nil {
@@ -263,7 +263,7 @@ func validateStructInternal[T any](val T, depth int) ([]*Violation, error) {
 }
 
 // Var validates a single variable with the given instructions, returning an error if it fails.
-// In the case that the variable has tag violations, a Violations error is returned.
+// In the case that the variable has tag violations, the violations are joined with errors.Join.
 func Var[T any](val T, validatorInstructions string) error {
 	reflectValue := reflect.ValueOf(val)
 	violations, err := checkValidatorsAgainstValue(false, reflect.Value{}, "", reflectValue, validatorInstructions)
@@ -278,11 +278,14 @@ func Var[T any](val T, validatorInstructions string) error {
 	return violationsToError(violations)
 }
 
-// violationsToError converts a slice of violations to an error.
+// violationsToError converts a slice of violations to an error by joining them.
 func violationsToError(violations []*Violation) error {
 	if len(violations) == 0 {
 		return nil
 	}
-	v := &Violations{violations: violations}
-	return v
+	errs := make([]error, len(violations))
+	for i, violation := range violations {
+		errs[i] = violation
+	}
+	return errors.Join(errs...)
 }
