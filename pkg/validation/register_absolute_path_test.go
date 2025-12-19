@@ -45,11 +45,10 @@ func TestAbsolutePathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T)
 			Setup: func(t *testing.T) any {
 				t.Helper()
 				tempDir := t.TempDir()
-				tempFile := filepath.Join(tempDir, "tempfile")
-				f, err := os.Create(tempFile) // nolint:gosec
+				f, err := os.CreateTemp(tempDir, "tempfile-*")
 				assert.NoError(t, err)
 				assert.NoError(t, f.Close())
-				return tempFile
+				return f.Name()
 			},
 			ExpectedErrorMsg: "",
 		},
@@ -91,11 +90,10 @@ func TestAbsolutePathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T)
 			Setup: func(t *testing.T) any {
 				t.Helper()
 				tempDir := t.TempDir()
-				tempFile := filepath.Join(tempDir, "tempfile")
-				f, err := os.Create(tempFile) // nolint:gosec
+				f, err := os.CreateTemp(tempDir, "tempfile-*")
 				assert.NoError(t, err)
 				assert.NoError(t, f.Close())
-				return ptr.Of(tempFile)
+				return ptr.Of(f.Name())
 			},
 			ExpectedErrorMsg: "",
 		},
@@ -114,11 +112,10 @@ func TestAbsolutePathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T)
 			Setup: func(t *testing.T) any {
 				t.Helper()
 				tempDir := t.TempDir()
-				tempFile := filepath.Join(tempDir, "tempfile")
-				f, err := os.Create(tempFile) // nolint:gosec
+				f, err := os.CreateTemp(tempDir, "tempfile-*")
 				assert.NoError(t, err)
 				assert.NoError(t, f.Close())
-				return any(tempFile)
+				return any(f.Name())
 			},
 			ExpectedErrorMsg: "",
 		},
@@ -154,10 +151,10 @@ func TestAbsolutePathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T)
 			Setup: func(t *testing.T) any {
 				t.Helper()
 				tempDir := t.TempDir()
-				targetFile := filepath.Join(tempDir, "target")
-				f, err := os.Create(targetFile) // nolint:gosec
+				f, err := os.CreateTemp(tempDir, "target-*")
 				assert.NoError(t, err)
 				assert.NoError(t, f.Close())
+				targetFile := f.Name()
 				symlinkPath := filepath.Join(tempDir, "symlink")
 				err = os.Symlink(targetFile, symlinkPath)
 				assert.NoError(t, err)
@@ -183,11 +180,10 @@ func TestAbsolutePathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T)
 			Setup: func(t *testing.T) any {
 				t.Helper()
 				tempDir := t.TempDir()
-				tempFile := filepath.Join(tempDir, "tempfile")
-				f, err := os.Create(tempFile) // nolint:gosec
+				f, err := os.CreateTemp(tempDir, "tempfile-*")
 				assert.NoError(t, err)
 				assert.NoError(t, f.Close())
-				p := ptr.Of(tempFile)
+				p := ptr.Of(f.Name())
 				return &p
 			},
 			ExpectedErrorMsg: "",
@@ -217,11 +213,10 @@ func TestAbsolutePathValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T)
 				subDir := filepath.Join(tempDir, "sub", "dir")
 				err := os.MkdirAll(subDir, 0750)
 				assert.NoError(t, err)
-				tempFile := filepath.Join(subDir, "file.txt")
-				f, err := os.Create(tempFile) // nolint:gosec
+				f, err := os.CreateTemp(subDir, "file-*.txt")
 				assert.NoError(t, err)
 				assert.NoError(t, f.Close())
-				return tempFile
+				return f.Name()
 			},
 			ExpectedErrorMsg: "",
 		},

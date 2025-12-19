@@ -2,7 +2,6 @@ package validation_test
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/ptr"
@@ -13,11 +12,10 @@ import (
 func createTempFile(t *testing.T) string {
 	t.Helper()
 	tempDir := t.TempDir()
-	tempFile := filepath.Join(tempDir, "tempfile")
-	f, err := os.Create(tempFile) // nolint:gosec
+	f, err := os.CreateTemp(tempDir, "tempfile-*")
 	assert.NoError(t, err)
 	assert.NoError(t, f.Close())
-	return tempFile
+	return f.Name()
 }
 
 func TestFilepathValidator_StructField(t *testing.T) {
