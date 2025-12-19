@@ -66,15 +66,15 @@ func TestCallbackResult_WithError_PropagatesError(t *testing.T) {
 			expectedError: "some error",
 		},
 		{
-			name:          "when a callback returns a violation it should be aggregated into violations",
+			name:          "when a callback returns a violation it should be joined",
 			validatorName: "registry_test_with_error_violation",
 			callback: func(parameters *validation.CallbackParameters) *validation.CallbackResult {
 				return validation.NewCallbackResult().WithError(validation.NewViolation(parameters, errors.New("some violation")))
 			},
 			expectedError: "some violation",
 			expectedAs: func(err error) bool {
-				var violations *validation.Violations
-				return errors.As(err, &violations)
+				var violation *validation.Violation
+				return errors.As(err, &violation)
 			},
 		},
 	}
@@ -163,8 +163,8 @@ func TestCallbackResult_AddValue_ValidatesRemainingInstructionsAgainstNewValues(
 	err := validation.Var([]int{1, 0, 2}, instructions)
 	assert.Error(t, err)
 
-	var violations *validation.Violations
-	assert.True(t, errors.As(err, &violations))
+	var violation *validation.Violation
+	assert.True(t, errors.As(err, &violation))
 	assert.ErrorPart(t, err, "zero-value")
 }
 

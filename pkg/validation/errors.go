@@ -36,7 +36,6 @@ func NewViolation(params *CallbackParameters, err error) *Violation {
 	}
 }
 
-// Error ensures Violation has the error interface.
 func (v *Violation) Error() string {
 	return v.err.Error()
 }
@@ -49,59 +48,4 @@ func (v *Violation) Unwrap() error {
 	return errors.Unwrap(v.err)
 }
 
-// Violations represents a list of violations.
-type Violations struct {
-	violations []*Violation
-}
-
-// NewViolations instantiates a *Violations struct.
-func NewViolations() *Violations {
-	return &Violations{
-		violations: make([]*Violation, 0, 1),
-	}
-}
-
-// AddViolations appends other violations.
-func (v *Violations) AddViolations(others *Violations) {
-	if others != nil && len(others.violations) > 0 {
-		v.violations = append(v.violations, others.violations...)
-	}
-}
-
-// AddViolation appends another violation to this list of violations.
-func (v *Violations) AddViolation(other *Violation) {
-	if other != nil {
-		v.violations = append(v.violations, other)
-	}
-}
-
-// NilIfEmpty returns nil if the violation list is empty.
-func (v *Violations) NilIfEmpty() error {
-	if len(v.violations) == 0 {
-		return nil
-	}
-	return v
-}
-
-// Error ensures Violations has the error interface.
-func (v *Violations) Error() string {
-	errorStrings := make([]string, 0, len(v.violations))
-	for _, violation := range v.violations {
-		errorStrings = append(errorStrings, violation.Error())
-	}
-	return strings.Join(errorStrings, "; ")
-}
-
-// Unwrap returns the underlying violations as errors.
-func (v *Violations) Unwrap() []error {
-	if v == nil || len(v.violations) == 0 {
-		return nil
-	}
-
-	errs := make([]error, 0, len(v.violations))
-	for _, violation := range v.violations {
-		errs = append(errs, violation)
-	}
-
-	return errs
-}
+// Error ensures Violation has the error interface.
