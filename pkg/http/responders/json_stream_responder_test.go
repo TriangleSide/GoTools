@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/http/headers"
 	"github.com/TriangleSide/GoTools/pkg/http/responders"
@@ -300,5 +301,32 @@ func TestJSONStream_WriterFailsWhenContextCancelled_DoesNotCallErrorCallback(t *
 		}, responders.WithErrorCallback(writeErrorCallback))
 
 	assert.True(t, errWriter.WriteFailed)
+	assert.NoError(t, writeError)
+}
+
+func TestJSONStream_ContextCancelledDuringBlocking_ExitsWithoutData(t *testing.T) {
+	t.Parallel()
+
+	recorder := httptest.NewRecorder()
+	ctx, cancel := context.WithCancel(t.Context())
+	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/", strings.NewReader(`{"id":1}`))
+	req.Header.Set(headers.ContentType, headers.ContentTypeApplicationJSON)
+
+	var writeError error
+	writeErrorCallback := func(err error) {
+		writeError = err
+	}
+
+	responders.JSONStream[jsonStreamRequestParams, jsonStreamResponseBody](
+		recorder, req, func(*jsonStreamRequestParams) (<-chan *jsonStreamResponseBody, int, error) {
+			ch := make(chan *jsonStreamResponseBody)
+			go func() {
+				time.Sleep(100 * time.Millisecond)
+				cancel()
+			}()
+			return ch, http.StatusOK, nil
+		}, responders.WithErrorCallback(writeErrorCallback))
+
+	assert.Equals(t, recorder.Code, http.StatusOK)
 	assert.NoError(t, writeError)
 }
