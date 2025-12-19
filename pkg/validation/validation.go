@@ -71,33 +71,42 @@ func expandAliases(validateTagContents string) string {
 	return strings.Join(result, ValidatorsSep)
 }
 
-// forEachValidatorAndInstruction invokes the callback for each validator name and instruction.
-func forEachValidatorAndInstruction(
-	validateTagContents string,
-	callback func(name string, instruction string, rest func() string) (bool, error),
-) error {
-	if strings.TrimSpace(validateTagContents) == "" {
+// validatorIterator is the callback signature for iterating over validators.
+// It receives the validator name, its instruction parameters, and a function to get
+// remaining validators in the tag (used for recursive validation like "dive").
+// Returns true to continue iteration, false to stop early, or an error.
+type validatorIterator func(
+	name string,
+	instruction string,
+	remainingValidators func() string,
+) (continueIteration bool, err error)
+
+// forEachValidatorAndInstruction parses a validation tag and invokes the iterator
+// for each validator. It handles alias expansion and stops iteration early if the
+// iterator returns false or an error.
+func forEachValidatorAndInstruction(tagContents string, iterator validatorIterator) error {
+	if strings.TrimSpace(tagContents) == "" {
 		return fmt.Errorf("empty %s instructions", Tag)
 	}
 
-	expandedTagContents := expandAliases(validateTagContents)
-	namesToInstructions := strings.Split(expandedTagContents, ValidatorsSep)
+	expandedContents := expandAliases(tagContents)
+	validators := strings.Split(expandedContents, ValidatorsSep)
 
-	for instructionIdx, nameToInstruction := range namesToInstructions {
-		validatorName, validatorInstructions, parseErr := parseValidatorNameAndInstruction(nameToInstruction)
-		if parseErr != nil {
-			return parseErr
-		}
-
-		restOfValidationTag := func() string {
-			return strings.Join(namesToInstructions[instructionIdx+1:], ValidatorsSep)
-		}
-
-		shouldContinue, err := callback(validatorName, validatorInstructions, restOfValidationTag)
+	for validatorIndex, validatorEntry := range validators {
+		name, instruction, err := parseValidatorNameAndInstruction(validatorEntry)
 		if err != nil {
 			return err
 		}
-		if !shouldContinue {
+
+		remainingValidators := func() string {
+			return strings.Join(validators[validatorIndex+1:], ValidatorsSep)
+		}
+
+		continueIteration, err := iterator(name, instruction, remainingValidators)
+		if err != nil {
+			return err
+		}
+		if !continueIteration {
 			return nil
 		}
 	}
@@ -105,59 +114,110 @@ func forEachValidatorAndInstruction(
 	return nil
 }
 
-// checkValidatorsAgainstValue validates a value based on the provided validation tag.
-// It returns an error if anything went wrong while validating.
+// validationContext holds all the context needed to validate a value.
+type validationContext struct {
+	isStructValidation bool
+	structValue        reflect.Value
+	structFieldName    string
+	fieldValue         reflect.Value
+	violations         *Violations
+}
+
+// lookupValidator retrieves a registered validator by name.
+func lookupValidator(name string) (Callback, error) {
+	registered, found := registeredValidations.Load(name)
+	if !found {
+		return nil, fmt.Errorf("validation with name '%s' is not registered", name)
+	}
+	return registered.(Callback), nil
+}
+
+// handleValidationResult processes a validator's result and determines how to proceed.
+// Returns (continueIteration, error).
+func (ctx *validationContext) handleValidationResult(
+	validatorName string,
+	result *CallbackResult,
+	remainingValidators func() string,
+) (bool, error) {
+	if result == nil {
+		return true, nil
+	}
+
+	if result.err != nil {
+		var violation *Violation
+		if errors.As(result.err, &violation) {
+			ctx.violations.AddViolation(violation)
+			return false, nil
+		}
+		return false, result.err
+	}
+
+	if result.stop {
+		return false, nil
+	}
+
+	if result.newValues != nil {
+		remainingTag := remainingValidators()
+		for _, newValue := range result.newValues {
+			err := checkValidatorsAgainstValue(
+				ctx.isStructValidation,
+				ctx.structValue,
+				ctx.structFieldName,
+				newValue,
+				remainingTag,
+				ctx.violations,
+			)
+			if err != nil {
+				return false, err
+			}
+		}
+		return false, nil
+	}
+
+	return false, fmt.Errorf("callback response is not correctly filled for validator %s", validatorName)
+}
+
+// checkValidatorsAgainstValue validates a value against a validation tag.
+// It iterates through each validator in the tag and applies them in order.
 func checkValidatorsAgainstValue(
-	isStructValue bool,
+	isStructValidation bool,
 	structValue reflect.Value,
 	structFieldName string,
 	fieldValue reflect.Value,
-	validationTagContents string,
+	tagContents string,
 	violations *Violations,
 ) error {
-	iterCallback := func(name string, instruction string, rest func() string) (bool, error) {
-		callbackNotCast, callbackFound := registeredValidations.Load(name)
-		if !callbackFound {
-			return false, fmt.Errorf("validation with name '%s' is not registered", name)
+	ctx := &validationContext{
+		isStructValidation: isStructValidation,
+		structValue:        structValue,
+		structFieldName:    structFieldName,
+		fieldValue:         fieldValue,
+		violations:         violations,
+	}
+
+	iterator := func(
+		name, instruction string,
+		remainingValidators func() string,
+	) (bool, error) {
+		validator, err := lookupValidator(name)
+		if err != nil {
+			return false, err
 		}
-		callback := callbackNotCast.(Callback)
-		callbackParameters := &CallbackParameters{
+
+		params := &CallbackParameters{
 			Validator:          Validator(name),
-			IsStructValidation: isStructValue,
-			StructValue:        structValue,
-			StructFieldName:    structFieldName,
-			Value:              fieldValue,
+			IsStructValidation: ctx.isStructValidation,
+			StructValue:        ctx.structValue,
+			StructFieldName:    ctx.structFieldName,
+			Value:              ctx.fieldValue,
 			Parameters:         instruction,
 		}
 
-		if callbackResponse := callback(callbackParameters); callbackResponse != nil {
-			if callbackResponse.err != nil {
-				var violation *Violation
-				if errors.As(callbackResponse.err, &violation) {
-					violations.AddViolation(violation)
-					return false, nil
-				}
-				return false, callbackResponse.err
-			}
-			if callbackResponse.stop {
-				return false, nil
-			}
-			if callbackResponse.newValues != nil {
-				for _, newValue := range callbackResponse.newValues {
-					newValErr := checkValidatorsAgainstValue(
-						isStructValue, structValue, structFieldName, newValue, rest(), violations)
-					if newValErr != nil {
-						return false, newValErr
-					}
-				}
-				return false, nil
-			}
-			return false, fmt.Errorf("callback response is not correctly filled for validator %s", name)
-		}
-
-		return true, nil
+		result := validator(params)
+		return ctx.handleValidationResult(name, result, remainingValidators)
 	}
-	return forEachValidatorAndInstruction(validationTagContents, iterCallback)
+
+	return forEachValidatorAndInstruction(tagContents, iterator)
 }
 
 // validateNestedStruct validates a nested struct and accumulates any violations.
