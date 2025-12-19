@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"strings"
 	"testing"
 
@@ -13,6 +14,14 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
+// failingReader is an io.Reader that always returns an error.
+// This is for testing key generation failure scenarios.
+type failingReader struct{}
+
+func (f failingReader) Read([]byte) (int, error) {
+	return 0, errors.New("random read failed")
+}
+
 func eddsaTestClaims() jwt.Claims {
 	return jwt.Claims{
 		Issuer:   ptr.Of("issuer-eddsa"),
@@ -20,6 +29,16 @@ func eddsaTestClaims() jwt.Claims {
 		Audience: ptr.Of("audience-eddsa"),
 		TokenID:  ptr.Of("token-eddsa"),
 	}
+}
+
+func TestEdDSAProvider_KeyGenFailure_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	claims := eddsaTestClaims()
+	token, _, _, err := jwt.Encode(claims, jwt.EdDSA, jwt.WithRandomReader(failingReader{}))
+	assert.Equals(t, token, "")
+	assert.ErrorPart(t, err, "failed to generate signing key")
+	assert.ErrorPart(t, err, "failed to generate ed25519 key")
 }
 
 func TestEdDSAProvider_InvalidVerifyingKey_ReturnsError(t *testing.T) {

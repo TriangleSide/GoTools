@@ -39,13 +39,18 @@ type Claims struct {
 // Encode converts the provided claims into a signed JWT string using the specified algorithm.
 // It generates a new key internally and returns the encoded JWT, the key used, the key ID, and any error.
 // The key and key ID must be persisted by the caller for future verification.
-func Encode(claims Claims, algorithm SignatureAlgorithm) (string, []byte, string, error) {
+func Encode(claims Claims, algorithm SignatureAlgorithm, opts ...EncodeOption) (string, []byte, string, error) {
+	encOpts := defaultEncodeOptions()
+	for _, opt := range opts {
+		opt(encOpts)
+	}
+
 	provider, ok := signatureProviders[algorithm]
 	if !ok {
 		return "", nil, "", errors.New("failed to resolve signature provider")
 	}
 
-	key, keyID, err := keyGen(provider)
+	key, keyID, err := keyGen(provider, encOpts.randReader)
 	if err != nil {
 		return "", nil, "", fmt.Errorf("failed to generate signing key: %w", err)
 	}
