@@ -10,11 +10,17 @@ import (
 // This name is encoded into the JWT header.
 type SignatureAlgorithm string
 
+// PublicKey represents a public key used for verifying JWT signatures.
+type PublicKey []byte
+
+// PrivateKey represents a private key used for signing JWTs.
+type PrivateKey []byte
+
 // signatureProvider are the functions used to sign and verify JWTs that all hashing algorithms must implement.
 type signatureProvider interface {
-	KeyGen() ([]byte, error)
-	Sign(data []byte, key []byte) ([]byte, error)
-	Verify(data []byte, signature []byte, key []byte) (bool, error)
+	KeyGen() (PublicKey, PrivateKey, error)
+	Sign(data []byte, key PrivateKey) ([]byte, error)
+	Verify(data []byte, signature []byte, key PublicKey) (bool, error)
 }
 
 var (
@@ -35,14 +41,14 @@ var (
 	}
 )
 
-// keyGen generates a new cryptographically secure signing key and key ID for the specified algorithm.
-// The key ID is derived from the SHA-256 hash of the key.
-func keyGen(provider signatureProvider) ([]byte, string, error) {
-	key, err := provider.KeyGen()
+// keyGen generates a new cryptographically secure signing key pair and key ID for the specified algorithm.
+// The key ID is derived from the SHA-256 hash of the public key.
+func keyGen(provider signatureProvider) (PublicKey, PrivateKey, string, error) {
+	publicKey, privateKey, err := provider.KeyGen()
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to generate the key for the JWT: %w", err)
+		return nil, nil, "", fmt.Errorf("failed to generate the key for the JWT: %w", err)
 	}
-	keyHash := sha256.Sum256(key)
+	keyHash := sha256.Sum256(publicKey)
 	keyID := base64.RawURLEncoding.EncodeToString(keyHash[:])
-	return key, keyID, nil
+	return publicKey, privateKey, keyID, nil
 }
