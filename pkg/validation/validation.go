@@ -49,6 +49,28 @@ func parseValidatorNameAndInstruction(nameToInstruction string) (string, string,
 	return validatorName, validatorInstructions, nil
 }
 
+// expandAliases expands all aliases in the validation tag.
+func expandAliases(validateTagContents string) string {
+	namesToInstructions := strings.Split(validateTagContents, ValidatorsSep)
+	var result []string
+
+	for _, nameToInstruction := range namesToInstructions {
+		validatorName, _, parseErr := parseValidatorNameAndInstruction(nameToInstruction)
+		if parseErr != nil {
+			result = append(result, nameToInstruction)
+			continue
+		}
+
+		if expansion, isAlias := lookupAlias(validatorName); isAlias {
+			result = append(result, expansion)
+		} else {
+			result = append(result, nameToInstruction)
+		}
+	}
+
+	return strings.Join(result, ValidatorsSep)
+}
+
 // forEachValidatorAndInstruction invokes the callback for each validator name and instruction.
 func forEachValidatorAndInstruction(
 	validateTagContents string,
@@ -57,7 +79,9 @@ func forEachValidatorAndInstruction(
 	if strings.TrimSpace(validateTagContents) == "" {
 		return fmt.Errorf("empty %s instructions", Tag)
 	}
-	namesToInstructions := strings.Split(validateTagContents, ValidatorsSep)
+
+	expandedTagContents := expandAliases(validateTagContents)
+	namesToInstructions := strings.Split(expandedTagContents, ValidatorsSep)
 
 	for instructionIdx, nameToInstruction := range namesToInstructions {
 		validatorName, validatorInstructions, parseErr := parseValidatorNameAndInstruction(nameToInstruction)
