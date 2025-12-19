@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"io"
 )
 
 // SignatureAlgorithm is the name of the algorithm used to sign the JWT.
@@ -18,7 +19,7 @@ type PrivateKey []byte
 
 // signatureProvider are the functions used to sign and verify JWTs that all hashing algorithms must implement.
 type signatureProvider interface {
-	KeyGen() (PublicKey, PrivateKey, error)
+	KeyGen(randReader io.Reader) (PublicKey, PrivateKey, error)
 	Sign(data []byte, key PrivateKey) ([]byte, error)
 	Verify(data []byte, signature []byte, key PublicKey) (bool, error)
 }
@@ -43,8 +44,8 @@ var (
 
 // keyGen generates a new cryptographically secure signing key pair and key ID for the specified algorithm.
 // The key ID is derived from the SHA-256 hash of the public key.
-func keyGen(provider signatureProvider) (PublicKey, PrivateKey, string, error) {
-	publicKey, privateKey, err := provider.KeyGen()
+func keyGen(provider signatureProvider, randReader io.Reader) (PublicKey, PrivateKey, string, error) {
+	publicKey, privateKey, err := provider.KeyGen(randReader)
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("failed to generate the key for the JWT: %w", err)
 	}
