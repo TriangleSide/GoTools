@@ -36,6 +36,7 @@ func NewViolation(params *CallbackParameters, err error) *Violation {
 	}
 }
 
+// Error ensures Violation has the error interface.
 func (v *Violation) Error() string {
 	return v.err.Error()
 }
@@ -47,5 +48,3 @@ func (v *Violation) Unwrap() error {
 	}
 	return errors.Unwrap(v.err)
 }
-
-// Error ensures Violation has the error interface.
