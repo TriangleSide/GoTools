@@ -45,6 +45,7 @@ linters:
     - nilerr
     - nilnil
     - noctx
+    - nolintlint
     - perfsprint
     - prealloc
     - reassign
