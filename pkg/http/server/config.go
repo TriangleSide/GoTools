@@ -1,5 +1,29 @@
 package server
 
+import (
+	"github.com/TriangleSide/GoTools/pkg/validation"
+)
+
+const (
+	// httpServerTLSFilePath validates optional file paths required when TLS is enabled.
+	httpServerTLSFilePath = "http_server_tls_file_path"
+
+	// httpServerMutualTLSFilePaths validates required file paths for mutual TLS client CA certs.
+	httpServerMutualTLSFilePaths = "http_server_mutual_tls_file_paths"
+)
+
+// init registers validation aliases used by the Config struct.
+func init() {
+	validation.MustRegisterAlias(
+		httpServerTLSFilePath,
+		"required_if=HTTPServerTLSMode TLS,required_if=HTTPServerTLSMode MUTUAL_TLS,omitempty,filepath",
+	)
+	validation.MustRegisterAlias(
+		httpServerMutualTLSFilePaths,
+		"required_if=HTTPServerTLSMode MUTUAL_TLS,dive,required,filepath",
+	)
+}
+
 // TLSMode represents the TLS mode of the HTTP server.
 type TLSMode string
 
@@ -15,7 +39,6 @@ const (
 )
 
 // Config holds configuration parameters for an HTTP server.
-// nolint:lll
 type Config struct {
 	// HTTPServerBindIP is the IP address the server listens on.
 	HTTPServerBindIP string `config:"ENV" config_default:"::1" validate:"required,ip_addr"`
@@ -43,13 +66,13 @@ type Config struct {
 	HTTPServerTLSMode TLSMode `config:"ENV" config_default:"TLS" validate:"oneof=OFF TLS MUTUAL_TLS"`
 
 	// HTTPServerCert is the path to the TLS certificate file.
-	HTTPServerCert string `config:"ENV" config_default:"" validate:"required_if=HTTPServerTLSMode TLS,required_if=HTTPServerTLSMode MUTUAL_TLS,omitempty,filepath"`
+	HTTPServerCert string `config:"ENV" config_default:"" validate:"http_server_tls_file_path"`
 
 	// HTTPServerKey is the path to the TLS private key file.
-	HTTPServerKey string `config:"ENV" config_default:"" validate:"required_if=HTTPServerTLSMode TLS,required_if=HTTPServerTLSMode MUTUAL_TLS,omitempty,filepath"`
+	HTTPServerKey string `config:"ENV" config_default:"" validate:"http_server_tls_file_path"`
 
 	// HTTPServerClientCACerts is a list of paths to client CA certificate files (used in mutual TLS).
-	HTTPServerClientCACerts []string `config:"ENV" config_default:"[]" validate:"required_if=HTTPServerTLSMode MUTUAL_TLS,dive,required,filepath"`
+	HTTPServerClientCACerts []string `config:"ENV" config_default:"[]" validate:"http_server_mutual_tls_file_paths"`
 
 	// HTTPServerMaxHeaderBytes sets the maximum size in bytes of request headers.
 	// It doesn't limit the request body size.
