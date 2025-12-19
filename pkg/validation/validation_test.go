@@ -71,12 +71,11 @@ func TestStruct_NilValue_ReturnsError(t *testing.T) {
 	assert.ErrorPart(t, err, "value is nil")
 }
 
-func TestStruct_NonStructParameter_Panics(t *testing.T) {
+func TestStruct_NonStructParameter_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	assert.PanicPart(t, func() {
-		_ = validation.Struct[int](1)
-	}, "validation parameter must be a struct, got int")
+	err := validation.Struct[int](1)
+	assert.ErrorPart(t, err, "validation parameter must be a struct but got int")
 }
 
 func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {
