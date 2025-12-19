@@ -234,7 +234,7 @@ func validateStructInternal[T any](val T, depth int) ([]*Violation, error) {
 		return nil, err
 	}
 	if reflectValue.Kind() != reflect.Struct {
-		panic(fmt.Errorf("validation parameter must be a struct, got %s", reflectValue.Kind()))
+		return nil, fmt.Errorf("validation parameter must be a struct but got %s", reflectValue.Kind())
 	}
 
 	var violations []*Violation
