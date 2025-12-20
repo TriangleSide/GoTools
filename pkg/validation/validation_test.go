@@ -37,14 +37,14 @@ func TestVar_MalformedSecondInstruction_ReturnsError(t *testing.T) {
 	assert.ErrorPart(t, err, "malformed validator and instruction")
 }
 
-func TestVar_ViolationStopsValidation_SkipsRemainingValidators(t *testing.T) {
+func TestVar_FieldErrorStopsValidation_SkipsRemainingValidators(t *testing.T) {
 	t.Parallel()
 
-	firstName := validation.Validator("validation_test_violation_stops_remaining_first")
-	secondName := validation.Validator("validation_test_violation_stops_remaining_second")
+	firstName := validation.Validator("validation_test_field_error_stops_remaining_first")
+	secondName := validation.Validator("validation_test_field_error_stops_remaining_second")
 
 	firstCallback := func(parameters *validation.CallbackParameters) *validation.CallbackResult {
-		return validation.NewCallbackResult().WithError(validation.NewFieldError(parameters, errors.New("first violation")))
+		return validation.NewCallbackResult().WithError(validation.NewFieldError(parameters, errors.New("first field error")))
 	}
 	validation.MustRegisterValidator(firstName, firstCallback)
 	validation.MustRegisterValidator(secondName, func(*validation.CallbackParameters) *validation.CallbackResult {
@@ -52,7 +52,7 @@ func TestVar_ViolationStopsValidation_SkipsRemainingValidators(t *testing.T) {
 	})
 
 	err := validation.Var("anything", string(firstName)+validation.ValidatorsSep+string(secondName))
-	assert.ErrorPart(t, err, "first violation")
+	assert.ErrorPart(t, err, "first field error")
 }
 
 func TestVar_RequiredWithNonZeroValue_ReturnsNoError(t *testing.T) {
@@ -252,7 +252,7 @@ func TestStruct_EmptyValidateTag_ReturnsError(t *testing.T) {
 	assert.ErrorPart(t, err, "empty validate instructions")
 }
 
-func TestStruct_NestedStructFieldViolation_ReturnsError(t *testing.T) {
+func TestStruct_NestedStructFieldError_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	type fieldStruct struct {
@@ -312,7 +312,7 @@ func TestVar_InterfaceHoldingStruct_InvalidInnerField_ReturnsError(t *testing.T)
 	}
 }
 
-func TestStruct_SliceOfStructs_Violation_ReturnsError(t *testing.T) {
+func TestStruct_SliceOfStructs_FieldError_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	type testSliceStruct struct {
@@ -345,7 +345,7 @@ func TestStruct_SliceOfStructs_UnknownValidator_ReturnsError(t *testing.T) {
 	assert.ErrorPart(t, err, "validation with name 'not_exist' is not registered")
 }
 
-func TestStruct_MapOfStructs_Violation_ReturnsError(t *testing.T) {
+func TestStruct_MapOfStructs_FieldError_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	type testMapStruct struct {

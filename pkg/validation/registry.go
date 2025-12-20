@@ -6,14 +6,14 @@ import (
 	"sync"
 )
 
-// CallbackResult instructs the validation on how to proceed after the validator is complete.
+// CallbackResult carries a validator outcome and directs validation flow.
 type CallbackResult struct {
 	err       error
 	stop      bool
 	newValues []reflect.Value
 }
 
-// NewCallbackResult instantiates a CallbackResult.
+// NewCallbackResult provides a blank result for validators to populate.
 func NewCallbackResult() *CallbackResult {
 	return &CallbackResult{
 		err:       nil,
@@ -22,34 +22,34 @@ func NewCallbackResult() *CallbackResult {
 	}
 }
 
-// WithError sets the error on the CallbackResult.
+// WithError records a validation failure for the current validator.
 func (c *CallbackResult) WithError(err error) *CallbackResult {
 	c.err = err
 	return c
 }
 
-// WithStop sets the stop value in the CallbackResult.
+// WithStop signals that remaining validators should be skipped.
 func (c *CallbackResult) WithStop() *CallbackResult {
 	c.stop = true
 	return c
 }
 
-// AddValue adds a new value in the CallbackResult.
+// AddValue queues additional values for the remaining validators in the tag.
+// For example, dive adds each element so later validators apply to them.
 func (c *CallbackResult) AddValue(val reflect.Value) *CallbackResult {
 	c.newValues = append(c.newValues, val)
 	return c
 }
 
-// Callback checks a value against the instructions for the validator.
+// Callback executes a validator and returns how validation should proceed.
 type Callback func(*CallbackParameters) *CallbackResult
 
 var (
-	// registeredValidations is a map of validator name to Callback.
+	// registeredValidations stores validator callbacks by name for tag evaluation.
 	registeredValidations = sync.Map{}
 )
 
-// CallbackParameters are the parameters sent to the validation callback.
-// Struct fields are only set on Struct validation.
+// CallbackParameters holds context for a validator callback, including struct data when available.
 type CallbackParameters struct {
 	Validator          Validator
 	IsStructValidation bool
@@ -59,7 +59,7 @@ type CallbackParameters struct {
 	Parameters         string
 }
 
-// MustRegisterValidator sets the callback for a validator.
+// MustRegisterValidator registers a validator callback and panics on duplicates.
 func MustRegisterValidator(name Validator, callback Callback) {
 	_, alreadyExists := registeredValidations.LoadOrStore(string(name), callback)
 	if alreadyExists {

@@ -179,16 +179,16 @@ func TestMustRegisterAlias_AliasWithParameters_WorksCorrectly(t *testing.T) {
 	assert.ErrorPart(t, err, "not one of the allowed values")
 }
 
-func TestMustRegisterAlias_ReturnsViolation_WithExpandedValidator(t *testing.T) {
+func TestMustRegisterAlias_ReturnsFieldError_WithExpandedValidator(t *testing.T) {
 	t.Parallel()
 
-	validation.MustRegisterAlias("alias_test_violation", "gt=10")
+	validation.MustRegisterAlias("alias_test_field_error", "gt=10")
 
-	err := validation.Var(5, "alias_test_violation")
+	err := validation.Var(5, "alias_test_field_error")
 	assert.Error(t, err)
 
-	var violation *validation.FieldError
-	assert.True(t, errors.As(err, &violation))
+	var fieldErr *validation.FieldError
+	assert.True(t, errors.As(err, &fieldErr))
 	assert.ErrorPart(t, err, "validator 'gt'")
 }
 
@@ -227,7 +227,7 @@ func TestMustRegisterAlias_ConcurrentUsage_NoRaces(t *testing.T) {
 	assert.True(t, gotNoError)
 }
 
-func TestMustRegisterAlias_StructFieldWithAliasViolation_ReportsFieldName(t *testing.T) {
+func TestMustRegisterAlias_StructFieldWithAliasFieldError_ReportsFieldName(t *testing.T) {
 	t.Parallel()
 
 	validation.MustRegisterAlias("alias_test_field_name", "required")
