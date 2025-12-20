@@ -26,23 +26,23 @@ func init() {
 	validation.MustRegisterValidator(pathValidationTag, validateAPIPathValue)
 }
 
-// pathValidationError returns a validation error response for an invalid API path.
-func pathValidationError(params *validation.CallbackParameters, err error) *validation.CallbackResult {
-	return validation.NewCallbackResult().SetError(validation.NewFieldError(params, err))
+// pathValidationFieldError returns a validation field error result for an invalid API path.
+func pathValidationFieldError(params *validation.CallbackParameters, err error) (*validation.CallbackResult, error) {
+	return validation.NewCallbackResult().AddFieldError(validation.NewFieldError(params, err)), nil
 }
 
 // validateAPIPathValue validates a value as an API path.
-func validateAPIPathValue(params *validation.CallbackParameters) *validation.CallbackResult {
+func validateAPIPathValue(params *validation.CallbackParameters) (*validation.CallbackResult, error) {
 	path, err := apiPathFromValue(params.Value)
 	if err != nil {
-		return pathValidationError(params, err)
+		return pathValidationFieldError(params, err)
 	}
 
 	if err := validateAPIPathString(path); err != nil {
-		return pathValidationError(params, err)
+		return pathValidationFieldError(params, err)
 	}
 
-	return nil
+	return nil, nil //nolint:nilnil // nil, nil means validation passed
 }
 
 // apiPathFromValue extracts an API path string from a potentially dereferenceable value.

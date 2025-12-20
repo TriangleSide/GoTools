@@ -35,17 +35,15 @@ func init() {
 
 // registerComparisonValidation consolidates the common logic for comparison validations.
 func registerComparisonValidation(name Validator, compareFunc func(a, b float64) bool, operator string) {
-	MustRegisterValidator(name, func(params *CallbackParameters) *CallbackResult {
-		result := NewCallbackResult()
-
+	MustRegisterValidator(name, func(params *CallbackParameters) (*CallbackResult, error) {
 		threshold, err := strconv.ParseFloat(params.Parameters, 64)
 		if err != nil {
-			return result.SetError(fmt.Errorf("invalid parameters '%s' for %s: %w", params.Parameters, name, err))
+			return nil, fmt.Errorf("invalid parameters '%s' for %s: %w", params.Parameters, name, err)
 		}
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.SetError(NewFieldError(params, err))
+			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
 		}
 
 		var val float64
@@ -57,13 +55,15 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 		case reflect.Float32, reflect.Float64:
 			val = value.Float()
 		default:
-			return result.SetError(NewFieldError(params, fmt.Errorf("the %s validation not supported for kind %s", name, kind)))
+			fieldErr := NewFieldError(params, fmt.Errorf("the %s validation not supported for kind %s", name, kind))
+			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 
 		if !compareFunc(val, threshold) {
-			return result.SetError(NewFieldError(params, fmt.Errorf("the value %v must be %s %v", val, operator, threshold)))
+			fieldErr := NewFieldError(params, fmt.Errorf("the value %v must be %s %v", val, operator, threshold))
+			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 
-		return nil
+		return nil, nil //nolint:nilnil // nil, nil means validation passed
 	})
 }

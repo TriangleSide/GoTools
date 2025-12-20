@@ -12,24 +12,23 @@ const (
 
 // init registers the dive validator that iterates over slice elements and applies subsequent validators to each.
 func init() {
-	MustRegisterValidator(DiveValidatorName, func(params *CallbackParameters) *CallbackResult {
-		result := NewCallbackResult()
-
+	MustRegisterValidator(DiveValidatorName, func(params *CallbackParameters) (*CallbackResult, error) {
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.SetError(NewFieldError(params, err))
+			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
 		}
 		if value.Kind() != reflect.Slice {
-			return result.SetError(errors.New("the dive validator only accepts slice values"))
+			return nil, errors.New("the dive validator only accepts slice values")
 		}
 
 		if value.Len() == 0 {
-			return result.StopValidation()
+			return NewCallbackResult().StopValidation(), nil
 		}
 
+		result := NewCallbackResult()
 		for i := range value.Len() {
 			result.AddValue(value.Index(i))
 		}
-		return result
+		return result, nil
 	})
 }

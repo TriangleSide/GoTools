@@ -43,13 +43,15 @@ func TestVar_FieldErrorStopsValidation_SkipsRemainingValidators(t *testing.T) {
 	firstName := validation.Validator("validation_test_field_error_stops_remaining_first")
 	secondName := validation.Validator("validation_test_field_error_stops_remaining_second")
 
-	firstCallback := func(parameters *validation.CallbackParameters) *validation.CallbackResult {
-		return validation.NewCallbackResult().SetError(validation.NewFieldError(parameters, errors.New("first field error")))
+	firstCallback := func(params *validation.CallbackParameters) (*validation.CallbackResult, error) {
+		fieldErr := validation.NewFieldError(params, errors.New("first field error"))
+		return validation.NewCallbackResult().AddFieldError(fieldErr), nil
+	}
+	secondCallback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
+		panic(errors.New("should not be called"))
 	}
 	validation.MustRegisterValidator(firstName, firstCallback)
-	validation.MustRegisterValidator(secondName, func(*validation.CallbackParameters) *validation.CallbackResult {
-		panic(errors.New("should not be called"))
-	})
+	validation.MustRegisterValidator(secondName, secondCallback)
 
 	err := validation.Var("anything", string(firstName)+validation.ValidatorsSep+string(secondName))
 	assert.ErrorPart(t, err, "first field error")
@@ -435,9 +437,10 @@ func TestStruct_CallbackResultNotFilled_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	validatorName := validation.Validator("validation_test_not_filled")
-	validation.MustRegisterValidator(validatorName, func(*validation.CallbackParameters) *validation.CallbackResult {
-		return validation.NewCallbackResult()
-	})
+	callback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
+		return validation.NewCallbackResult(), nil
+	}
+	validation.MustRegisterValidator(validatorName, callback)
 
 	type testStruct struct {
 		Value string `validate:"validation_test_not_filled"`

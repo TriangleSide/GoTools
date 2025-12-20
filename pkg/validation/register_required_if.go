@@ -17,30 +17,28 @@ const (
 
 // init registers the required_if validator that requires a field when another struct field matches a specified value.
 func init() {
-	MustRegisterValidator(RequiredIfValidatorName, func(params *CallbackParameters) *CallbackResult {
-		result := NewCallbackResult()
-
+	MustRegisterValidator(RequiredIfValidatorName, func(params *CallbackParameters) (*CallbackResult, error) {
 		if !params.IsStructValidation {
-			return result.SetError(errors.New("required_if can only be used on struct fields"))
+			return nil, errors.New("required_if can only be used on struct fields")
 		}
 
 		const requiredPartCount = 2
 		parts := strings.Fields(params.Parameters)
 		if len(parts) != requiredPartCount {
-			return result.SetError(errors.New("required_if requires a field name and a value to compare"))
+			return nil, errors.New("required_if requires a field name and a value to compare")
 		}
 		requiredIfFieldName := parts[0]
 		requiredIfStrValue := parts[1]
 
 		requiredFieldValue, err := structs.ValueFromName(params.StructValue.Interface(), requiredIfFieldName)
 		if err != nil {
-			return result.SetError(NewFieldError(params, err))
+			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
 		}
 
 		// If the value to check is nil, it can never match, therefore the value is not required.
-		requiredFieldValue, err = dereferenceAndNilCheck(requiredFieldValue)
-		if err != nil {
-			return nil
+		requiredFieldValue, derefErr := dereferenceAndNilCheck(requiredFieldValue)
+		if derefErr != nil {
+			return nil, nil //nolint:nilerr,nilnil // nil value means condition cannot match
 		}
 
 		var requiredFieldValueStr string
@@ -55,6 +53,6 @@ func init() {
 			return required(params)
 		}
 
-		return nil
+		return nil, nil //nolint:nilnil // nil, nil means validation passed
 	})
 }

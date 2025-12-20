@@ -14,23 +14,21 @@ const (
 
 // init registers the ip_addr validator that checks if a string value is a valid IPv4 or IPv6 address.
 func init() {
-	MustRegisterValidator(IPAddrValidatorName, func(params *CallbackParameters) *CallbackResult {
-		result := NewCallbackResult()
-
+	MustRegisterValidator(IPAddrValidatorName, func(params *CallbackParameters) (*CallbackResult, error) {
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.SetError(NewFieldError(params, err))
+			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
 		}
 		if value.Kind() != reflect.String {
-			return result.SetError(errors.New("the value must be a string"))
+			return nil, errors.New("the value must be a string")
 		}
 
 		var valueStr = value.String()
 		if ip := net.ParseIP(valueStr); ip == nil {
-			return result.SetError(NewFieldError(params, fmt.Errorf(
-				"the value '%s' could not be parsed as an IP address", valueStr)))
+			return NewCallbackResult().AddFieldError(NewFieldError(params, fmt.Errorf(
+				"the value '%s' could not be parsed as an IP address", valueStr))), nil
 		}
 
-		return nil
+		return nil, nil //nolint:nilnil // nil, nil means validation passed
 	})
 }

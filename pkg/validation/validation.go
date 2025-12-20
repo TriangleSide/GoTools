@@ -130,14 +130,15 @@ func checkValidatorsAgainstValue(
 			Parameters:         instruction,
 		}
 
-		if callbackResponse := callback(callbackParameters); callbackResponse != nil {
-			if callbackResponse.err != nil {
-				var fieldErr *FieldError
-				if errors.As(callbackResponse.err, &fieldErr) {
-					fieldErrors = append(fieldErrors, fieldErr)
-					return false, nil
-				}
-				return false, callbackResponse.err
+		callbackResponse, callbackErr := callback(callbackParameters)
+		if callbackErr != nil {
+			return false, callbackErr
+		}
+
+		if callbackResponse != nil {
+			if len(callbackResponse.fieldErrors) > 0 {
+				fieldErrors = append(fieldErrors, callbackResponse.fieldErrors...)
+				return false, nil
 			}
 			if callbackResponse.stop {
 				return false, nil
