@@ -8,9 +8,9 @@ import (
 
 // CallbackResult carries a validator outcome and directs validation flow.
 type CallbackResult struct {
-	err       error
-	stop      bool
-	newValues []reflect.Value
+	fieldErrors []*FieldError
+	stop        bool
+	newValues   []reflect.Value
 }
 
 // NewCallbackResult provides a blank result for validators to populate.
@@ -18,9 +18,9 @@ func NewCallbackResult() *CallbackResult {
 	return &CallbackResult{}
 }
 
-// SetError records an error for the current validator.
-func (c *CallbackResult) SetError(err error) *CallbackResult {
-	c.err = err
+// AddFieldError appends a field error to the result.
+func (c *CallbackResult) AddFieldError(fieldError *FieldError) *CallbackResult {
+	c.fieldErrors = append(c.fieldErrors, fieldError)
 	return c
 }
 
@@ -38,7 +38,7 @@ func (c *CallbackResult) AddValue(val reflect.Value) *CallbackResult {
 }
 
 // Callback executes a validator and returns how validation should proceed.
-type Callback func(*CallbackParameters) *CallbackResult
+type Callback func(*CallbackParameters) (*CallbackResult, error)
 
 var (
 	// registeredValidations stores validator callbacks by name for tag evaluation.

@@ -15,17 +15,15 @@ const (
 
 // init registers the oneof validator that checks if a value is one of a space-separated list of allowed values.
 func init() {
-	MustRegisterValidator(OneOfValidatorName, func(params *CallbackParameters) *CallbackResult {
-		result := NewCallbackResult()
-
+	MustRegisterValidator(OneOfValidatorName, func(params *CallbackParameters) (*CallbackResult, error) {
 		if strings.TrimSpace(params.Parameters) == "" {
-			return result.SetError(errors.New("no parameters provided"))
+			return nil, errors.New("no parameters provided")
 		}
 		allowedValues := strings.Fields(params.Parameters)
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.SetError(NewFieldError(params, err))
+			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
 		}
 
 		var valueStr string
@@ -37,9 +35,10 @@ func init() {
 		}
 
 		if slices.Contains(allowedValues, valueStr) {
-			return nil
+			return nil, nil //nolint:nilnil // nil, nil means validation passed
 		}
 
-		return result.SetError(NewFieldError(params, errors.New("the value is not one of the allowed values")))
+		fieldErr := NewFieldError(params, errors.New("the value is not one of the allowed values"))
+		return NewCallbackResult().AddFieldError(fieldErr), nil
 	})
 }

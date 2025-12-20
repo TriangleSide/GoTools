@@ -16,32 +16,33 @@ const (
 
 // init registers the absolute_path validator that enforces absolute, valid, existing filesystem paths.
 func init() {
-	MustRegisterValidator(AbsolutePathValidatorName, func(params *CallbackParameters) *CallbackResult {
-		result := NewCallbackResult()
-
+	MustRegisterValidator(AbsolutePathValidatorName, func(params *CallbackParameters) (*CallbackResult, error) {
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.SetError(NewFieldError(params, err))
+			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
 		}
 
 		if value.Kind() != reflect.String {
-			return result.SetError(fmt.Errorf("the value must be a string for the %s validator", AbsolutePathValidatorName))
+			return nil, fmt.Errorf("the value must be a string for the %s validator", AbsolutePathValidatorName)
 		}
 
 		strValue := value.String()
 		if !filepath.IsAbs(strValue) {
-			return result.SetError(NewFieldError(params, fmt.Errorf("the path '%s' is not absolute", strValue)))
+			fieldErr := NewFieldError(params, fmt.Errorf("the path '%s' is not absolute", strValue))
+			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 
 		if fsPath := absolutePathToFSPath(strValue); fsPath != "" && !fs.ValidPath(fsPath) {
-			return result.SetError(NewFieldError(params, fmt.Errorf("the path '%s' is not valid", strValue)))
+			fieldErr := NewFieldError(params, fmt.Errorf("the path '%s' is not valid", strValue))
+			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 
 		if _, err := os.Stat(strValue); err != nil {
-			return result.SetError(NewFieldError(params, fmt.Errorf("the path '%s' is not accessible", strValue)))
+			fieldErr := NewFieldError(params, fmt.Errorf("the path '%s' is not accessible", strValue))
+			return NewCallbackResult().AddFieldError(fieldErr), nil //nolint:nilerr // returning field error
 		}
 
-		return nil
+		return nil, nil //nolint:nilnil // nil, nil means validation passed
 	})
 }
 

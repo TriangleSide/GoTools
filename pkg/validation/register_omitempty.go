@@ -7,10 +7,14 @@ const (
 
 // init registers the omitempty validator that stops validation if the value is empty or zero.
 func init() {
-	MustRegisterValidator(OmitemptyValidatorName, func(params *CallbackParameters) *CallbackResult {
-		if result := required(params); result != nil {
-			return NewCallbackResult().StopValidation()
+	MustRegisterValidator(OmitemptyValidatorName, func(params *CallbackParameters) (*CallbackResult, error) {
+		result, err := required(params)
+		if err != nil {
+			return nil, err
 		}
-		return nil
+		if result != nil {
+			return NewCallbackResult().StopValidation(), nil
+		}
+		return nil, nil //nolint:nilnil // nil, nil means validation passed
 	})
 }

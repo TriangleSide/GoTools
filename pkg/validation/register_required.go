@@ -13,17 +13,15 @@ func init() {
 }
 
 // required checks if the value is a zero value for its type.
-func required(params *CallbackParameters) *CallbackResult {
-	result := NewCallbackResult()
-
+func required(params *CallbackParameters) (*CallbackResult, error) {
 	value, err := dereferenceAndNilCheck(params.Value)
 	if err != nil {
-		return result.SetError(NewFieldError(params, err))
+		return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
 	}
 
 	if value.IsZero() {
-		return result.SetError(NewFieldError(params, errors.New("the value is the zero-value")))
+		return NewCallbackResult().AddFieldError(NewFieldError(params, errors.New("the value is the zero-value"))), nil
 	}
 
-	return nil
+	return nil, nil //nolint:nilnil // nil, nil means validation passed
 }
