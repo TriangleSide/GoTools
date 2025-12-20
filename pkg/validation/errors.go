@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+var (
+	// errValueIsNil is returned when a value is nil while validation requires a non-nil value.
+	errValueIsNil = errors.New("the value is nil")
+)
+
 // FieldError represents a failure for a specific validator.
 type FieldError struct {
 	err error

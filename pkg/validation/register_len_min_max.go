@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 )
 
 const (
@@ -34,10 +36,11 @@ func registerStringLengthValidation(name Validator, compareFunc func(length, tar
 			return nil, errors.New("the length parameter can't be negative")
 		}
 
-		value, err := dereferenceAndNilCheck(params.Value)
-		if err != nil {
-			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
+		value := reflection.Dereference(params.Value)
+		if reflection.IsNil(value) {
+			return NewCallbackResult().AddFieldError(NewFieldError(params, errValueIsNil)), nil
 		}
+
 		if value.Kind() != reflect.String {
 			return nil, fmt.Errorf("the value must be a string for the %s validator", name)
 		}

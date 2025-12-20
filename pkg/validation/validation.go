@@ -330,15 +330,17 @@ func validateRecursively(depth int, val reflect.Value) ([]*FieldError, error) {
 
 // Struct validates all struct fields using their validation tags, returning an error if any fail.
 // In the case that the struct has tag field errors, the field errors are joined with errors.Join.
-func Struct[T any](val T) error {
-	reflectValue, err := dereferenceAndNilCheck(reflect.ValueOf(val))
+func Struct(val any) error {
+	value := reflection.Dereference(reflect.ValueOf(val))
+	if reflection.IsNil(value) {
+		return errValueIsNil
+	}
+
+	fieldErrors, err := validateStructInternal(value, 0)
 	if err != nil {
 		return err
 	}
-	fieldErrors, err := validateStructInternal(reflectValue, 0)
-	if err != nil {
-		return err
-	}
+
 	return fieldErrorsToError(fieldErrors)
 }
 

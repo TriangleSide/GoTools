@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 )
 
 const (
@@ -15,10 +17,11 @@ const (
 // init registers the ip_addr validator that checks if a string value is a valid IPv4 or IPv6 address.
 func init() {
 	MustRegisterValidator(IPAddrValidatorName, func(params *CallbackParameters) (*CallbackResult, error) {
-		value, err := dereferenceAndNilCheck(params.Value)
-		if err != nil {
-			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
+		value := reflection.Dereference(params.Value)
+		if reflection.IsNil(value) {
+			return NewCallbackResult().AddFieldError(NewFieldError(params, errValueIsNil)), nil
 		}
+
 		if value.Kind() != reflect.String {
 			return nil, errors.New("the value must be a string")
 		}

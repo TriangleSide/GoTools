@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 )
 
 const (
@@ -14,10 +16,11 @@ const (
 // init registers the filepath validator that checks if a file path exists and is accessible.
 func init() {
 	MustRegisterValidator(FilepathValidatorName, func(params *CallbackParameters) (*CallbackResult, error) {
-		value, err := dereferenceAndNilCheck(params.Value)
-		if err != nil {
-			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
+		value := reflection.Dereference(params.Value)
+		if reflection.IsNil(value) {
+			return NewCallbackResult().AddFieldError(NewFieldError(params, errValueIsNil)), nil
 		}
+
 		if value.Kind() != reflect.String {
 			return nil, fmt.Errorf("the value must be a string for the %s validator", FilepathValidatorName)
 		}
