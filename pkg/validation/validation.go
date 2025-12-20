@@ -32,7 +32,7 @@ const (
 	Tag = "validate"
 )
 
-// ValidatorWithInstruction holds a parsed validator name along with its optional instruction string.
+// validatorWithInstruction holds a parsed validator name along with its optional instruction string.
 // For example, given the validation tag segment "oneof=ACTIVE INACTIVE", this struct would contain:
 //   - Name: "oneof"
 //   - Instruction: "ACTIVE INACTIVE"
@@ -40,32 +40,63 @@ const (
 // For a validator without instructions like "required", this struct would contain:
 //   - Name: "required"
 //   - Instruction: "" (empty string)
-type ValidatorWithInstruction struct {
+type validatorWithInstruction struct {
 	Name        Validator
 	Instruction string
 }
 
 // parseValidatorWithInstruction takes a single validator segment from a validation tag and parses it
-// into a ValidatorWithInstruction struct.
+// into a validatorWithInstruction struct.
 //
 // Examples:
-//   - "required" -> ValidatorWithInstruction{Name: "required", Instruction: ""}
-//   - "oneof=A B C" -> ValidatorWithInstruction{Name: "oneof", Instruction: "A B C"}
-//   - "gt=10" -> ValidatorWithInstruction{Name: "gt", Instruction: "10"}
-func parseValidatorWithInstruction(segment string) (ValidatorWithInstruction, error) {
+//   - "required" -> validatorWithInstruction{Name: "required", Instruction: ""}
+//   - "oneof=A B C" -> validatorWithInstruction{Name: "oneof", Instruction: "A B C"}
+//   - "gt=10" -> validatorWithInstruction{Name: "gt", Instruction: "10"}
+func parseValidatorWithInstruction(segment string) (validatorWithInstruction, error) {
 	const maxParts = 2
 	parts := strings.Split(segment, NameAndInstructionsSep)
 	if len(parts) > maxParts {
-		return ValidatorWithInstruction{}, errors.New("malformed validator and instruction")
+		return validatorWithInstruction{}, errors.New("malformed validator and instruction")
 	}
 	instruction := ""
 	if len(parts) == maxParts {
 		instruction = parts[1]
 	}
-	return ValidatorWithInstruction{
+	return validatorWithInstruction{
 		Name:        Validator(parts[0]),
 		Instruction: instruction,
 	}, nil
+}
+
+// parseValidationTag takes a complete validation tag string and parses it into a slice of
+// validatorWithInstruction structs. The tag string is first expanded to resolve any aliases,
+// then each segment is parsed into its name and instruction components.
+//
+// Example:
+//   - Input: "required,oneof=A B,gt=0"
+//   - Output: []validatorWithInstruction{
+//     {Name: "required", Instruction: ""},
+//     {Name: "oneof", Instruction: "A B"},
+//     {Name: "gt", Instruction: "0"},
+//     }
+func parseValidationTag(validateTagContents string) ([]validatorWithInstruction, error) {
+	if strings.TrimSpace(validateTagContents) == "" {
+		return nil, fmt.Errorf("empty %s instructions", Tag)
+	}
+
+	expandedTag := expandAliases(validateTagContents)
+	segments := strings.Split(expandedTag, ValidatorsSep)
+	validators := make([]validatorWithInstruction, 0, len(segments))
+
+	for _, segment := range segments {
+		parsed, err := parseValidatorWithInstruction(segment)
+		if err != nil {
+			return nil, err
+		}
+		validators = append(validators, parsed)
+	}
+
+	return validators, nil
 }
 
 // expandAliases takes a validation tag string and expands any validator aliases into their full
@@ -95,37 +126,6 @@ func expandAliases(validateTagContents string) string {
 	return strings.Join(result, ValidatorsSep)
 }
 
-// parseValidationTag takes a complete validation tag string and parses it into a slice of
-// ValidatorWithInstruction structs. The tag string is first expanded to resolve any aliases,
-// then each segment is parsed into its name and instruction components.
-//
-// Example:
-//   - Input: "required,oneof=A B,gt=0"
-//   - Output: []ValidatorWithInstruction{
-//     {Name: "required", Instruction: ""},
-//     {Name: "oneof", Instruction: "A B"},
-//     {Name: "gt", Instruction: "0"},
-//     }
-func parseValidationTag(validateTagContents string) ([]ValidatorWithInstruction, error) {
-	if strings.TrimSpace(validateTagContents) == "" {
-		return nil, fmt.Errorf("empty %s instructions", Tag)
-	}
-
-	expandedTag := expandAliases(validateTagContents)
-	segments := strings.Split(expandedTag, ValidatorsSep)
-	validators := make([]ValidatorWithInstruction, 0, len(segments))
-
-	for _, segment := range segments {
-		parsed, err := parseValidatorWithInstruction(segment)
-		if err != nil {
-			return nil, err
-		}
-		validators = append(validators, parsed)
-	}
-
-	return validators, nil
-}
-
 // iterateValidators iterates over a slice of parsed validators and invokes the callback for each one.
 // The callback receives the current validator along with a slice of the remaining validators that
 // have not yet been processed. This remaining slice is useful for validators like "dive" that need
@@ -140,8 +140,8 @@ func parseValidationTag(validateTagContents string) ([]ValidatorWithInstruction,
 //   - Second call: current={dive, ""}, remaining=[{gt, "0"}]
 //   - Third call: current={gt, "0"}, remaining=[]
 func iterateValidators(
-	validators []ValidatorWithInstruction,
-	callback func(current ValidatorWithInstruction, remaining []ValidatorWithInstruction) (bool, error),
+	validators []validatorWithInstruction,
+	callback func(current validatorWithInstruction, remaining []validatorWithInstruction) (bool, error),
 ) error {
 	for i, validator := range validators {
 		remaining := validators[i+1:]
@@ -164,8 +164,8 @@ func iterateValidators(
 //   - Validator: {gt, "5"}
 //   - Looks up the "gt" callback and invokes it with instruction "5" to check if value > 5
 func executeValidator(
-	validator ValidatorWithInstruction,
-	remainingValidators []ValidatorWithInstruction,
+	validator validatorWithInstruction,
+	remainingValidators []validatorWithInstruction,
 	isStructValue bool,
 	structValue reflect.Value,
 	structFieldName string,
@@ -230,7 +230,7 @@ func executeValidator(
 //   - Validators: [{required, ""}, {gt, "0"}]
 //   - Checks that the value is non-zero, then checks that it is greater than 0
 func runValidatorsAgainstValue(
-	validators []ValidatorWithInstruction,
+	validators []validatorWithInstruction,
 	isStructValue bool,
 	structValue reflect.Value,
 	structFieldName string,
@@ -242,7 +242,7 @@ func runValidatorsAgainstValue(
 
 	var allFieldErrors []*FieldError
 
-	iterCallback := func(current ValidatorWithInstruction, remaining []ValidatorWithInstruction) (bool, error) {
+	iterCallback := func(current validatorWithInstruction, remaining []validatorWithInstruction) (bool, error) {
 		fieldErrors, shouldContinue, execErr := executeValidator(
 			current, remaining, isStructValue, structValue, structFieldName, fieldValue)
 		if execErr != nil {

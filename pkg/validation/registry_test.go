@@ -155,7 +155,8 @@ func TestCallback_ReturnsNil_ReturnsError(t *testing.T) {
 	validatorName := validation.Validator("registry_test_callback_returns_nil_error")
 
 	nilCallback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
-		return nil, nil //nolint:nilnil
+		var result *validation.CallbackResult
+		return result, nil
 	}
 	validation.MustRegisterValidator(validatorName, nilCallback)
 
