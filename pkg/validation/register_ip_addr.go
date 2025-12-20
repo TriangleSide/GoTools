@@ -19,15 +19,15 @@ func init() {
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewFieldError(params, err))
+			return result.SetError(NewFieldError(params, err))
 		}
 		if value.Kind() != reflect.String {
-			return result.WithError(errors.New("the value must be a string"))
+			return result.SetError(errors.New("the value must be a string"))
 		}
 
 		var valueStr = value.String()
 		if ip := net.ParseIP(valueStr); ip == nil {
-			return result.WithError(NewFieldError(params, fmt.Errorf(
+			return result.SetError(NewFieldError(params, fmt.Errorf(
 				"the value '%s' could not be parsed as an IP address", valueStr)))
 		}
 

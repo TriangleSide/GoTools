@@ -15,21 +15,17 @@ type CallbackResult struct {
 
 // NewCallbackResult provides a blank result for validators to populate.
 func NewCallbackResult() *CallbackResult {
-	return &CallbackResult{
-		err:       nil,
-		stop:      false,
-		newValues: nil,
-	}
+	return &CallbackResult{}
 }
 
-// WithError records a validation failure for the current validator.
-func (c *CallbackResult) WithError(err error) *CallbackResult {
+// SetError records an error for the current validator.
+func (c *CallbackResult) SetError(err error) *CallbackResult {
 	c.err = err
 	return c
 }
 
-// WithStop signals that remaining validators should be skipped.
-func (c *CallbackResult) WithStop() *CallbackResult {
+// StopValidation signals that remaining validators should be skipped for the field.
+func (c *CallbackResult) StopValidation() *CallbackResult {
 	c.stop = true
 	return c
 }
@@ -51,12 +47,18 @@ var (
 
 // CallbackParameters holds context for a validator callback, including struct data when available.
 type CallbackParameters struct {
-	Validator          Validator
+	// Validator is the name of the validator being executed.
+	Validator Validator
+	// IsStructValidation reports whether validation is running against a struct field.
 	IsStructValidation bool
-	StructValue        reflect.Value
-	StructFieldName    string
-	Value              reflect.Value
-	Parameters         string
+	// StructValue holds the parent struct when validating a struct field.
+	StructValue reflect.Value
+	// StructFieldName names the struct field being validated.
+	StructFieldName string
+	// Value is the value currently being validated.
+	Value reflect.Value
+	// Parameters carries the validator instruction string after the name.
+	Parameters string
 }
 
 // MustRegisterValidator registers a validator callback and panics on duplicates.

@@ -19,13 +19,13 @@ func init() {
 		result := NewCallbackResult()
 
 		if strings.TrimSpace(params.Parameters) == "" {
-			return result.WithError(errors.New("no parameters provided"))
+			return result.SetError(errors.New("no parameters provided"))
 		}
 		allowedValues := strings.Fields(params.Parameters)
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewFieldError(params, err))
+			return result.SetError(NewFieldError(params, err))
 		}
 
 		var valueStr string
@@ -40,6 +40,6 @@ func init() {
 			return nil
 		}
 
-		return result.WithError(NewFieldError(params, errors.New("the value is not one of the allowed values")))
+		return result.SetError(NewFieldError(params, errors.New("the value is not one of the allowed values")))
 	})
 }
