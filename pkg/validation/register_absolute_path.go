@@ -37,12 +37,13 @@ func init() {
 			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 
-		if _, err := os.Stat(strValue); err != nil {
+		info, _ := os.Stat(strValue)
+		if info == nil {
 			fieldErr := NewFieldError(params, fmt.Errorf("the path '%s' is not accessible", strValue))
-			return NewCallbackResult().AddFieldError(fieldErr), nil //nolint:nilerr // returning field error
+			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 
-		return nil, nil //nolint:nilnil // nil, nil means validation passed
+		return NewCallbackResult().PassValidation(), nil
 	})
 }
 

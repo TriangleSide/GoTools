@@ -29,6 +29,6 @@ func init() {
 				"the value '%s' could not be parsed as an IP address", valueStr))), nil
 		}
 
-		return nil, nil //nolint:nilnil // nil, nil means validation passed
+		return NewCallbackResult().PassValidation(), nil
 	})
 }

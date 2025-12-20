@@ -42,7 +42,7 @@ func validateAPIPathValue(params *validation.CallbackParameters) (*validation.Ca
 		return pathValidationFieldError(params, err)
 	}
 
-	return nil, nil //nolint:nilnil // nil, nil means validation passed
+	return validation.NewCallbackResult().PassValidation(), nil
 }
 
 // apiPathFromValue extracts an API path string from a potentially dereferenceable value.

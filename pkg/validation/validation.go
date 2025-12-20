@@ -135,29 +135,32 @@ func checkValidatorsAgainstValue(
 			return false, callbackErr
 		}
 
-		if callbackResponse != nil {
-			if len(callbackResponse.fieldErrors) > 0 {
-				fieldErrors = append(fieldErrors, callbackResponse.fieldErrors...)
-				return false, nil
-			}
-			if callbackResponse.stop {
-				return false, nil
-			}
-			if callbackResponse.newValues != nil {
-				for _, newValue := range callbackResponse.newValues {
-					newFieldErrors, newValErr := checkValidatorsAgainstValue(
-						isStructValue, structValue, structFieldName, newValue, rest())
-					if newValErr != nil {
-						return false, newValErr
-					}
-					fieldErrors = append(fieldErrors, newFieldErrors...)
-				}
-				return false, nil
-			}
-			return false, fmt.Errorf("callback response is not correctly filled for validator %s", name)
+		if callbackResponse == nil {
+			return false, fmt.Errorf("callback returned nil result for validator %s", name)
 		}
 
-		return true, nil
+		if len(callbackResponse.fieldErrors) > 0 {
+			fieldErrors = append(fieldErrors, callbackResponse.fieldErrors...)
+			return false, nil
+		}
+		if callbackResponse.stop {
+			return false, nil
+		}
+		if callbackResponse.newValues != nil {
+			for _, newValue := range callbackResponse.newValues {
+				newFieldErrors, newValErr := checkValidatorsAgainstValue(
+					isStructValue, structValue, structFieldName, newValue, rest())
+				if newValErr != nil {
+					return false, newValErr
+				}
+				fieldErrors = append(fieldErrors, newFieldErrors...)
+			}
+			return false, nil
+		}
+		if callbackResponse.pass {
+			return true, nil
+		}
+		return false, fmt.Errorf("callback response is not correctly filled for validator %s", name)
 	}
 	err := forEachValidatorAndInstruction(validationTagContents, iterCallback)
 	return fieldErrors, err

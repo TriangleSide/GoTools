@@ -64,6 +64,6 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 
-		return nil, nil //nolint:nilnil // nil, nil means validation passed
+		return NewCallbackResult().PassValidation(), nil
 	})
 }

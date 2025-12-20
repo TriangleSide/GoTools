@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 	"github.com/TriangleSide/GoTools/pkg/structs"
 )
 
@@ -36,9 +37,9 @@ func init() {
 		}
 
 		// If the value to check is nil, it can never match, therefore the value is not required.
-		requiredFieldValue, derefErr := dereferenceAndNilCheck(requiredFieldValue)
-		if derefErr != nil {
-			return nil, nil //nolint:nilerr,nilnil // nil value means condition cannot match
+		requiredFieldValue = reflection.Dereference(requiredFieldValue)
+		if reflection.IsNil(requiredFieldValue) {
+			return NewCallbackResult().PassValidation(), nil
 		}
 
 		var requiredFieldValueStr string
@@ -53,6 +54,6 @@ func init() {
 			return required(params)
 		}
 
-		return nil, nil //nolint:nilnil // nil, nil means validation passed
+		return NewCallbackResult().PassValidation(), nil
 	})
 }
