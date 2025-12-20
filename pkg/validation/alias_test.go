@@ -187,7 +187,7 @@ func TestMustRegisterAlias_ReturnsViolation_WithExpandedValidator(t *testing.T) 
 	err := validation.Var(5, "alias_test_violation")
 	assert.Error(t, err)
 
-	var violation *validation.Violation
+	var violation *validation.FieldError
 	assert.True(t, errors.As(err, &violation))
 	assert.ErrorPart(t, err, "validator 'gt'")
 }

@@ -44,7 +44,7 @@ func TestVar_ViolationStopsValidation_SkipsRemainingValidators(t *testing.T) {
 	secondName := validation.Validator("validation_test_violation_stops_remaining_second")
 
 	firstCallback := func(parameters *validation.CallbackParameters) *validation.CallbackResult {
-		return validation.NewCallbackResult().WithError(validation.NewViolation(parameters, errors.New("first violation")))
+		return validation.NewCallbackResult().WithError(validation.NewFieldError(parameters, errors.New("first violation")))
 	}
 	validation.MustRegisterValidator(firstName, firstCallback)
 	validation.MustRegisterValidator(secondName, func(*validation.CallbackParameters) *validation.CallbackResult {

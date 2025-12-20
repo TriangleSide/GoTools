@@ -28,7 +28,7 @@ func init() {
 
 // pathValidationError returns a validation error response for an invalid API path.
 func pathValidationError(params *validation.CallbackParameters, err error) *validation.CallbackResult {
-	return validation.NewCallbackResult().WithError(validation.NewViolation(params, err))
+	return validation.NewCallbackResult().WithError(validation.NewFieldError(params, err))
 }
 
 // validateAPIPathValue validates a value as an API path.

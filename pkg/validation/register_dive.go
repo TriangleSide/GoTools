@@ -17,7 +17,7 @@ func init() {
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewViolation(params, err))
+			return result.WithError(NewFieldError(params, err))
 		}
 		if value.Kind() != reflect.Slice {
 			return result.WithError(errors.New("the dive validator only accepts slice values"))

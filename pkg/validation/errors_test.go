@@ -11,7 +11,7 @@ import (
 
 func TestNewViolation_StructValidationWithParameters_ReturnsFormattedMessage(t *testing.T) {
 	t.Parallel()
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewFieldError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: true,
 		StructValue: reflect.ValueOf(struct {
@@ -27,7 +27,7 @@ func TestNewViolation_StructValidationWithParameters_ReturnsFormattedMessage(t *
 
 func TestNewViolation_StructValidationWithoutParameters_ReturnsFormattedMessage(t *testing.T) {
 	t.Parallel()
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewFieldError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: true,
 		StructValue: reflect.ValueOf(struct {
@@ -42,7 +42,7 @@ func TestNewViolation_StructValidationWithoutParameters_ReturnsFormattedMessage(
 
 func TestNewViolation_NonStructValidationWithParameters_ReturnsFormattedMessage(t *testing.T) {
 	t.Parallel()
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewFieldError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
@@ -54,7 +54,7 @@ func TestNewViolation_NonStructValidationWithParameters_ReturnsFormattedMessage(
 
 func TestNewViolation_NonStructValidationWithoutParameters_ReturnsFormattedMessage(t *testing.T) {
 	t.Parallel()
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewFieldError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),
@@ -65,14 +65,14 @@ func TestNewViolation_NonStructValidationWithoutParameters_ReturnsFormattedMessa
 
 func TestViolation_Unwrap_NilViolation_ReturnsNil(t *testing.T) {
 	t.Parallel()
-	var violation *validation.Violation
+	var violation *validation.FieldError
 	assert.Nil(t, violation.Unwrap())
 }
 
 func TestViolation_Unwrap_CauseIsDiscoverableViaErrorsIs(t *testing.T) {
 	t.Parallel()
 	cause := errors.New("cause")
-	violation := validation.NewViolation(&validation.CallbackParameters{
+	violation := validation.NewFieldError(&validation.CallbackParameters{
 		Validator:          "test",
 		IsStructValidation: false,
 		Value:              reflect.ValueOf(1),

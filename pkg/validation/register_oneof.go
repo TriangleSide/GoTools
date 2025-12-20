@@ -25,7 +25,7 @@ func init() {
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewViolation(params, err))
+			return result.WithError(NewFieldError(params, err))
 		}
 
 		var valueStr string
@@ -40,6 +40,6 @@ func init() {
 			return nil
 		}
 
-		return result.WithError(NewViolation(params, errors.New("the value is not one of the allowed values")))
+		return result.WithError(NewFieldError(params, errors.New("the value is not one of the allowed values")))
 	})
 }
