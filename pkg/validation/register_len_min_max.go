@@ -48,6 +48,6 @@ func registerStringLengthValidation(name Validator, compareFunc func(length, tar
 				"the length %d must be %s %d", len(valueStr), descriptor, targetLength))), nil
 		}
 
-		return nil, nil //nolint:nilnil // nil, nil means validation passed
+		return NewCallbackResult().PassValidation(), nil
 	})
 }

@@ -22,11 +22,12 @@ func init() {
 			return nil, fmt.Errorf("the value must be a string for the %s validator", FilepathValidatorName)
 		}
 
-		if _, err := os.Stat(value.String()); err != nil {
+		info, _ := os.Stat(value.String())
+		if info == nil {
 			fieldErr := NewFieldError(params, fmt.Errorf("the file '%s' is not accessible", value))
-			return NewCallbackResult().AddFieldError(fieldErr), nil //nolint:nilerr // returning field error
+			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 
-		return nil, nil //nolint:nilnil // nil, nil means validation passed
+		return NewCallbackResult().PassValidation(), nil
 	})
 }

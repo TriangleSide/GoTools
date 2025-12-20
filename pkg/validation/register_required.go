@@ -23,5 +23,5 @@ func required(params *CallbackParameters) (*CallbackResult, error) {
 		return NewCallbackResult().AddFieldError(NewFieldError(params, errors.New("the value is the zero-value"))), nil
 	}
 
-	return nil, nil //nolint:nilnil // nil, nil means validation passed
+	return NewCallbackResult().PassValidation(), nil
 }

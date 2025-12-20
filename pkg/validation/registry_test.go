@@ -15,7 +15,7 @@ func TestMustRegisterValidator_RegisteredValidator_CanBeUsedInVar(t *testing.T) 
 
 	validatorName := validation.Validator("registry_test_registered_can_be_used_in_var")
 	callback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
-		return nil, nil //nolint:nilnil
+		return validation.NewCallbackResult().PassValidation(), nil
 	}
 	validation.MustRegisterValidator(validatorName, callback)
 
@@ -28,7 +28,7 @@ func TestMustRegisterValidator_DuplicateName_Panics(t *testing.T) {
 
 	validatorName := validation.Validator("registry_test_duplicate_panics")
 	callback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
-		return nil, nil //nolint:nilnil
+		return validation.NewCallbackResult().PassValidation(), nil
 	}
 	validation.MustRegisterValidator(validatorName, callback)
 
@@ -131,22 +131,36 @@ func TestCallbackResult_WithStop_SkipsMalformedRemainingInstruction(t *testing.T
 	assert.NoError(t, err)
 }
 
-func TestCallback_ReturnsNil_ContinuesToNextValidator(t *testing.T) {
+func TestCallback_PassValidation_ContinuesToNextValidator(t *testing.T) {
 	t.Parallel()
 
-	firstName := validation.Validator("registry_test_callback_returns_nil_continues_first")
-	secondName := validation.Validator("registry_test_callback_returns_nil_continues_second")
+	firstName := validation.Validator("registry_test_callback_pass_continues_first")
+	secondName := validation.Validator("registry_test_callback_pass_continues_second")
 
-	nilCallback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
-		return nil, nil //nolint:nilnil
+	passCallback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
+		return validation.NewCallbackResult().PassValidation(), nil
 	}
-	validation.MustRegisterValidator(firstName, nilCallback)
+	validation.MustRegisterValidator(firstName, passCallback)
 	validation.MustRegisterValidator(secondName, func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
 		return nil, errors.New("second validator error")
 	})
 
 	err := validation.Var("anything", string(firstName)+validation.ValidatorsSep+string(secondName))
 	assert.ErrorPart(t, err, "second validator error")
+}
+
+func TestCallback_ReturnsNil_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	validatorName := validation.Validator("registry_test_callback_returns_nil_error")
+
+	nilCallback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
+		return nil, nil //nolint:nilnil
+	}
+	validation.MustRegisterValidator(validatorName, nilCallback)
+
+	err := validation.Var("anything", string(validatorName))
+	assert.ErrorPart(t, err, "callback returned nil result")
 }
 
 func TestCallbackResult_AddValue_ValidatesRemainingInstructionsAgainstNewValues(t *testing.T) {
@@ -212,7 +226,7 @@ func TestCallbackResult_AddValue_ValidatesRestAgainstElementsOnly(t *testing.T) 
 		if params.Value.Kind() != reflect.Int {
 			return nil, fmt.Errorf("expected int but got %s", params.Value.Kind())
 		}
-		return nil, nil //nolint:nilnil
+		return validation.NewCallbackResult().PassValidation(), nil
 	}
 	validation.MustRegisterValidator(expectIntName, expectIntCallback)
 

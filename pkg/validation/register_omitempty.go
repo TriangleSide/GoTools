@@ -12,9 +12,9 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		if result != nil {
+		if len(result.fieldErrors) > 0 {
 			return NewCallbackResult().StopValidation(), nil
 		}
-		return nil, nil //nolint:nilnil // nil, nil means validation passed
+		return NewCallbackResult().PassValidation(), nil
 	})
 }

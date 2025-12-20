@@ -35,7 +35,7 @@ func init() {
 		}
 
 		if slices.Contains(allowedValues, valueStr) {
-			return nil, nil //nolint:nilnil // nil, nil means validation passed
+			return NewCallbackResult().PassValidation(), nil
 		}
 
 		fieldErr := NewFieldError(params, errors.New("the value is not one of the allowed values"))

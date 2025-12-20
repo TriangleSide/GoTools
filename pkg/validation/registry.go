@@ -11,6 +11,7 @@ type CallbackResult struct {
 	fieldErrors []*FieldError
 	stop        bool
 	newValues   []reflect.Value
+	pass        bool
 }
 
 // NewCallbackResult provides a blank result for validators to populate.
@@ -34,6 +35,12 @@ func (c *CallbackResult) StopValidation() *CallbackResult {
 // For example, dive adds each element so later validators apply to them.
 func (c *CallbackResult) AddValue(val reflect.Value) *CallbackResult {
 	c.newValues = append(c.newValues, val)
+	return c
+}
+
+// PassValidation signals that validation passed and should continue to the next validator.
+func (c *CallbackResult) PassValidation() *CallbackResult {
+	c.pass = true
 	return c
 }
 
