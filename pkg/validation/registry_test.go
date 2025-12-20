@@ -118,17 +118,17 @@ func TestCallbackResult_WithStop_SkipsRemainingValidators(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestCallbackResult_WithStop_SkipsMalformedRemainingInstruction(t *testing.T) {
+func TestCallbackResult_WithStop_MalformedRemainingInstruction_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	stopName := validation.Validator("registry_test_stop_skips_malformed_remaining_first")
+	stopName := validation.Validator("registry_test_stop_malformed_remaining_first")
 
 	validation.MustRegisterValidator(stopName, func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
 		return validation.NewCallbackResult().StopValidation(), nil
 	})
 
 	err := validation.Var("anything", string(stopName)+validation.ValidatorsSep+"malformed=1=2")
-	assert.NoError(t, err)
+	assert.ErrorPart(t, err, "malformed validator and instruction")
 }
 
 func TestCallback_PassValidation_ContinuesToNextValidator(t *testing.T) {
