@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 )
 
 const (
@@ -41,9 +43,9 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 			return nil, fmt.Errorf("invalid parameters '%s' for %s: %w", params.Parameters, name, err)
 		}
 
-		value, err := dereferenceAndNilCheck(params.Value)
-		if err != nil {
-			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
+		value := reflection.Dereference(params.Value)
+		if reflection.IsNil(value) {
+			return NewCallbackResult().AddFieldError(NewFieldError(params, errValueIsNil)), nil
 		}
 
 		var val float64

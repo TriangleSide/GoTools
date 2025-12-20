@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 )
 
 const (
@@ -17,9 +19,9 @@ const (
 // init registers the absolute_path validator that enforces absolute, valid, existing filesystem paths.
 func init() {
 	MustRegisterValidator(AbsolutePathValidatorName, func(params *CallbackParameters) (*CallbackResult, error) {
-		value, err := dereferenceAndNilCheck(params.Value)
-		if err != nil {
-			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
+		value := reflection.Dereference(params.Value)
+		if reflection.IsNil(value) {
+			return NewCallbackResult().AddFieldError(NewFieldError(params, errValueIsNil)), nil
 		}
 
 		if value.Kind() != reflect.String {

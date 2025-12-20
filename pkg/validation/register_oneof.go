@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 )
 
 const (
@@ -21,9 +23,9 @@ func init() {
 		}
 		allowedValues := strings.Fields(params.Parameters)
 
-		value, err := dereferenceAndNilCheck(params.Value)
-		if err != nil {
-			return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
+		value := reflection.Dereference(params.Value)
+		if reflection.IsNil(value) {
+			return NewCallbackResult().AddFieldError(NewFieldError(params, errValueIsNil)), nil
 		}
 
 		var valueStr string

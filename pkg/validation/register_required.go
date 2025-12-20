@@ -1,6 +1,10 @@
 package validation
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/TriangleSide/GoTools/pkg/reflection"
+)
 
 const (
 	// RequiredValidatorName is the name of the validator that checks if a value is non-nil and non-zero.
@@ -14,9 +18,9 @@ func init() {
 
 // required checks if the value is a zero value for its type.
 func required(params *CallbackParameters) (*CallbackResult, error) {
-	value, err := dereferenceAndNilCheck(params.Value)
-	if err != nil {
-		return NewCallbackResult().AddFieldError(NewFieldError(params, err)), nil
+	value := reflection.Dereference(params.Value)
+	if reflection.IsNil(value) {
+		return NewCallbackResult().AddFieldError(NewFieldError(params, errValueIsNil)), nil
 	}
 
 	if value.IsZero() {
