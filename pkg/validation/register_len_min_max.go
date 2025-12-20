@@ -30,23 +30,23 @@ func registerStringLengthValidation(name Validator, compareFunc func(length, tar
 
 		targetLength, err := strconv.Atoi(params.Parameters)
 		if err != nil {
-			return result.WithError(fmt.Errorf("invalid instruction '%s' for %s: %w", params.Parameters, name, err))
+			return result.SetError(fmt.Errorf("invalid instruction '%s' for %s: %w", params.Parameters, name, err))
 		}
 		if targetLength < 0 {
-			return result.WithError(errors.New("the length parameter can't be negative"))
+			return result.SetError(errors.New("the length parameter can't be negative"))
 		}
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewFieldError(params, err))
+			return result.SetError(NewFieldError(params, err))
 		}
 		if value.Kind() != reflect.String {
-			return result.WithError(fmt.Errorf("the value must be a string for the %s validator", name))
+			return result.SetError(fmt.Errorf("the value must be a string for the %s validator", name))
 		}
 
 		var valueStr = value.String()
 		if !compareFunc(len(valueStr), targetLength) {
-			return result.WithError(NewFieldError(params, fmt.Errorf(
+			return result.SetError(NewFieldError(params, fmt.Errorf(
 				"the length %d must be %s %d", len(valueStr), descriptor, targetLength)))
 		}
 

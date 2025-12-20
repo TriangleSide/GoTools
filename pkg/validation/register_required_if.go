@@ -21,20 +21,20 @@ func init() {
 		result := NewCallbackResult()
 
 		if !params.IsStructValidation {
-			return result.WithError(errors.New("required_if can only be used on struct fields"))
+			return result.SetError(errors.New("required_if can only be used on struct fields"))
 		}
 
 		const requiredPartCount = 2
 		parts := strings.Fields(params.Parameters)
 		if len(parts) != requiredPartCount {
-			return result.WithError(errors.New("required_if requires a field name and a value to compare"))
+			return result.SetError(errors.New("required_if requires a field name and a value to compare"))
 		}
 		requiredIfFieldName := parts[0]
 		requiredIfStrValue := parts[1]
 
 		requiredFieldValue, err := structs.ValueFromName(params.StructValue.Interface(), requiredIfFieldName)
 		if err != nil {
-			return result.WithError(NewFieldError(params, err))
+			return result.SetError(NewFieldError(params, err))
 		}
 
 		// If the value to check is nil, it can never match, therefore the value is not required.

@@ -21,24 +21,24 @@ func init() {
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewFieldError(params, err))
+			return result.SetError(NewFieldError(params, err))
 		}
 
 		if value.Kind() != reflect.String {
-			return result.WithError(fmt.Errorf("the value must be a string for the %s validator", AbsolutePathValidatorName))
+			return result.SetError(fmt.Errorf("the value must be a string for the %s validator", AbsolutePathValidatorName))
 		}
 
 		strValue := value.String()
 		if !filepath.IsAbs(strValue) {
-			return result.WithError(NewFieldError(params, fmt.Errorf("the path '%s' is not absolute", strValue)))
+			return result.SetError(NewFieldError(params, fmt.Errorf("the path '%s' is not absolute", strValue)))
 		}
 
 		if fsPath := absolutePathToFSPath(strValue); fsPath != "" && !fs.ValidPath(fsPath) {
-			return result.WithError(NewFieldError(params, fmt.Errorf("the path '%s' is not valid", strValue)))
+			return result.SetError(NewFieldError(params, fmt.Errorf("the path '%s' is not valid", strValue)))
 		}
 
 		if _, err := os.Stat(strValue); err != nil {
-			return result.WithError(NewFieldError(params, fmt.Errorf("the path '%s' is not accessible", strValue)))
+			return result.SetError(NewFieldError(params, fmt.Errorf("the path '%s' is not accessible", strValue)))
 		}
 
 		return nil

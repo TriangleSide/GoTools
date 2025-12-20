@@ -40,12 +40,12 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 
 		threshold, err := strconv.ParseFloat(params.Parameters, 64)
 		if err != nil {
-			return result.WithError(fmt.Errorf("invalid parameters '%s' for %s: %w", params.Parameters, name, err))
+			return result.SetError(fmt.Errorf("invalid parameters '%s' for %s: %w", params.Parameters, name, err))
 		}
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewFieldError(params, err))
+			return result.SetError(NewFieldError(params, err))
 		}
 
 		var val float64
@@ -57,11 +57,11 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 		case reflect.Float32, reflect.Float64:
 			val = value.Float()
 		default:
-			return result.WithError(NewFieldError(params, fmt.Errorf("the %s validation not supported for kind %s", name, kind)))
+			return result.SetError(NewFieldError(params, fmt.Errorf("the %s validation not supported for kind %s", name, kind)))
 		}
 
 		if !compareFunc(val, threshold) {
-			return result.WithError(NewFieldError(params, fmt.Errorf("the value %v must be %s %v", val, operator, threshold)))
+			return result.SetError(NewFieldError(params, fmt.Errorf("the value %v must be %s %v", val, operator, threshold)))
 		}
 
 		return nil

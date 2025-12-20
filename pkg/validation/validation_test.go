@@ -44,7 +44,7 @@ func TestVar_FieldErrorStopsValidation_SkipsRemainingValidators(t *testing.T) {
 	secondName := validation.Validator("validation_test_field_error_stops_remaining_second")
 
 	firstCallback := func(parameters *validation.CallbackParameters) *validation.CallbackResult {
-		return validation.NewCallbackResult().WithError(validation.NewFieldError(parameters, errors.New("first field error")))
+		return validation.NewCallbackResult().SetError(validation.NewFieldError(parameters, errors.New("first field error")))
 	}
 	validation.MustRegisterValidator(firstName, firstCallback)
 	validation.MustRegisterValidator(secondName, func(*validation.CallbackParameters) *validation.CallbackResult {

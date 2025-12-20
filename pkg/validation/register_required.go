@@ -18,11 +18,11 @@ func required(params *CallbackParameters) *CallbackResult {
 
 	value, err := dereferenceAndNilCheck(params.Value)
 	if err != nil {
-		return result.WithError(NewFieldError(params, err))
+		return result.SetError(NewFieldError(params, err))
 	}
 
 	if value.IsZero() {
-		return result.WithError(NewFieldError(params, errors.New("the value is the zero-value")))
+		return result.SetError(NewFieldError(params, errors.New("the value is the zero-value")))
 	}
 
 	return nil

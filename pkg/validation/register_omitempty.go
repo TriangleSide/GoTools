@@ -9,7 +9,7 @@ const (
 func init() {
 	MustRegisterValidator(OmitemptyValidatorName, func(params *CallbackParameters) *CallbackResult {
 		if result := required(params); result != nil {
-			return NewCallbackResult().WithStop()
+			return NewCallbackResult().StopValidation()
 		}
 		return nil
 	})

@@ -17,14 +17,14 @@ func init() {
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewFieldError(params, err))
+			return result.SetError(NewFieldError(params, err))
 		}
 		if value.Kind() != reflect.Slice {
-			return result.WithError(errors.New("the dive validator only accepts slice values"))
+			return result.SetError(errors.New("the dive validator only accepts slice values"))
 		}
 
 		if value.Len() == 0 {
-			return result.WithStop()
+			return result.StopValidation()
 		}
 
 		for i := range value.Len() {
