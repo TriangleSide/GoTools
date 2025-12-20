@@ -113,8 +113,8 @@ func checkValidatorsAgainstValue(
 	structFieldName string,
 	fieldValue reflect.Value,
 	validationTagContents string,
-) ([]*Violation, error) {
-	var violations []*Violation
+) ([]*FieldError, error) {
+	var violations []*FieldError
 	iterCallback := func(name string, instruction string, rest func() string) (bool, error) {
 		callbackNotCast, callbackFound := registeredValidations.Load(name)
 		if !callbackFound {
@@ -132,7 +132,7 @@ func checkValidatorsAgainstValue(
 
 		if callbackResponse := callback(callbackParameters); callbackResponse != nil {
 			if callbackResponse.err != nil {
-				var violation *Violation
+				var violation *FieldError
 				if errors.As(callbackResponse.err, &violation) {
 					violations = append(violations, violation)
 					return false, nil
@@ -163,8 +163,8 @@ func checkValidatorsAgainstValue(
 }
 
 // validateContainerElements validates elements within slices, arrays, and maps.
-func validateContainerElements(depth int, val reflect.Value) ([]*Violation, error) {
-	var violations []*Violation
+func validateContainerElements(depth int, val reflect.Value) ([]*FieldError, error) {
+	var violations []*FieldError
 	switch val.Kind() {
 	case reflect.Slice, reflect.Array:
 		for i := range val.Len() {
@@ -197,7 +197,7 @@ func validateContainerElements(depth int, val reflect.Value) ([]*Violation, erro
 // validateRecursively ensures nested structs inside containers (slices, arrays, maps) are
 // validated, even when the container field itself has no validate tag. For example, a field
 // "Users []User" with no tag will still have each User struct validated for its own constraints.
-func validateRecursively(depth int, val reflect.Value) ([]*Violation, error) {
+func validateRecursively(depth int, val reflect.Value) ([]*FieldError, error) {
 	const maxDepth = 32
 	if depth >= maxDepth {
 		return nil, errors.New("cycle found in the validation")
@@ -229,12 +229,12 @@ func Struct[T any](val T) error {
 }
 
 // validateStructInternal is a helper for the Struct and validateRecursively functions.
-func validateStructInternal(val reflect.Value, depth int) ([]*Violation, error) {
+func validateStructInternal(val reflect.Value, depth int) ([]*FieldError, error) {
 	if val.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("validation parameter must be a struct but got %s", val.Kind())
 	}
 
-	var violations []*Violation
+	var violations []*FieldError
 	structMetadataMap := structs.MetadataFromType(val.Type())
 
 	for fieldName, fieldMetadata := range structMetadataMap.All() {
@@ -276,7 +276,7 @@ func Var[T any](val T, validatorInstructions string) error {
 }
 
 // violationsToError converts a slice of violations to an error by joining them.
-func violationsToError(violations []*Violation) error {
+func violationsToError(violations []*FieldError) error {
 	if len(violations) == 0 {
 		return nil
 	}

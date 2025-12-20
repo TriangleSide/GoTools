@@ -45,7 +45,7 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 
 		value, err := dereferenceAndNilCheck(params.Value)
 		if err != nil {
-			return result.WithError(NewViolation(params, err))
+			return result.WithError(NewFieldError(params, err))
 		}
 
 		var val float64
@@ -57,11 +57,11 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 		case reflect.Float32, reflect.Float64:
 			val = value.Float()
 		default:
-			return result.WithError(NewViolation(params, fmt.Errorf("the %s validation not supported for kind %s", name, kind)))
+			return result.WithError(NewFieldError(params, fmt.Errorf("the %s validation not supported for kind %s", name, kind)))
 		}
 
 		if !compareFunc(val, threshold) {
-			return result.WithError(NewViolation(params, fmt.Errorf("the value %v must be %s %v", val, operator, threshold)))
+			return result.WithError(NewFieldError(params, fmt.Errorf("the value %v must be %s %v", val, operator, threshold)))
 		}
 
 		return nil

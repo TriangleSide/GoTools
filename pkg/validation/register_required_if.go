@@ -34,7 +34,7 @@ func init() {
 
 		requiredFieldValue, err := structs.ValueFromName(params.StructValue.Interface(), requiredIfFieldName)
 		if err != nil {
-			return result.WithError(NewViolation(params, err))
+			return result.WithError(NewFieldError(params, err))
 		}
 
 		// If the value to check is nil, it can never match, therefore the value is not required.

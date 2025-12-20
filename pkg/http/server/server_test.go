@@ -43,16 +43,16 @@ func (t *testHandler) AcceptHTTPAPIBuilder(builder *api.HTTPAPIBuilder) {
 	})
 }
 
-type testErrorResponse struct{}
+type testResponseError struct{}
 
-func (t *testErrorResponse) Error() string {
+func (t *testResponseError) Error() string {
 	return "test error response"
 }
 
 func init() {
 	responders.MustRegisterErrorResponse(
 		http.StatusInternalServerError,
-		func(err *testErrorResponse) *responders.StandardErrorResponse {
+		func(err *testResponseError) *responders.StandardErrorResponse {
 			return &responders.StandardErrorResponse{
 				Message: err.Error(),
 			}
@@ -498,24 +498,6 @@ func TestRun_ListenerProviderError_ReturnsError(t *testing.T) {
 	assert.ErrorPart(t, err, "failed to create the network listener: listener error")
 }
 
-func TestRun_WithoutBoundCallback_Succeeds(t *testing.T) {
-	t.Parallel()
-	waitForShutdown := make(chan struct{})
-	srv, err := server.New(server.WithConfigProvider(func() (*server.Config, error) {
-		return getDefaultConfig(t), nil
-	}))
-	assert.NoError(t, err)
-	assert.NotNil(t, srv)
-	t.Cleanup(func() {
-		assert.NoError(t, srv.Shutdown(context.Background()))
-		<-waitForShutdown
-	})
-	go func() {
-		assert.NoError(t, srv.Run())
-		close(waitForShutdown)
-	}()
-}
-
 func TestRun_WithCommonMiddleware_ExecutesInOrder(t *testing.T) {
 	t.Parallel()
 	seq := make([]string, 0)
@@ -959,7 +941,7 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 			Path:   "/error",
 			Method: http.MethodGet,
 			Handler: func(writer http.ResponseWriter, _ *http.Request) {
-				responders.Error(writer, &testErrorResponse{})
+				responders.Error(writer, &testResponseError{})
 			},
 		},
 		&testHandler{

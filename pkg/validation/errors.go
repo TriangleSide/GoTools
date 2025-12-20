@@ -6,14 +6,13 @@ import (
 	"strings"
 )
 
-// Violation represents a failure for a specific validator.
-type Violation struct {
-	parameters *CallbackParameters
-	err        error
+// FieldError represents a failure for a specific validator.
+type FieldError struct {
+	err error
 }
 
-// NewViolation instantiates a *Violation.
-func NewViolation(params *CallbackParameters, err error) *Violation {
+// NewFieldError instantiates a *FieldError.
+func NewFieldError(params *CallbackParameters, err error) *FieldError {
 	var builder strings.Builder
 	builder.WriteString("validation failed")
 	if params.IsStructValidation {
@@ -30,19 +29,18 @@ func NewViolation(params *CallbackParameters, err error) *Violation {
 		builder.WriteString("'")
 	}
 	builder.WriteString(" because %w")
-	return &Violation{
-		parameters: params,
-		err:        fmt.Errorf(builder.String(), err),
+	return &FieldError{
+		err: fmt.Errorf(builder.String(), err),
 	}
 }
 
-// Error ensures Violation has the error interface.
-func (v *Violation) Error() string {
+// Error ensures FieldError has the error interface.
+func (v *FieldError) Error() string {
 	return v.err.Error()
 }
 
 // Unwrap returns the underlying wrapped error.
-func (v *Violation) Unwrap() error {
+func (v *FieldError) Unwrap() error {
 	if v == nil || v.err == nil {
 		return nil
 	}
