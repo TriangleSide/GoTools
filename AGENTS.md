@@ -19,10 +19,11 @@
 - Write early exit guards to reduce nesting.
 
 ## Comments
-- Below is a list of areas that must have a terse one or two line comment. The comment should only describe purpose.
-  - Functions.
-  - Structs.
-  - Variables and constants in a package level block.
+- Comments should be complete sentences starting with a capital letter and ending with a period.
+- Functions, structs, package variables, and package constants must have a comment.
+- Comments should only describe purpose and behavior.
+- Comments should not describe implementation details.
+- Comments should include examples of input and output only when necessary for clarity.
 - Ensure existing comments remain accurate after making changes.
 
 ## Testing
