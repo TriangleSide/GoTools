@@ -24,8 +24,8 @@ func callerName() string {
 	return runtime.FuncForPC(pc).Name()
 }
 
-// StartSpan creates a new span using the caller's function name and adds it to the parent span found in the context.
-func StartSpan(ctx context.Context) (context.Context, *Span) {
+// Start creates a new span using the caller's function name and adds it to the parent span found in the context.
+func Start(ctx context.Context) (context.Context, *Span) {
 	name := callerName()
 
 	span := &Span{

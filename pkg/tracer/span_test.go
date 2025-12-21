@@ -12,7 +12,7 @@ import (
 func TestStartSpan_EmptyContext_CreatesRootSpan(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	resultCtx, span := tracer.StartSpan(ctx)
+	resultCtx, span := tracer.Start(ctx)
 	assert.NotNil(t, resultCtx)
 	assert.NotNil(t, span)
 	assert.Contains(t, span.Name(), t.Name())
@@ -22,8 +22,8 @@ func TestStartSpan_EmptyContext_CreatesRootSpan(t *testing.T) {
 func TestStartSpan_WithParent_CreatesChildSpan(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	ctx, parent := tracer.StartSpan(ctx)
-	_, child := tracer.StartSpan(ctx)
+	ctx, parent := tracer.Start(ctx)
+	_, child := tracer.Start(ctx)
 	assert.Equals(t, parent, child.Parent())
 	children := parent.Children()
 	assert.Equals(t, 1, len(children))
@@ -33,10 +33,10 @@ func TestStartSpan_WithParent_CreatesChildSpan(t *testing.T) {
 func TestStartSpan_MultipleChildren_AllAddedToParent(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	ctx, parent := tracer.StartSpan(ctx)
-	_, child1 := tracer.StartSpan(ctx)
-	_, child2 := tracer.StartSpan(ctx)
-	_, child3 := tracer.StartSpan(ctx)
+	ctx, parent := tracer.Start(ctx)
+	_, child1 := tracer.Start(ctx)
+	_, child2 := tracer.Start(ctx)
+	_, child3 := tracer.Start(ctx)
 	children := parent.Children()
 	assert.Equals(t, 3, len(children))
 	assert.Equals(t, child1, children[0])
@@ -47,9 +47,9 @@ func TestStartSpan_MultipleChildren_AllAddedToParent(t *testing.T) {
 func TestStartSpan_NestedSpans_CreatesHierarchy(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	ctx, root := tracer.StartSpan(ctx)
-	ctx, child := tracer.StartSpan(ctx)
-	_, grandchild := tracer.StartSpan(ctx)
+	ctx, root := tracer.Start(ctx)
+	ctx, child := tracer.Start(ctx)
+	_, grandchild := tracer.Start(ctx)
 	assert.Nil(t, root.Parent())
 	assert.Equals(t, root, child.Parent())
 	assert.Equals(t, child, grandchild.Parent())
@@ -62,7 +62,7 @@ func TestStartSpan_RecordsStartTime(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	before := time.Now()
-	_, span := tracer.StartSpan(ctx)
+	_, span := tracer.Start(ctx)
 	after := time.Now()
 	assert.True(t, !span.StartTime().Before(before))
 	assert.True(t, !span.StartTime().After(after))
@@ -71,7 +71,7 @@ func TestStartSpan_RecordsStartTime(t *testing.T) {
 func TestSpanEnd_RecordsEndTime(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	_, span := tracer.StartSpan(ctx)
+	_, span := tracer.Start(ctx)
 	assert.True(t, span.EndTime().IsZero())
 	before := time.Now()
 	span.End()
@@ -84,7 +84,7 @@ func TestSpanEnd_RecordsEndTime(t *testing.T) {
 func TestSpanDuration_BeforeEnd_ReturnsDurationSinceStart(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	_, span := tracer.StartSpan(ctx)
+	_, span := tracer.Start(ctx)
 	time.Sleep(10 * time.Millisecond)
 	duration := span.Duration()
 	assert.True(t, duration >= 10*time.Millisecond)
@@ -93,7 +93,7 @@ func TestSpanDuration_BeforeEnd_ReturnsDurationSinceStart(t *testing.T) {
 func TestSpanDuration_AfterEnd_ReturnsFixedDuration(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	_, span := tracer.StartSpan(ctx)
+	_, span := tracer.Start(ctx)
 	time.Sleep(10 * time.Millisecond)
 	span.End()
 	duration1 := span.Duration()
@@ -112,7 +112,7 @@ func TestFromContext_NoSpan_ReturnsNil(t *testing.T) {
 func TestFromContext_WithSpan_ReturnsSpan(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	ctx, expectedSpan := tracer.StartSpan(ctx)
+	ctx, expectedSpan := tracer.Start(ctx)
 	actualSpan := tracer.FromContext(ctx)
 	assert.Equals(t, expectedSpan, actualSpan)
 }
@@ -120,8 +120,8 @@ func TestFromContext_WithSpan_ReturnsSpan(t *testing.T) {
 func TestFromContext_AfterNestedSpan_ReturnsInnerSpan(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	ctx, _ = tracer.StartSpan(ctx)
-	ctx, inner := tracer.StartSpan(ctx)
+	ctx, _ = tracer.Start(ctx)
+	ctx, inner := tracer.Start(ctx)
 	actualSpan := tracer.FromContext(ctx)
 	assert.Equals(t, inner, actualSpan)
 }
@@ -129,8 +129,8 @@ func TestFromContext_AfterNestedSpan_ReturnsInnerSpan(t *testing.T) {
 func TestSpanChildren_ReturnsDefensiveCopy(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	ctx, parent := tracer.StartSpan(ctx)
-	tracer.StartSpan(ctx)
+	ctx, parent := tracer.Start(ctx)
+	tracer.Start(ctx)
 	children1 := parent.Children()
 	children2 := parent.Children()
 	assert.Equals(t, len(children1), len(children2))
@@ -143,12 +143,12 @@ func TestStartSpan_ConcurrentChildCreation_IsThreadSafe(t *testing.T) {
 	const goroutines = 10
 	const iterations = 100
 	ctx := t.Context()
-	ctx, parent := tracer.StartSpan(ctx)
+	ctx, parent := tracer.Start(ctx)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
 			for range iterations {
-				tracer.StartSpan(ctx)
+				tracer.Start(ctx)
 			}
 		})
 	}
@@ -161,7 +161,7 @@ func TestSpanEnd_ConcurrentCalls_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	ctx := t.Context()
-	_, span := tracer.StartSpan(ctx)
+	_, span := tracer.Start(ctx)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
@@ -177,7 +177,7 @@ func TestSpanDuration_ConcurrentReads_IsThreadSafe(t *testing.T) {
 	const goroutines = 10
 	const iterations = 100
 	ctx := t.Context()
-	_, span := tracer.StartSpan(ctx)
+	_, span := tracer.Start(ctx)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
@@ -194,9 +194,9 @@ func TestSpanChildren_ConcurrentReads_IsThreadSafe(t *testing.T) {
 	const goroutines = 10
 	const iterations = 100
 	ctx := t.Context()
-	ctx, parent := tracer.StartSpan(ctx)
+	ctx, parent := tracer.Start(ctx)
 	for range 5 {
-		tracer.StartSpan(ctx)
+		tracer.Start(ctx)
 	}
 	var waitGroup sync.WaitGroup
 	for range goroutines {
@@ -215,12 +215,12 @@ func TestSpan_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	const goroutines = 10
 	const iterations = 50
 	ctx := t.Context()
-	ctx, parent := tracer.StartSpan(ctx)
+	ctx, parent := tracer.Start(ctx)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
 			for range iterations {
-				tracer.StartSpan(ctx)
+				tracer.Start(ctx)
 			}
 		})
 		waitGroup.Go(func() {
