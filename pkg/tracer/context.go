@@ -2,7 +2,6 @@ package tracer
 
 import (
 	"context"
-	"runtime"
 	"time"
 )
 
@@ -14,20 +13,8 @@ var (
 	ctxKeyInstance ctxKey
 )
 
-// callerName returns the name of the function at the given call stack depth.
-func callerName() string {
-	const callerSkip = 2
-	pc, _, _, ok := runtime.Caller(callerSkip)
-	if !ok {
-		return ""
-	}
-	return runtime.FuncForPC(pc).Name()
-}
-
-// Start creates a new span using the caller's function name and adds it to the parent span found in the context.
-func Start(ctx context.Context) (context.Context, *Span) {
-	name := callerName()
-
+// Start creates a new span with the given name and adds it to the parent span found in the context.
+func Start(ctx context.Context, name string) (context.Context, *Span) {
 	span := &Span{
 		name:      name,
 		startTime: time.Now(),
