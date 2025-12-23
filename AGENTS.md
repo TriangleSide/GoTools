@@ -42,6 +42,7 @@
 
 ## Package Docs
 - Write package documentation using GoDoc conventions.
+- Package comments should be placed in a file named `doc.go` within the package directory.
 - Use `/* ... */` style comments for package-level documentation.
 - Every package must have a doc comment explaining its purpose and when to use it.
 - Focus on what the package does and why a user would choose it, not how it works internally.
