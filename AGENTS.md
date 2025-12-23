@@ -40,6 +40,14 @@
 - Write concurrency tests when possible.
 - Do not add comments in test files.
 
+## Package Docs
+- Write package documentation using GoDoc conventions.
+- Use `/* ... */` style comments for package-level documentation.
+- Every package must have a doc comment explaining its purpose and when to use it.
+- Focus on what the package does and why a user would choose it, not how it works internally.
+- Exclude implementation details, function signatures, variables, and constants from package comments.
+- Update package comments when modifying a package to ensure they remain accurate.
+
 ## Linting
 - Check lints with: `make lint` and fix lints related to modified code.
 
@@ -51,7 +59,8 @@
   4. `git stash pop`
   5. Resolve any merge conflicts.
 - Use `git checkout -b <short-description>` to create a new branch.
-- Use `git commit -m "<message>"` with a very terse commit message summarizing the change at a high level. End the commit message with a period.
+- Use `git commit -m "<message>"` with a very terse commit message summarizing the change at a high level. 
+- Commit messages should end with a period.
 - Do not co-author commits; keep the current git user as the sole author.
 - Push the branch to remote with `git push -u origin <branch_name>`.
 - Use `gh pr create --base main --fill` to open pull requests against the main branch.
