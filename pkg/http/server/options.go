@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/TriangleSide/GoTools/pkg/config"
-	"github.com/TriangleSide/GoTools/pkg/http/api"
+	"github.com/TriangleSide/GoTools/pkg/http/endpoints"
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
 )
 
@@ -16,7 +16,7 @@ type serverOptions struct {
 	listenerProvider func(bindIP string, bindPort uint16) (*net.TCPListener, error)
 	boundCallback    func(tcpAddr *net.TCPAddr)
 	commonMiddleware []middleware.Middleware
-	endpointHandlers []api.HTTPEndpointHandler
+	registrars       []endpoints.Registrar
 }
 
 // configure applies the options to the default serverOptions values.
@@ -75,9 +75,9 @@ func WithCommonMiddleware(commonMiddleware ...middleware.Middleware) Option {
 	}
 }
 
-// WithEndpointHandlers adds the handlers to the server.
-func WithEndpointHandlers(endpointHandlers ...api.HTTPEndpointHandler) Option {
+// WithRegistrars adds route registrars to the server.
+func WithRegistrars(registrars ...endpoints.Registrar) Option {
 	return func(srvOpts *serverOptions) {
-		srvOpts.endpointHandlers = append(srvOpts.endpointHandlers, endpointHandlers...)
+		srvOpts.registrars = append(srvOpts.registrars, registrars...)
 	}
 }

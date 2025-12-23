@@ -1,27 +1,27 @@
-package api_test
+package endpoints_test
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/http/api"
+	"github.com/TriangleSide/GoTools/pkg/http/endpoints"
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
 func TestHandlers_EmptyBuilder_ReturnsNothing(t *testing.T) {
 	t.Parallel()
-	builder := api.NewHTTPAPIBuilder()
-	handlers := builder.Handlers()
+	builder := endpoints.NewBuilder()
+	handlers := builder.API()
 	assert.Equals(t, len(handlers), 0)
 }
 
 func TestMustRegister_InvalidMethod_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
-		builder := api.NewHTTPAPIBuilder()
-		builder.MustRegister("/", "BAD_METHOD", &api.Handler{
+		builder := endpoints.NewBuilder()
+		builder.MustRegister("/", "BAD_METHOD", &endpoints.Endpoint{
 			Middleware: nil,
 			Handler:    func(http.ResponseWriter, *http.Request) {},
 		})
@@ -31,8 +31,8 @@ func TestMustRegister_InvalidMethod_Panics(t *testing.T) {
 func TestMustRegister_InvalidPath_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
-		builder := api.NewHTTPAPIBuilder()
-		builder.MustRegister("/!@#$%/{}", http.MethodGet, &api.Handler{
+		builder := endpoints.NewBuilder()
+		builder.MustRegister("/!@#$%/{}", http.MethodGet, &endpoints.Endpoint{
 			Middleware: nil,
 			Handler:    func(http.ResponseWriter, *http.Request) {},
 		})
@@ -42,42 +42,42 @@ func TestMustRegister_InvalidPath_Panics(t *testing.T) {
 func TestMustRegister_DuplicatePathAndMethod_Panics(t *testing.T) {
 	t.Parallel()
 	assert.PanicPart(t, func() {
-		builder := api.NewHTTPAPIBuilder()
-		builder.MustRegister("/", http.MethodGet, &api.Handler{
+		builder := endpoints.NewBuilder()
+		builder.MustRegister("/", http.MethodGet, &endpoints.Endpoint{
 			Middleware: nil,
 			Handler:    func(http.ResponseWriter, *http.Request) {},
 		})
-		builder.MustRegister("/", http.MethodGet, &api.Handler{
+		builder.MustRegister("/", http.MethodGet, &endpoints.Endpoint{
 			Middleware: nil,
 			Handler:    func(http.ResponseWriter, *http.Request) {},
 		})
 	}, "method \"GET\" already registered for path \"/\"")
 }
 
-func TestMustRegister_NilHandler_ReturnsNotImplemented(t *testing.T) {
+func TestMustRegister_NilRoute_ReturnsNotImplemented(t *testing.T) {
 	t.Parallel()
 	const path = "/"
 
-	builder := api.NewHTTPAPIBuilder()
+	builder := endpoints.NewBuilder()
 	builder.MustRegister("/", http.MethodGet, nil)
 
-	pathToMethodToHandler := builder.Handlers()
-	assert.NotNil(t, pathToMethodToHandler)
+	pathToMethodToRoute := builder.API()
+	assert.NotNil(t, pathToMethodToRoute)
 
-	methodToHandler, pathFound := pathToMethodToHandler[path]
+	methodToRoute, pathFound := pathToMethodToRoute[path]
 	assert.True(t, pathFound)
-	assert.NotNil(t, methodToHandler)
+	assert.NotNil(t, methodToRoute)
 
-	handler, methodFound := methodToHandler[http.MethodGet]
+	route, methodFound := methodToRoute[http.MethodGet]
 	assert.True(t, methodFound)
-	assert.NotNil(t, handler)
-	assert.NotNil(t, handler.Handler)
-	assert.Nil(t, handler.Middleware)
+	assert.NotNil(t, route)
+	assert.NotNil(t, route.Handler)
+	assert.Nil(t, route.Middleware)
 
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 	assert.NoError(t, err)
 	recorder := httptest.NewRecorder()
-	handler.Handler.ServeHTTP(recorder, request)
+	route.Handler.ServeHTTP(recorder, request)
 	assert.Equals(t, recorder.Code, http.StatusNotImplemented)
 }
 
@@ -85,31 +85,31 @@ func TestMustRegister_SinglePathAndMethod_IsRetrievable(t *testing.T) {
 	t.Parallel()
 	const path = "/"
 
-	builder := api.NewHTTPAPIBuilder()
-	builder.MustRegister(path, http.MethodGet, &api.Handler{
+	builder := endpoints.NewBuilder()
+	builder.MustRegister(path, http.MethodGet, &endpoints.Endpoint{
 		Middleware: nil,
 		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 		},
 	})
 
-	pathToMethodToHandler := builder.Handlers()
-	assert.NotNil(t, pathToMethodToHandler)
+	pathToMethodToRoute := builder.API()
+	assert.NotNil(t, pathToMethodToRoute)
 
-	methodToHandler, pathFound := pathToMethodToHandler[path]
+	methodToRoute, pathFound := pathToMethodToRoute[path]
 	assert.True(t, pathFound)
-	assert.NotNil(t, methodToHandler)
+	assert.NotNil(t, methodToRoute)
 
-	handler, methodFound := methodToHandler[http.MethodGet]
+	route, methodFound := methodToRoute[http.MethodGet]
 	assert.True(t, methodFound)
-	assert.NotNil(t, handler)
-	assert.NotNil(t, handler.Handler)
-	assert.Nil(t, handler.Middleware)
+	assert.NotNil(t, route)
+	assert.NotNil(t, route.Handler)
+	assert.Nil(t, route.Middleware)
 
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 	assert.NoError(t, err)
 	recorder := httptest.NewRecorder()
-	handler.Handler.ServeHTTP(recorder, request)
+	route.Handler.ServeHTTP(recorder, request)
 	assert.Equals(t, recorder.Code, http.StatusOK)
 }
 
@@ -117,106 +117,106 @@ func TestMustRegister_TwoMethodsSamePath_BothRetrievable(t *testing.T) {
 	t.Parallel()
 	const path = "/"
 
-	builder := api.NewHTTPAPIBuilder()
-	builder.MustRegister(path, http.MethodGet, &api.Handler{
+	builder := endpoints.NewBuilder()
+	builder.MustRegister(path, http.MethodGet, &endpoints.Endpoint{
 		Middleware: nil,
 		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 		},
 	})
-	builder.MustRegister(path, http.MethodPost, &api.Handler{
+	builder.MustRegister(path, http.MethodPost, &endpoints.Endpoint{
 		Middleware: nil,
 		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusAccepted)
 		},
 	})
 
-	pathToMethodToHandler := builder.Handlers()
-	assert.NotNil(t, pathToMethodToHandler)
+	pathToMethodToRoute := builder.API()
+	assert.NotNil(t, pathToMethodToRoute)
 
-	methodToHandler, pathFound := pathToMethodToHandler[path]
+	methodToRoute, pathFound := pathToMethodToRoute[path]
 	assert.True(t, pathFound)
-	assert.NotNil(t, methodToHandler)
+	assert.NotNil(t, methodToRoute)
 
-	getHandler, getMethodFound := methodToHandler[http.MethodGet]
+	getRoute, getMethodFound := methodToRoute[http.MethodGet]
 	assert.True(t, getMethodFound)
-	assert.NotNil(t, getHandler)
-	assert.NotNil(t, getHandler.Handler)
-	assert.Nil(t, getHandler.Middleware)
+	assert.NotNil(t, getRoute)
+	assert.NotNil(t, getRoute.Handler)
+	assert.Nil(t, getRoute.Middleware)
 
-	postHandler, postMethodFound := methodToHandler[http.MethodPost]
+	postRoute, postMethodFound := methodToRoute[http.MethodPost]
 	assert.True(t, postMethodFound)
-	assert.NotNil(t, postHandler)
-	assert.NotNil(t, postHandler.Handler)
-	assert.Nil(t, postHandler.Middleware)
+	assert.NotNil(t, postRoute)
+	assert.NotNil(t, postRoute.Handler)
+	assert.Nil(t, postRoute.Middleware)
 
 	getRequest, err := http.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 	assert.NoError(t, err)
 	getRecorder := httptest.NewRecorder()
-	getHandler.Handler.ServeHTTP(getRecorder, getRequest)
+	getRoute.Handler.ServeHTTP(getRecorder, getRequest)
 	assert.Equals(t, getRecorder.Code, http.StatusOK)
 
 	postRequest, err := http.NewRequestWithContext(t.Context(), http.MethodPost, path, nil)
 	assert.NoError(t, err)
 	postRecorder := httptest.NewRecorder()
-	postHandler.Handler.ServeHTTP(postRecorder, postRequest)
+	postRoute.Handler.ServeHTTP(postRecorder, postRequest)
 	assert.Equals(t, postRecorder.Code, http.StatusAccepted)
 }
 
 func TestMustRegister_TwoPathsSameMethod_BothRetrievable(t *testing.T) {
 	t.Parallel()
 
-	builder := api.NewHTTPAPIBuilder()
-	builder.MustRegister("/test1", http.MethodGet, &api.Handler{
+	builder := endpoints.NewBuilder()
+	builder.MustRegister("/test1", http.MethodGet, &endpoints.Endpoint{
 		Middleware: nil,
 		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 		},
 	})
-	builder.MustRegister("/test2", http.MethodGet, &api.Handler{
+	builder.MustRegister("/test2", http.MethodGet, &endpoints.Endpoint{
 		Middleware: nil,
 		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusAccepted)
 		},
 	})
 
-	pathToMethodToHandler := builder.Handlers()
-	assert.NotNil(t, pathToMethodToHandler)
+	pathToMethodToRoute := builder.API()
+	assert.NotNil(t, pathToMethodToRoute)
 
-	methodToHandler1, pathFound1 := pathToMethodToHandler["/test1"]
+	methodToRoute1, pathFound1 := pathToMethodToRoute["/test1"]
 	assert.True(t, pathFound1)
-	assert.NotNil(t, methodToHandler1)
+	assert.NotNil(t, methodToRoute1)
 
-	getHandler1, getMethodFound1 := methodToHandler1[http.MethodGet]
+	getRoute1, getMethodFound1 := methodToRoute1[http.MethodGet]
 	assert.True(t, getMethodFound1)
-	assert.NotNil(t, getHandler1)
-	assert.NotNil(t, getHandler1.Handler)
-	assert.Nil(t, getHandler1.Middleware)
+	assert.NotNil(t, getRoute1)
+	assert.NotNil(t, getRoute1.Handler)
+	assert.Nil(t, getRoute1.Middleware)
 
-	methodToHandler2, pathFound2 := pathToMethodToHandler["/test2"]
+	methodToRoute2, pathFound2 := pathToMethodToRoute["/test2"]
 	assert.True(t, pathFound2)
-	assert.NotNil(t, methodToHandler2)
+	assert.NotNil(t, methodToRoute2)
 
-	getHandler2, getMethodFound2 := methodToHandler2[http.MethodGet]
+	getRoute2, getMethodFound2 := methodToRoute2[http.MethodGet]
 	assert.True(t, getMethodFound2)
-	assert.NotNil(t, getHandler2)
-	assert.NotNil(t, getHandler2.Handler)
-	assert.Nil(t, getHandler2.Middleware)
+	assert.NotNil(t, getRoute2)
+	assert.NotNil(t, getRoute2.Handler)
+	assert.Nil(t, getRoute2.Middleware)
 
 	getRequest1, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/test1", nil)
 	assert.NoError(t, err)
 	getRecorder1 := httptest.NewRecorder()
-	getHandler1.Handler.ServeHTTP(getRecorder1, getRequest1)
+	getRoute1.Handler.ServeHTTP(getRecorder1, getRequest1)
 	assert.Equals(t, getRecorder1.Code, http.StatusOK)
 
 	getRequest2, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/test2", nil)
 	assert.NoError(t, err)
 	getRecorder2 := httptest.NewRecorder()
-	getHandler2.Handler.ServeHTTP(getRecorder2, getRequest2)
+	getRoute2.Handler.ServeHTTP(getRecorder2, getRequest2)
 	assert.Equals(t, getRecorder2.Code, http.StatusAccepted)
 }
 
-func TestMustRegister_HandlerWithMiddleware_StoresMiddleware(t *testing.T) {
+func TestMustRegister_RouteWithMiddleware_StoresMiddleware(t *testing.T) {
 	t.Parallel()
 	const path = "/"
 
@@ -226,44 +226,44 @@ func TestMustRegister_HandlerWithMiddleware_StoresMiddleware(t *testing.T) {
 		}
 	}
 
-	builder := api.NewHTTPAPIBuilder()
-	builder.MustRegister(path, http.MethodGet, &api.Handler{
+	builder := endpoints.NewBuilder()
+	builder.MustRegister(path, http.MethodGet, &endpoints.Endpoint{
 		Middleware: []middleware.Middleware{testMiddleware},
 		Handler: func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 		},
 	})
 
-	pathToMethodToHandler := builder.Handlers()
-	assert.NotNil(t, pathToMethodToHandler)
+	pathToMethodToRoute := builder.API()
+	assert.NotNil(t, pathToMethodToRoute)
 
-	methodToHandler, pathFound := pathToMethodToHandler[path]
+	methodToRoute, pathFound := pathToMethodToRoute[path]
 	assert.True(t, pathFound)
 
-	handler, methodFound := methodToHandler[http.MethodGet]
+	route, methodFound := methodToRoute[http.MethodGet]
 	assert.True(t, methodFound)
-	assert.NotNil(t, handler)
-	assert.NotNil(t, handler.Middleware)
-	assert.Equals(t, len(handler.Middleware), 1)
+	assert.NotNil(t, route)
+	assert.NotNil(t, route.Middleware)
+	assert.Equals(t, len(route.Middleware), 1)
 }
 
-func TestMustRegister_HandlerWithNilHandlerFunc_ReturnsNotImplemented(t *testing.T) {
+func TestMustRegister_RouteWithNilHandlerFunc_ReturnsNotImplemented(t *testing.T) {
 	t.Parallel()
 	const path = "/"
 
-	builder := api.NewHTTPAPIBuilder()
-	builder.MustRegister(path, http.MethodGet, &api.Handler{
+	builder := endpoints.NewBuilder()
+	builder.MustRegister(path, http.MethodGet, &endpoints.Endpoint{
 		Middleware: nil,
 		Handler:    nil,
 	})
 
-	pathToMethodToHandler := builder.Handlers()
-	methodToHandler := pathToMethodToHandler[path]
-	handler := methodToHandler[http.MethodGet]
+	pathToMethodToRoute := builder.API()
+	methodToRoute := pathToMethodToRoute[path]
+	route := methodToRoute[http.MethodGet]
 
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 	assert.NoError(t, err)
 	recorder := httptest.NewRecorder()
-	handler.Handler.ServeHTTP(recorder, request)
+	route.Handler.ServeHTTP(recorder, request)
 	assert.Equals(t, recorder.Code, http.StatusNotImplemented)
 }

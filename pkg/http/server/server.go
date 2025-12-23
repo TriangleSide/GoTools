@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/http/api"
+	"github.com/TriangleSide/GoTools/pkg/http/endpoints"
 	"github.com/TriangleSide/GoTools/pkg/http/headers"
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
 )
@@ -116,27 +116,27 @@ func (server *Server) Shutdown(ctx context.Context) error {
 	return err
 }
 
-// configureServeMux creates and configures an HTTP request multiplexer with endpoint handlers.
+// configureServeMux creates and configures an HTTP request multiplexer with route registrars.
 func configureServeMux(srvOpts *serverOptions) *http.ServeMux {
-	builder := api.NewHTTPAPIBuilder()
-	for _, endpointHandler := range srvOpts.endpointHandlers {
-		endpointHandler.AcceptHTTPAPIBuilder(builder)
+	builder := endpoints.NewBuilder()
+	for _, registrar := range srvOpts.registrars {
+		registrar.RegisterEndpoints(builder)
 	}
 
 	serveMux := http.NewServeMux()
-	for apiPath, methodToEndpointHandlerMap := range builder.Handlers() {
-		methodHandlers := make(map[string]http.HandlerFunc, len(methodToEndpointHandlerMap))
-		allowedMethods := make([]string, 0, len(methodToEndpointHandlerMap))
-		for method, endpointHandler := range methodToEndpointHandlerMap {
-			endpointHandlerMw := make([]middleware.Middleware, 0, len(srvOpts.commonMiddleware)+len(endpointHandler.Middleware))
-			endpointHandlerMw = append(endpointHandlerMw, srvOpts.commonMiddleware...)
-			endpointHandlerMw = append(endpointHandlerMw, endpointHandler.Middleware...)
-			handlerChain := middleware.CreateChain(endpointHandlerMw, endpointHandler.Handler)
+	for routePath, methodToRouteMap := range builder.API() {
+		methodHandlers := make(map[string]http.HandlerFunc, len(methodToRouteMap))
+		allowedMethods := make([]string, 0, len(methodToRouteMap))
+		for method, route := range methodToRouteMap {
+			routeMw := make([]middleware.Middleware, 0, len(srvOpts.commonMiddleware)+len(route.Middleware))
+			routeMw = append(routeMw, srvOpts.commonMiddleware...)
+			routeMw = append(routeMw, route.Middleware...)
+			handlerChain := middleware.CreateChain(routeMw, route.Handler)
 			methodHandlers[string(method)] = handlerChain
 			allowedMethods = append(allowedMethods, string(method))
 		}
 		sort.Strings(allowedMethods)
-		path := string(apiPath)
+		path := string(routePath)
 		serveMux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			handler, ok := methodHandlers[request.Method]
 			if !ok {

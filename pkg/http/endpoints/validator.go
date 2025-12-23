@@ -1,4 +1,4 @@
-package api
+package endpoints
 
 import (
 	"errors"
@@ -11,42 +11,42 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-// pathValidationTag is the validation tag name used to validate API paths.
+// pathValidationTag is the validation tag name used to validate route paths.
 const (
-	pathValidationTag = "api_path"
+	pathValidationTag = "route_path"
 )
 
 var (
-	// apiPathValidCharactersRegex matches the allowed characters in an API path string.
-	apiPathValidCharactersRegex = regexp.MustCompile(`^[a-zA-Z0-9/{}]+$`)
+	// routePathValidCharactersRegex matches the allowed characters in a route path string.
+	routePathValidCharactersRegex = regexp.MustCompile(`^[a-zA-Z0-9/{}]+$`)
 )
 
 // init adds a validator for the Path.
 func init() {
-	validation.MustRegisterValidator(pathValidationTag, validateAPIPathValue)
+	validation.MustRegisterValidator(pathValidationTag, validateRoutePathValue)
 }
 
-// pathValidationFieldError returns a validation field error result for an invalid API path.
+// pathValidationFieldError returns a validation field error result for an invalid route path.
 func pathValidationFieldError(params *validation.CallbackParameters, err error) (*validation.CallbackResult, error) {
 	return validation.NewCallbackResult().AddFieldError(validation.NewFieldError(params, err)), nil
 }
 
-// validateAPIPathValue validates a value as an API path.
-func validateAPIPathValue(params *validation.CallbackParameters) (*validation.CallbackResult, error) {
-	path, err := apiPathFromValue(params.Value)
+// validateRoutePathValue validates a value as a route path.
+func validateRoutePathValue(params *validation.CallbackParameters) (*validation.CallbackResult, error) {
+	path, err := routePathFromValue(params.Value)
 	if err != nil {
 		return pathValidationFieldError(params, err)
 	}
 
-	if err := validateAPIPathString(path); err != nil {
+	if err := validateRoutePathString(path); err != nil {
 		return pathValidationFieldError(params, err)
 	}
 
 	return validation.NewCallbackResult().PassValidation(), nil
 }
 
-// apiPathFromValue extracts an API path string from a potentially dereferenceable value.
-func apiPathFromValue(value reflect.Value) (string, error) {
+// routePathFromValue extracts a route path string from a potentially dereferenceable value.
+func routePathFromValue(value reflect.Value) (string, error) {
 	dereferenced := reflection.Dereference(value)
 	if reflection.IsNil(dereferenced) {
 		return "", errors.New("the value is nil")
@@ -57,15 +57,15 @@ func apiPathFromValue(value reflect.Value) (string, error) {
 	return dereferenced.String(), nil
 }
 
-// validateAPIPathString validates an API path string.
-func validateAPIPathString(path string) error {
+// validateRoutePathString validates a route path string.
+func validateRoutePathString(path string) error {
 	if len(path) == 0 {
 		return errors.New("the path cannot be empty")
 	}
 	if path == "/" {
 		return nil
 	}
-	if !apiPathValidCharactersRegex.MatchString(path) {
+	if !routePathValidCharactersRegex.MatchString(path) {
 		return errors.New("the path contains invalid characters")
 	}
 	if !strings.HasPrefix(path, "/") {
@@ -76,18 +76,18 @@ func validateAPIPathString(path string) error {
 	}
 
 	parts := strings.Split(path, "/")
-	if err := validateAPIPathParts(parts[1:]); err != nil {
+	if err := validateRoutePathParts(parts[1:]); err != nil {
 		return fmt.Errorf("invalid path parts: %w", err)
 	}
 
 	return nil
 }
 
-// validateAPIPathParts validates the path parts after splitting on '/'.
-func validateAPIPathParts(parts []string) error {
+// validateRoutePathParts validates the path parts after splitting on '/'.
+func validateRoutePathParts(parts []string) error {
 	seenParts := make(map[string]struct{}, len(parts)-1)
 	for _, part := range parts {
-		if err := validateAPIPathPart(part); err != nil {
+		if err := validateRoutePathPart(part); err != nil {
 			return fmt.Errorf("invalid path part: %w", err)
 		}
 		if _, foundPart := seenParts[part]; foundPart {
@@ -98,8 +98,8 @@ func validateAPIPathParts(parts []string) error {
 	return nil
 }
 
-// validateAPIPathPart validates a single API path part.
-func validateAPIPathPart(part string) error {
+// validateRoutePathPart validates a single route path part.
+func validateRoutePathPart(part string) error {
 	if part == "" {
 		return errors.New("the path parts cannot be empty")
 	}
