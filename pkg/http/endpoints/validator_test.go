@@ -1,9 +1,9 @@
-package api_test
+package endpoints_test
 
 import (
 	"testing"
 
-	_ "github.com/TriangleSide/GoTools/pkg/http/api"
+	_ "github.com/TriangleSide/GoTools/pkg/http/endpoints"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
@@ -123,7 +123,7 @@ func TestPathValidation_VariousPaths_ValidatesCorrectly(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			assertAPIPathValidation(t, tc.path, tc.expectedErrorMsg)
+			assertRoutePathValidation(t, tc.path, tc.expectedErrorMsg)
 		})
 	}
 }
@@ -131,7 +131,7 @@ func TestPathValidation_VariousPaths_ValidatesCorrectly(t *testing.T) {
 func TestPathValidation_NonStringReferenceField_ReturnsError(t *testing.T) {
 	t.Parallel()
 	type testStruct struct {
-		Path int `validate:"api_path"`
+		Path int `validate:"route_path"`
 	}
 	test := testStruct{Path: 1}
 	err := validation.Struct(&test)
@@ -141,7 +141,7 @@ func TestPathValidation_NonStringReferenceField_ReturnsError(t *testing.T) {
 func TestPathValidation_NonStringPointerField_ReturnsError(t *testing.T) {
 	t.Parallel()
 	type testStruct struct {
-		Path *int `validate:"api_path"`
+		Path *int `validate:"route_path"`
 	}
 	i := 0
 	test := testStruct{Path: &i}
@@ -152,18 +152,18 @@ func TestPathValidation_NonStringPointerField_ReturnsError(t *testing.T) {
 func TestPathValidation_NilPointerString_ReturnsError(t *testing.T) {
 	t.Parallel()
 	type testStruct struct {
-		Path *string `validate:"api_path"`
+		Path *string `validate:"route_path"`
 	}
 	test := testStruct{Path: nil}
 	err := validation.Struct(&test)
 	assert.ErrorPart(t, err, "value is nil")
 }
 
-func assertAPIPathValidation(t *testing.T, path string, expectedErrorMsg string) {
+func assertRoutePathValidation(t *testing.T, path string, expectedErrorMsg string) {
 	t.Helper()
 
 	type testStructRef struct {
-		Path string `validate:"api_path"`
+		Path string `validate:"route_path"`
 	}
 	err := validation.Struct(&testStructRef{Path: path})
 	if expectedErrorMsg != "" {
@@ -173,7 +173,7 @@ func assertAPIPathValidation(t *testing.T, path string, expectedErrorMsg string)
 	}
 
 	type testStructPtr struct {
-		Path *string `validate:"api_path"`
+		Path *string `validate:"route_path"`
 	}
 	pathCopy := path
 	err = validation.Struct(&testStructPtr{Path: &pathCopy})

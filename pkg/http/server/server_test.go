@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/http/api"
+	"github.com/TriangleSide/GoTools/pkg/http/endpoints"
 	"github.com/TriangleSide/GoTools/pkg/http/headers"
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
 	"github.com/TriangleSide/GoTools/pkg/http/responders"
@@ -36,8 +36,8 @@ type testHandler struct {
 	Handler    http.HandlerFunc
 }
 
-func (t *testHandler) AcceptHTTPAPIBuilder(builder *api.HTTPAPIBuilder) {
-	builder.MustRegister(api.Path(t.Path), api.Method(t.Method), &api.Handler{
+func (t *testHandler) RegisterEndpoints(builder *endpoints.Builder) {
+	builder.MustRegister(endpoints.Path(t.Path), endpoints.Method(t.Method), &endpoints.Endpoint{
 		Middleware: t.Middleware,
 		Handler:    t.Handler,
 	})
@@ -104,7 +104,7 @@ func startServer(t *testing.T, options ...server.Option) string {
 		address = addr.String()
 		close(waitUntilReady)
 	}))
-	allOpts = append(allOpts, server.WithEndpointHandlers(defaultHandler(t)))
+	allOpts = append(allOpts, server.WithRegistrars(defaultHandler(t)))
 	srv, err := server.New(allOpts...)
 	assert.NoError(t, err)
 	assert.NotNil(t, srv)
@@ -419,7 +419,7 @@ func TestShutdown_WithExpiredContext_ReturnsError(t *testing.T) {
 		server.WithConfigProvider(func() (*server.Config, error) {
 			return getDefaultConfig(t), nil
 		}),
-		server.WithEndpointHandlers(&testHandler{
+		server.WithRegistrars(&testHandler{
 			Path:   "/slow",
 			Method: http.MethodGet,
 			Handler: func(writer http.ResponseWriter, _ *http.Request) {
@@ -516,7 +516,7 @@ func TestRun_WithCommonMiddleware_ExecutesInOrder(t *testing.T) {
 				next(writer, request)
 			}
 		},
-	), server.WithEndpointHandlers(&testHandler{
+	), server.WithRegistrars(&testHandler{
 		Path:   "/test",
 		Method: http.MethodGet,
 		Middleware: []middleware.Middleware{
@@ -555,7 +555,7 @@ func TestRun_MultipleMethodsOnSamePath_EnforcesMethodRouting(t *testing.T) {
 
 	serverAddr := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 		return getDefaultConfig(t), nil
-	}), server.WithEndpointHandlers(
+	}), server.WithRegistrars(
 		&testHandler{
 			Path:   "/resource",
 			Method: http.MethodGet,
@@ -924,7 +924,7 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 
 	serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 		return getDefaultConfig(t), nil
-	}), server.WithEndpointHandlers(
+	}), server.WithRegistrars(
 		&testHandler{
 			Path:   "/status",
 			Method: http.MethodGet,
