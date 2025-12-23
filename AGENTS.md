@@ -19,7 +19,7 @@
 - Write early exit guards to reduce nesting.
 
 ## Comments
-- Comments should be complete sentences starting with a capital letter and ending with a period.
+- Comments should have complete sentences starting with a capital letter and ending with a period.
 - Functions, structs, package variables, and package constants must have a comment.
 - Comments should only describe purpose and behavior.
 - Comments should not describe implementation details.
