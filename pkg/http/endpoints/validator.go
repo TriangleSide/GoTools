@@ -83,7 +83,7 @@ func validateEndpointPathString(path string) error {
 	return nil
 }
 
-// validateEndpointPathParts validates the path parts after splitting on '/'.
+// validateEndpointPathParts validates that the path parts are correctly formatted.
 func validateEndpointPathParts(parts []string) error {
 	seenParts := make(map[string]struct{}, len(parts)-1)
 	for _, part := range parts {
