@@ -23,7 +23,6 @@ linters:
     - errchkjson
     - errname
     - errorlint
-    - errorlint
     - inamedparam
     - gochecksumtype
     - goconst
