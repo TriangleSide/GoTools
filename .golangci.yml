@@ -50,6 +50,7 @@ linters:
     - perfsprint
     - prealloc
     - reassign
+    - revive
     - sqlclosecheck
     - staticcheck
     - tagalign
