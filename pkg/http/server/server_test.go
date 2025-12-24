@@ -104,7 +104,7 @@ func startServer(t *testing.T, options ...server.Option) string {
 		address = addr.String()
 		close(waitUntilReady)
 	}))
-	allOpts = append(allOpts, server.WithRegistrars(defaultHandler(t)))
+	allOpts = append(allOpts, server.WithEndpoints(defaultHandler(t)))
 	srv, err := server.New(allOpts...)
 	assert.NoError(t, err)
 	assert.NotNil(t, srv)
@@ -419,7 +419,7 @@ func TestShutdown_WithExpiredContext_ReturnsError(t *testing.T) {
 		server.WithConfigProvider(func() (*server.Config, error) {
 			return getDefaultConfig(t), nil
 		}),
-		server.WithRegistrars(&testHandler{
+		server.WithEndpoints(&testHandler{
 			Path:   "/slow",
 			Method: http.MethodGet,
 			Handler: func(writer http.ResponseWriter, _ *http.Request) {
@@ -516,7 +516,7 @@ func TestRun_WithCommonMiddleware_ExecutesInOrder(t *testing.T) {
 				next(writer, request)
 			}
 		},
-	), server.WithRegistrars(&testHandler{
+	), server.WithEndpoints(&testHandler{
 		Path:   "/test",
 		Method: http.MethodGet,
 		Middleware: []middleware.Middleware{
@@ -555,7 +555,7 @@ func TestRun_MultipleMethodsOnSamePath_EnforcesMethodRouting(t *testing.T) {
 
 	serverAddr := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 		return getDefaultConfig(t), nil
-	}), server.WithRegistrars(
+	}), server.WithEndpoints(
 		&testHandler{
 			Path:   "/resource",
 			Method: http.MethodGet,
@@ -924,7 +924,7 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 
 	serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
 		return getDefaultConfig(t), nil
-	}), server.WithRegistrars(
+	}), server.WithEndpoints(
 		&testHandler{
 			Path:   "/status",
 			Method: http.MethodGet,

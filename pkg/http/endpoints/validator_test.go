@@ -131,7 +131,7 @@ func TestPathValidation_VariousPaths_ValidatesCorrectly(t *testing.T) {
 func TestPathValidation_NonStringReferenceField_ReturnsError(t *testing.T) {
 	t.Parallel()
 	type testStruct struct {
-		Path int `validate:"route_path"`
+		Path int `validate:"api_endpoint_path"`
 	}
 	test := testStruct{Path: 1}
 	err := validation.Struct(&test)
@@ -141,7 +141,7 @@ func TestPathValidation_NonStringReferenceField_ReturnsError(t *testing.T) {
 func TestPathValidation_NonStringPointerField_ReturnsError(t *testing.T) {
 	t.Parallel()
 	type testStruct struct {
-		Path *int `validate:"route_path"`
+		Path *int `validate:"api_endpoint_path"`
 	}
 	i := 0
 	test := testStruct{Path: &i}
@@ -152,7 +152,7 @@ func TestPathValidation_NonStringPointerField_ReturnsError(t *testing.T) {
 func TestPathValidation_NilPointerString_ReturnsError(t *testing.T) {
 	t.Parallel()
 	type testStruct struct {
-		Path *string `validate:"route_path"`
+		Path *string `validate:"api_endpoint_path"`
 	}
 	test := testStruct{Path: nil}
 	err := validation.Struct(&test)
@@ -163,7 +163,7 @@ func assertRoutePathValidation(t *testing.T, path string, expectedErrorMsg strin
 	t.Helper()
 
 	type testStructRef struct {
-		Path string `validate:"route_path"`
+		Path string `validate:"api_endpoint_path"`
 	}
 	err := validation.Struct(&testStructRef{Path: path})
 	if expectedErrorMsg != "" {
@@ -173,7 +173,7 @@ func assertRoutePathValidation(t *testing.T, path string, expectedErrorMsg strin
 	}
 
 	type testStructPtr struct {
-		Path *string `validate:"route_path"`
+		Path *string `validate:"api_endpoint_path"`
 	}
 	pathCopy := path
 	err = validation.Struct(&testStructPtr{Path: &pathCopy})
