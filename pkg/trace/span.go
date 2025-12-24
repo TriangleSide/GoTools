@@ -1,18 +1,20 @@
 package trace
 
 import (
+	"maps"
 	"sync"
 	"time"
 )
 
 // Span represents a unit of work with timing information and hierarchical structure.
 type Span struct {
-	name      string
-	startTime time.Time
-	endTime   time.Time
-	parent    *Span
-	children  []*Span
-	mu        sync.RWMutex
+	name       string
+	startTime  time.Time
+	endTime    time.Time
+	parent     *Span
+	children   []*Span
+	attributes map[string]any
+	mu         sync.RWMutex
 }
 
 // addChild adds a child span to this span.
@@ -67,5 +69,29 @@ func (s *Span) Children() []*Span {
 	defer s.mu.RUnlock()
 	result := make([]*Span, len(s.children))
 	copy(result, s.children)
+	return result
+}
+
+// SetAttribute sets a key-value pair on the span.
+func (s *Span) SetAttribute(key string, value any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.attributes[key] = value
+}
+
+// Attribute returns the value associated with the given key and whether it exists.
+func (s *Span) Attribute(key string) (any, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	value, ok := s.attributes[key]
+	return value, ok
+}
+
+// Attributes returns a copy of all attributes on the span.
+func (s *Span) Attributes() map[string]any {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make(map[string]any, len(s.attributes))
+	maps.Copy(result, s.attributes)
 	return result
 }
