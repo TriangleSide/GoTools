@@ -21,7 +21,7 @@ type Endpoint struct {
 	Handler    http.HandlerFunc
 }
 
-// Builder is used in the Registrar's visitor to set routes to handlers.
+// Builder is used in the EndpointHandler's visitor to set paths to handlers.
 type Builder struct {
 	handlers map[Path]map[Method]*Endpoint
 }
@@ -35,38 +35,38 @@ func NewBuilder() *Builder {
 
 // MustRegister assigns a Path and Method to a Endpoint. This function does validation to ensure
 // duplicates are not registered. If the path and method is already registered, this function panics.
-func (builder *Builder) MustRegister(path Path, method Method, route *Endpoint) {
+func (builder *Builder) MustRegister(path Path, method Method, endpoint *Endpoint) {
 	if err := validation.Var(string(path), pathValidationTag); err != nil {
-		panic(fmt.Errorf("route path %q is not correctly formatted: %w", path, err))
+		panic(fmt.Errorf("endpoint path %q is not correctly formatted: %w", path, err))
 	}
 
 	if err := validation.Var(string(method), "oneof=GET POST HEAD PUT PATCH DELETE CONNECT OPTIONS TRACE"); err != nil {
 		panic(fmt.Errorf("http method %q is invalid: %w", method, err))
 	}
 
-	// The route can be nil in cases like cors requests. The Go HTTP server needs the route
+	// The handler can be nil in cases like cors requests. The Go HTTP server needs the endpoint
 	// to exist to handle the request, but there is no handler needed for it.
-	if route == nil {
-		route = &Endpoint{}
+	if endpoint == nil {
+		endpoint = &Endpoint{}
 	}
 
-	if route.Handler == nil {
-		route.Handler = func(writer http.ResponseWriter, _ *http.Request) {
+	if endpoint.Handler == nil {
+		endpoint.Handler = func(writer http.ResponseWriter, _ *http.Request) {
 			writer.WriteHeader(http.StatusNotImplemented)
 		}
 	}
 
-	methodToRouteMap, pathAlreadyRegistered := builder.handlers[path]
+	methodToEndpointMap, pathAlreadyRegistered := builder.handlers[path]
 	if !pathAlreadyRegistered {
-		methodToRouteMap = make(map[Method]*Endpoint)
-		builder.handlers[path] = methodToRouteMap
+		methodToEndpointMap = make(map[Method]*Endpoint)
+		builder.handlers[path] = methodToEndpointMap
 	}
 
-	if _, methodAlreadyRegistered := methodToRouteMap[method]; methodAlreadyRegistered {
+	if _, methodAlreadyRegistered := methodToEndpointMap[method]; methodAlreadyRegistered {
 		panic(fmt.Errorf("method %q already registered for path %q", method, path))
 	}
 
-	methodToRouteMap[method] = route
+	methodToEndpointMap[method] = endpoint
 }
 
 // API returns a map of Path to Method to Endpoint.
@@ -74,7 +74,7 @@ func (builder *Builder) API() map[Path]map[Method]*Endpoint {
 	return builder.handlers
 }
 
-// Registrar is implemented by types that register HTTP routes.
-type Registrar interface {
+// EndpointHandler is implemented by types that register HTTP endpoints.
+type EndpointHandler interface {
 	RegisterEndpoints(builder *Builder)
 }

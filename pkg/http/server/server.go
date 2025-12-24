@@ -116,7 +116,7 @@ func (server *Server) Shutdown(ctx context.Context) error {
 	return err
 }
 
-// configureServeMux creates and configures an HTTP request multiplexer with route registrars.
+// configureServeMux creates and configures an HTTP request multiplexer with configured endpoints.
 func configureServeMux(srvOpts *serverOptions) *http.ServeMux {
 	builder := endpoints.NewBuilder()
 	for _, registrar := range srvOpts.registrars {
@@ -124,19 +124,19 @@ func configureServeMux(srvOpts *serverOptions) *http.ServeMux {
 	}
 
 	serveMux := http.NewServeMux()
-	for routePath, methodToRouteMap := range builder.API() {
-		methodHandlers := make(map[string]http.HandlerFunc, len(methodToRouteMap))
-		allowedMethods := make([]string, 0, len(methodToRouteMap))
-		for method, route := range methodToRouteMap {
-			routeMw := make([]middleware.Middleware, 0, len(srvOpts.commonMiddleware)+len(route.Middleware))
-			routeMw = append(routeMw, srvOpts.commonMiddleware...)
-			routeMw = append(routeMw, route.Middleware...)
-			handlerChain := middleware.CreateChain(routeMw, route.Handler)
+	for endpointPath, methodToHandlerMap := range builder.API() {
+		methodHandlers := make(map[string]http.HandlerFunc, len(methodToHandlerMap))
+		allowedMethods := make([]string, 0, len(methodToHandlerMap))
+		for method, handler := range methodToHandlerMap {
+			endpointMw := make([]middleware.Middleware, 0, len(srvOpts.commonMiddleware)+len(handler.Middleware))
+			endpointMw = append(endpointMw, srvOpts.commonMiddleware...)
+			endpointMw = append(endpointMw, handler.Middleware...)
+			handlerChain := middleware.CreateChain(endpointMw, handler.Handler)
 			methodHandlers[string(method)] = handlerChain
 			allowedMethods = append(allowedMethods, string(method))
 		}
 		sort.Strings(allowedMethods)
-		path := string(routePath)
+		path := string(endpointPath)
 		serveMux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			handler, ok := methodHandlers[request.Method]
 			if !ok {
