@@ -16,9 +16,10 @@ var (
 // Start creates a new span with the given name and adds it to the parent span found in the context.
 func Start(ctx context.Context, name string) (context.Context, *Span) {
 	span := &Span{
-		name:      name,
-		startTime: time.Now(),
-		children:  make([]*Span, 0),
+		name:       name,
+		startTime:  time.Now(),
+		children:   make([]*Span, 0),
+		attributes: make(map[string]any),
 	}
 
 	if parent, ok := ctx.Value(ctxKeyInstance).(*Span); ok {

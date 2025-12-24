@@ -238,3 +238,164 @@ func TestSpan_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	children := parent.Children()
 	assert.Equals(t, goroutines*iterations, len(children))
 }
+
+func TestSetAttribute_SingleAttribute_CanBeRetrieved(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.SetAttribute("key", "value")
+	value, ok := span.Attribute("key")
+	assert.True(t, ok)
+	assert.Equals(t, "value", value)
+}
+
+func TestSetAttribute_MultipleTypes_AllSupported(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.SetAttribute("string", "hello")
+	span.SetAttribute("int", 42)
+	span.SetAttribute("float", 3.14)
+	span.SetAttribute("bool", true)
+	span.SetAttribute("slice", []int{1, 2, 3})
+	stringVal, exists := span.Attribute("string")
+	assert.True(t, exists)
+	assert.Equals(t, "hello", stringVal)
+	intVal, exists := span.Attribute("int")
+	assert.True(t, exists)
+	assert.Equals(t, 42, intVal)
+	floatVal, exists := span.Attribute("float")
+	assert.True(t, exists)
+	assert.Equals(t, 3.14, floatVal)
+	boolVal, exists := span.Attribute("bool")
+	assert.True(t, exists)
+	assert.Equals(t, true, boolVal)
+	sliceVal, exists := span.Attribute("slice")
+	assert.True(t, exists)
+	assert.Equals(t, []int{1, 2, 3}, sliceVal)
+}
+
+func TestSetAttribute_OverwriteExisting_UpdatesValue(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.SetAttribute("key", "original")
+	span.SetAttribute("key", "updated")
+	value, ok := span.Attribute("key")
+	assert.True(t, ok)
+	assert.Equals(t, "updated", value)
+}
+
+func TestAttribute_NonExistentKey_ReturnsFalse(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	value, ok := span.Attribute("nonexistent")
+	assert.False(t, ok)
+	assert.Nil(t, value)
+}
+
+func TestAttributes_NoAttributes_ReturnsEmptyMap(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	attrs := span.Attributes()
+	assert.Equals(t, 0, len(attrs))
+}
+
+func TestAttributes_MultipleAttributes_ReturnsAll(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.SetAttribute("key1", "value1")
+	span.SetAttribute("key2", "value2")
+	span.SetAttribute("key3", "value3")
+	attrs := span.Attributes()
+	assert.Equals(t, 3, len(attrs))
+	assert.Equals(t, "value1", attrs["key1"])
+	assert.Equals(t, "value2", attrs["key2"])
+	assert.Equals(t, "value3", attrs["key3"])
+}
+
+func TestAttributes_ReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.SetAttribute("key", "value")
+	attrs := span.Attributes()
+	attrs["key"] = "modified"
+	attrs["newkey"] = "newvalue"
+	originalValue, ok := span.Attribute("key")
+	assert.True(t, ok)
+	assert.Equals(t, "value", originalValue)
+	_, ok = span.Attribute("newkey")
+	assert.False(t, ok)
+}
+
+func TestSetAttribute_ConcurrentWrites_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 100
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	var waitGroup sync.WaitGroup
+	for i := range goroutines {
+		waitGroup.Go(func() {
+			for j := range iterations {
+				key := "key" + string(rune('A'+i))
+				span.SetAttribute(key, j)
+			}
+		})
+	}
+	waitGroup.Wait()
+	attrs := span.Attributes()
+	assert.Equals(t, goroutines, len(attrs))
+}
+
+func TestAttribute_ConcurrentReads_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 100
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.SetAttribute("key", "value")
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			for range iterations {
+				value, ok := span.Attribute("key")
+				assert.True(t, ok, assert.Continue())
+				assert.Equals(t, "value", value, assert.Continue())
+			}
+		})
+	}
+	waitGroup.Wait()
+}
+
+func TestAttributes_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 50
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	var waitGroup sync.WaitGroup
+	for i := range goroutines {
+		waitGroup.Go(func() {
+			for j := range iterations {
+				key := "key" + string(rune('A'+i))
+				span.SetAttribute(key, j)
+			}
+		})
+		waitGroup.Go(func() {
+			for range iterations {
+				_ = span.Attributes()
+			}
+		})
+		waitGroup.Go(func() {
+			for range iterations {
+				span.Attribute("key")
+			}
+		})
+	}
+	waitGroup.Wait()
+}
