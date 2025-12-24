@@ -44,8 +44,6 @@ func (builder *Builder) MustRegister(path Path, method Method, endpoint *Endpoin
 		panic(fmt.Errorf("http method %q is invalid: %w", method, err))
 	}
 
-	// The handler can be nil in cases like cors requests. The Go HTTP server needs the endpoint
-	// to exist to handle the request, but there is no handler needed for it.
 	if endpoint == nil {
 		endpoint = &Endpoint{}
 	}
