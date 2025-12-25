@@ -7,6 +7,7 @@ import (
 
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 	"github.com/TriangleSide/GoTools/pkg/trace"
+	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
 )
 
 func TestStartSpan_EmptyContext_CreatesRootSpan(t *testing.T) {
@@ -239,63 +240,40 @@ func TestSpan_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	assert.Equals(t, goroutines*iterations, len(children))
 }
 
-func TestSetAttribute_SingleAttribute_CanBeRetrieved(t *testing.T) {
+func TestSetAttributes_SingleAttribute_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	span.SetAttribute("key", "value")
-	value, ok := span.Attribute("key")
-	assert.True(t, ok)
-	assert.Equals(t, "value", value)
+	span.SetAttributes(attribute.String("key", "value"))
+	attrs := span.Attributes()
+	assert.Equals(t, 1, len(attrs))
+	assert.Equals(t, "key", attrs[0].Key())
+	assert.Equals(t, "value", attrs[0].StringValue())
 }
 
-func TestSetAttribute_MultipleTypes_AllSupported(t *testing.T) {
+func TestSetAttributes_MultipleTypes_AllSupported(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	span.SetAttribute("string", "hello")
-	span.SetAttribute("int", 42)
-	span.SetAttribute("float", 3.14)
-	span.SetAttribute("bool", true)
-	span.SetAttribute("slice", []int{1, 2, 3})
-	stringVal, exists := span.Attribute("string")
-	assert.True(t, exists)
-	assert.Equals(t, "hello", stringVal)
-	intVal, exists := span.Attribute("int")
-	assert.True(t, exists)
-	assert.Equals(t, 42, intVal)
-	floatVal, exists := span.Attribute("float")
-	assert.True(t, exists)
-	assert.Equals(t, 3.14, floatVal)
-	boolVal, exists := span.Attribute("bool")
-	assert.True(t, exists)
-	assert.Equals(t, true, boolVal)
-	sliceVal, exists := span.Attribute("slice")
-	assert.True(t, exists)
-	assert.Equals(t, []int{1, 2, 3}, sliceVal)
+	span.SetAttributes(
+		attribute.String("string", "hello"),
+		attribute.Int("int", 42),
+		attribute.Float("float", 3.14),
+		attribute.Bool("bool", true),
+	)
+	attrs := span.Attributes()
+	assert.Equals(t, 4, len(attrs))
+	assert.Equals(t, "string", attrs[0].Key())
+	assert.Equals(t, "hello", attrs[0].StringValue())
+	assert.Equals(t, "int", attrs[1].Key())
+	assert.Equals(t, int64(42), attrs[1].IntValue())
+	assert.Equals(t, "float", attrs[2].Key())
+	assert.Equals(t, 3.14, attrs[2].FloatValue())
+	assert.Equals(t, "bool", attrs[3].Key())
+	assert.Equals(t, true, attrs[3].BoolValue())
 }
 
-func TestSetAttribute_OverwriteExisting_UpdatesValue(t *testing.T) {
-	t.Parallel()
-	ctx := t.Context()
-	_, span := trace.Start(ctx, "test")
-	span.SetAttribute("key", "original")
-	span.SetAttribute("key", "updated")
-	value, ok := span.Attribute("key")
-	assert.True(t, ok)
-	assert.Equals(t, "updated", value)
-}
-
-func TestAttribute_NonExistentKey_ReturnsFalse(t *testing.T) {
-	t.Parallel()
-	ctx := t.Context()
-	_, span := trace.Start(ctx, "test")
-	value, ok := span.Attribute("nonexistent")
-	assert.False(t, ok)
-	assert.Nil(t, value)
-}
-
-func TestAttributes_NoAttributes_ReturnsEmptyMap(t *testing.T) {
+func TestAttributes_NoAttributes_ReturnsEmptySlice(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -307,32 +285,34 @@ func TestAttributes_MultipleAttributes_ReturnsAll(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	span.SetAttribute("key1", "value1")
-	span.SetAttribute("key2", "value2")
-	span.SetAttribute("key3", "value3")
+	span.SetAttributes(
+		attribute.String("key1", "value1"),
+		attribute.String("key2", "value2"),
+		attribute.String("key3", "value3"),
+	)
 	attrs := span.Attributes()
 	assert.Equals(t, 3, len(attrs))
-	assert.Equals(t, "value1", attrs["key1"])
-	assert.Equals(t, "value2", attrs["key2"])
-	assert.Equals(t, "value3", attrs["key3"])
+	assert.Equals(t, "key1", attrs[0].Key())
+	assert.Equals(t, "value1", attrs[0].StringValue())
+	assert.Equals(t, "key2", attrs[1].Key())
+	assert.Equals(t, "value2", attrs[1].StringValue())
+	assert.Equals(t, "key3", attrs[2].Key())
+	assert.Equals(t, "value3", attrs[2].StringValue())
 }
 
 func TestAttributes_ReturnsDefensiveCopy(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	span.SetAttribute("key", "value")
+	span.SetAttributes(attribute.String("key", "value"))
 	attrs := span.Attributes()
-	attrs["key"] = "modified"
-	attrs["newkey"] = "newvalue"
-	originalValue, ok := span.Attribute("key")
-	assert.True(t, ok)
-	assert.Equals(t, "value", originalValue)
-	_, ok = span.Attribute("newkey")
-	assert.False(t, ok)
+	attrs[0] = attribute.String("key", "modified")
+	originalAttrs := span.Attributes()
+	assert.Equals(t, 1, len(originalAttrs))
+	assert.Equals(t, "value", originalAttrs[0].StringValue())
 }
 
-func TestSetAttribute_ConcurrentWrites_IsThreadSafe(t *testing.T) {
+func TestSetAttributes_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
@@ -343,33 +323,13 @@ func TestSetAttribute_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 		waitGroup.Go(func() {
 			for j := range iterations {
 				key := "key" + string(rune('A'+i))
-				span.SetAttribute(key, j)
+				span.SetAttributes(attribute.Int(key, int64(j)))
 			}
 		})
 	}
 	waitGroup.Wait()
 	attrs := span.Attributes()
-	assert.Equals(t, goroutines, len(attrs))
-}
-
-func TestAttribute_ConcurrentReads_IsThreadSafe(t *testing.T) {
-	t.Parallel()
-	const goroutines = 10
-	const iterations = 100
-	ctx := t.Context()
-	_, span := trace.Start(ctx, "test")
-	span.SetAttribute("key", "value")
-	var waitGroup sync.WaitGroup
-	for range goroutines {
-		waitGroup.Go(func() {
-			for range iterations {
-				value, ok := span.Attribute("key")
-				assert.True(t, ok, assert.Continue())
-				assert.Equals(t, "value", value, assert.Continue())
-			}
-		})
-	}
-	waitGroup.Wait()
+	assert.Equals(t, goroutines*iterations, len(attrs))
 }
 
 func TestAttributes_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
@@ -383,17 +343,12 @@ func TestAttributes_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 		waitGroup.Go(func() {
 			for j := range iterations {
 				key := "key" + string(rune('A'+i))
-				span.SetAttribute(key, j)
+				span.SetAttributes(attribute.Int(key, int64(j)))
 			}
 		})
 		waitGroup.Go(func() {
 			for range iterations {
 				_ = span.Attributes()
-			}
-		})
-		waitGroup.Go(func() {
-			for range iterations {
-				span.Attribute("key")
 			}
 		})
 	}

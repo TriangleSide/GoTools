@@ -30,6 +30,7 @@
 - Run the entire test suite with: `make test`
 - Test names should follow a format like `Test<FunctionName>_<Scenario>_<ExpectedBehavior>`.
 - Write unit tests for every exported function; test both success and error paths.
+- Use the assert package for assertions.
 - Test files should use the `<package>_test` package name (black-box testing).
 - Achieve 100% coverage for all changes made.
 - For table-driven tests, define a struct with the subtest name, input, and expected output fields.

@@ -1,9 +1,10 @@
 package trace
 
 import (
-	"maps"
 	"sync"
 	"time"
+
+	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
 )
 
 // Span represents a unit of work with timing information and hierarchical structure.
@@ -13,7 +14,7 @@ type Span struct {
 	endTime    time.Time
 	parent     *Span
 	children   []*Span
-	attributes map[string]any
+	attributes []*attribute.Attribute
 	mu         sync.RWMutex
 }
 
@@ -72,26 +73,18 @@ func (s *Span) Children() []*Span {
 	return result
 }
 
-// SetAttribute sets a key-value pair on the span.
-func (s *Span) SetAttribute(key string, value any) {
+// SetAttributes sets attributes on the span.
+func (s *Span) SetAttributes(attrs ...*attribute.Attribute) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.attributes[key] = value
-}
-
-// Attribute returns the value associated with the given key and whether it exists.
-func (s *Span) Attribute(key string) (any, bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	value, ok := s.attributes[key]
-	return value, ok
+	s.attributes = append(s.attributes, attrs...)
 }
 
 // Attributes returns a copy of all attributes on the span.
-func (s *Span) Attributes() map[string]any {
+func (s *Span) Attributes() []*attribute.Attribute {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	result := make(map[string]any, len(s.attributes))
-	maps.Copy(result, s.attributes)
+	result := make([]*attribute.Attribute, len(s.attributes))
+	copy(result, s.attributes)
 	return result
 }
