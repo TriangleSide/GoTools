@@ -18,7 +18,7 @@ type Span struct {
 	children   []*Span
 	attributes []*attribute.Attribute
 	events     []*event.Event
-	status     status.Code
+	statusCode status.Code
 	mu         sync.RWMutex
 }
 
@@ -109,16 +109,16 @@ func (s *Span) Events() []*event.Event {
 	return result
 }
 
-// SetStatus sets the status code on the span.
-func (s *Span) SetStatus(code status.Code) {
+// SetStatusCode sets the statusCode code on the span.
+func (s *Span) SetStatusCode(code status.Code) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.status = code
+	s.statusCode = code
 }
 
-// Status returns the status code of the span.
-func (s *Span) Status() status.Code {
+// StatusCode returns the statusCode code of the span.
+func (s *Span) StatusCode() status.Code {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.status
+	return s.statusCode
 }

@@ -462,33 +462,33 @@ func TestStatus_DefaultValue_IsUnset(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	assert.Equals(t, status.Unset, span.Status())
+	assert.Equals(t, status.Unset, span.StatusCode())
 }
 
 func TestSetStatus_Error_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	span.SetStatus(status.Error)
-	assert.Equals(t, status.Error, span.Status())
+	span.SetStatusCode(status.Error)
+	assert.Equals(t, status.Error, span.StatusCode())
 }
 
 func TestSetStatus_Success_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	span.SetStatus(status.Success)
-	assert.Equals(t, status.Success, span.Status())
+	span.SetStatusCode(status.Success)
+	assert.Equals(t, status.Success, span.StatusCode())
 }
 
 func TestSetStatus_CanBeOverwritten(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	span.SetStatus(status.Error)
-	assert.Equals(t, status.Error, span.Status())
-	span.SetStatus(status.Success)
-	assert.Equals(t, status.Success, span.Status())
+	span.SetStatusCode(status.Error)
+	assert.Equals(t, status.Error, span.StatusCode())
+	span.SetStatusCode(status.Success)
+	assert.Equals(t, status.Success, span.StatusCode())
 }
 
 func TestSetStatus_ConcurrentWrites_IsThreadSafe(t *testing.T) {
@@ -501,12 +501,12 @@ func TestSetStatus_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	for range goroutines {
 		waitGroup.Go(func() {
 			for range iterations {
-				span.SetStatus(status.Success)
+				span.SetStatusCode(status.Success)
 			}
 		})
 	}
 	waitGroup.Wait()
-	s := span.Status()
+	s := span.StatusCode()
 	assert.True(t, s == status.Success || s == status.Unset || s == status.Error)
 }
 
@@ -520,12 +520,12 @@ func TestStatus_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	for range goroutines {
 		waitGroup.Go(func() {
 			for range iterations {
-				span.SetStatus(status.Error)
+				span.SetStatusCode(status.Error)
 			}
 		})
 		waitGroup.Go(func() {
 			for range iterations {
-				_ = span.Status()
+				_ = span.StatusCode()
 			}
 		})
 	}
