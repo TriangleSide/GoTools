@@ -9,6 +9,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/trace"
 	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
 	"github.com/TriangleSide/GoTools/pkg/trace/event"
+	"github.com/TriangleSide/GoTools/pkg/trace/status"
 )
 
 func TestStartSpan_EmptyContext_CreatesRootSpan(t *testing.T) {
@@ -451,6 +452,80 @@ func TestEvents_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 		waitGroup.Go(func() {
 			for range iterations {
 				_ = span.Events()
+			}
+		})
+	}
+	waitGroup.Wait()
+}
+
+func TestStatus_DefaultValue_IsUnset(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	assert.Equals(t, status.Unset, span.Status())
+}
+
+func TestSetStatus_Error_CanBeRetrieved(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.SetStatus(status.Error)
+	assert.Equals(t, status.Error, span.Status())
+}
+
+func TestSetStatus_Success_CanBeRetrieved(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.SetStatus(status.Success)
+	assert.Equals(t, status.Success, span.Status())
+}
+
+func TestSetStatus_CanBeOverwritten(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.SetStatus(status.Error)
+	assert.Equals(t, status.Error, span.Status())
+	span.SetStatus(status.Success)
+	assert.Equals(t, status.Success, span.Status())
+}
+
+func TestSetStatus_ConcurrentWrites_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 100
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			for range iterations {
+				span.SetStatus(status.Success)
+			}
+		})
+	}
+	waitGroup.Wait()
+	s := span.Status()
+	assert.True(t, s == status.Success || s == status.Unset || s == status.Error)
+}
+
+func TestStatus_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 50
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			for range iterations {
+				span.SetStatus(status.Error)
+			}
+		})
+		waitGroup.Go(func() {
+			for range iterations {
+				_ = span.Status()
 			}
 		})
 	}
