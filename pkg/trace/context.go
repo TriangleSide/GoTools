@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
+	"github.com/TriangleSide/GoTools/pkg/trace/event"
 )
 
 // ctxKey is the type used for storing the span in context.
@@ -22,6 +23,7 @@ func Start(ctx context.Context, name string) (context.Context, *Span) {
 		startTime:  time.Now(),
 		children:   make([]*Span, 0),
 		attributes: make([]*attribute.Attribute, 0),
+		events:     make([]*event.Event, 0),
 	}
 
 	if parent, ok := ctx.Value(ctxKeyInstance).(*Span); ok {

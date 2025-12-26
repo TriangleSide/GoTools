@@ -8,6 +8,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 	"github.com/TriangleSide/GoTools/pkg/trace"
 	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
+	"github.com/TriangleSide/GoTools/pkg/trace/event"
 )
 
 func TestStartSpan_EmptyContext_CreatesRootSpan(t *testing.T) {
@@ -349,6 +350,107 @@ func TestAttributes_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 		waitGroup.Go(func() {
 			for range iterations {
 				_ = span.Attributes()
+			}
+		})
+	}
+	waitGroup.Wait()
+}
+
+func TestAddEvent_SingleEvent_CanBeRetrieved(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	e := event.New("test-event")
+	span.AddEvent(e)
+	events := span.Events()
+	assert.Equals(t, 1, len(events))
+	assert.Equals(t, "test-event", events[0].Name())
+}
+
+func TestAddEvent_MultipleEvents_AllRetrieved(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.AddEvent(event.New("event1"))
+	span.AddEvent(event.New("event2"))
+	span.AddEvent(event.New("event3"))
+	events := span.Events()
+	assert.Equals(t, 3, len(events))
+	assert.Equals(t, "event1", events[0].Name())
+	assert.Equals(t, "event2", events[1].Name())
+	assert.Equals(t, "event3", events[2].Name())
+}
+
+func TestEvents_NoEvents_ReturnsEmptySlice(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	events := span.Events()
+	assert.Equals(t, 0, len(events))
+}
+
+func TestEvents_ReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	span.AddEvent(event.New("original"))
+	events := span.Events()
+	events[0] = event.New("modified")
+	originalEvents := span.Events()
+	assert.Equals(t, "original", originalEvents[0].Name())
+}
+
+func TestAddEvent_WithAttributes_PreservesAttributes(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	e := event.New("test-event",
+		attribute.String("key", "value"),
+		attribute.Int("count", 42),
+	)
+	span.AddEvent(e)
+	events := span.Events()
+	attrs := events[0].Attributes()
+	assert.Equals(t, 2, len(attrs))
+	assert.Equals(t, "key", attrs[0].Key())
+	assert.Equals(t, "value", attrs[0].StringValue())
+}
+
+func TestAddEvent_ConcurrentWrites_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 100
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			for range iterations {
+				span.AddEvent(event.New("concurrent-event"))
+			}
+		})
+	}
+	waitGroup.Wait()
+	events := span.Events()
+	assert.Equals(t, goroutines*iterations, len(events))
+}
+
+func TestEvents_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 50
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			for range iterations {
+				span.AddEvent(event.New("concurrent-event"))
+			}
+		})
+		waitGroup.Go(func() {
+			for range iterations {
+				_ = span.Events()
 			}
 		})
 	}
