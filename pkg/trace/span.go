@@ -6,6 +6,7 @@ import (
 
 	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
 	"github.com/TriangleSide/GoTools/pkg/trace/event"
+	"github.com/TriangleSide/GoTools/pkg/trace/status"
 )
 
 // Span represents a unit of work with timing information and hierarchical structure.
@@ -17,6 +18,7 @@ type Span struct {
 	children   []*Span
 	attributes []*attribute.Attribute
 	events     []*event.Event
+	status     status.Code
 	mu         sync.RWMutex
 }
 
@@ -105,4 +107,18 @@ func (s *Span) Events() []*event.Event {
 	result := make([]*event.Event, len(s.events))
 	copy(result, s.events)
 	return result
+}
+
+// SetStatus sets the status code on the span.
+func (s *Span) SetStatus(code status.Code) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.status = code
+}
+
+// Status returns the status code of the span.
+func (s *Span) Status() status.Code {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.status
 }
