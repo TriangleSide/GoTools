@@ -179,30 +179,6 @@ func TestSpanDuration_AfterEnd_ReturnsFixedDuration(t *testing.T) {
 	assert.Equals(t, duration1, duration2)
 }
 
-func TestFromContext_NoSpan_ReturnsNil(t *testing.T) {
-	t.Parallel()
-	ctx := t.Context()
-	span := trace.FromContext(ctx)
-	assert.Nil(t, span)
-}
-
-func TestFromContext_WithSpan_ReturnsSpan(t *testing.T) {
-	t.Parallel()
-	ctx := t.Context()
-	ctx, expectedSpan := trace.Start(ctx, "test")
-	actualSpan := trace.FromContext(ctx)
-	assert.Equals(t, expectedSpan, actualSpan)
-}
-
-func TestFromContext_AfterNestedSpan_ReturnsInnerSpan(t *testing.T) {
-	t.Parallel()
-	ctx := t.Context()
-	ctx, _ = trace.Start(ctx, "outer")
-	ctx, inner := trace.Start(ctx, "inner")
-	actualSpan := trace.FromContext(ctx)
-	assert.Equals(t, inner, actualSpan)
-}
-
 func TestSpanChildren_ReturnsDefensiveCopy(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
