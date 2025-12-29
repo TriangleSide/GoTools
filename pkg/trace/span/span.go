@@ -1,7 +1,9 @@
 package span
 
 import (
+	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
@@ -11,6 +13,8 @@ import (
 
 // Span represents a unit of work with timing information and hierarchical structure.
 type Span struct {
+	spanID     string
+	idCounter  *atomic.Uint64
 	name       string
 	traceID    string
 	startTime  time.Time
@@ -26,7 +30,20 @@ type Span struct {
 // New creates a new span with the given name, trace ID, and optional parent.
 // If a parent is provided, the new span is added as a child of the parent.
 func New(name string, traceID string, parent *Span) *Span {
+	var spanID string
+	var idCounter *atomic.Uint64
+
+	if parent == nil {
+		idCounter = new(atomic.Uint64)
+		spanID = "0"
+	} else {
+		idCounter = parent.idCounter
+		spanID = strconv.FormatUint(idCounter.Add(1), 10)
+	}
+
 	span := &Span{
+		spanID:     spanID,
+		idCounter:  idCounter,
 		name:       name,
 		traceID:    traceID,
 		startTime:  time.Now(),
@@ -61,6 +78,11 @@ func (s *Span) End() {
 // Name returns the name of the span.
 func (s *Span) Name() string {
 	return s.name
+}
+
+// SpanID returns the unique identifier for this span within its hierarchy.
+func (s *Span) SpanID() string {
+	return s.spanID
 }
 
 // TraceID returns the trace ID of the span.
