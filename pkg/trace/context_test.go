@@ -541,3 +541,62 @@ func TestSetTraceID_AllSpansReceiveSameID(t *testing.T) {
 	assert.Equals(t, "trace-123", parent.TraceID())
 	assert.Equals(t, "trace-123", child.TraceID())
 }
+
+func TestStart_SpanID_RootSpan_ReturnsZero(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	assert.Equals(t, "0", span.SpanID())
+}
+
+func TestStart_SpanID_ChildSpan_ReturnsIncrementingID(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctx, parent := trace.Start(ctx, "parent")
+	_, child1 := trace.Start(ctx, "child1")
+	_, child2 := trace.Start(ctx, "child2")
+	_, child3 := trace.Start(ctx, "child3")
+	assert.Equals(t, "0", parent.SpanID())
+	assert.Equals(t, "1", child1.SpanID())
+	assert.Equals(t, "2", child2.SpanID())
+	assert.Equals(t, "3", child3.SpanID())
+}
+
+func TestStart_SpanID_NestedSpans_ReturnsIncrementingID(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctx, root := trace.Start(ctx, "root")
+	ctx, child := trace.Start(ctx, "child")
+	_, grandchild := trace.Start(ctx, "grandchild")
+	assert.Equals(t, "0", root.SpanID())
+	assert.Equals(t, "1", child.SpanID())
+	assert.Equals(t, "2", grandchild.SpanID())
+}
+
+func TestStart_SpanID_ConcurrentChildCreation_AssignsUniqueIDs(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 100
+	ctx := t.Context()
+	ctx, parent := trace.Start(ctx, "parent")
+	children := parent.Children()
+	assert.Equals(t, 0, len(children))
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			for range iterations {
+				trace.Start(ctx, "child")
+			}
+		})
+	}
+	waitGroup.Wait()
+	children = parent.Children()
+	ids := make(map[string]bool)
+	ids["0"] = true
+	for _, child := range children {
+		id := child.SpanID()
+		assert.False(t, ids[id], assert.Continue())
+		ids[id] = true
+	}
+	assert.Equals(t, goroutines*iterations+1, len(ids))
+}
