@@ -1,6 +1,6 @@
 package attribute
 
-// Type represents an attributes data type.
+// Type represents an attribute's data type.
 type Type int
 
 const (

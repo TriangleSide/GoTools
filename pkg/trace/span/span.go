@@ -172,7 +172,7 @@ func (s *Span) SetStatusCode(code status.Code) {
 	s.statusCode = code
 }
 
-// StatusCode returns the statusCode code of the span.
+// StatusCode returns the status code of the span.
 func (s *Span) StatusCode() status.Code {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
