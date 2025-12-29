@@ -2,11 +2,6 @@ package trace
 
 import (
 	"context"
-	"time"
-
-	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
-	"github.com/TriangleSide/GoTools/pkg/trace/event"
-	"github.com/TriangleSide/GoTools/pkg/trace/status"
 )
 
 // ctxKey is the type used for storing the span in context.
@@ -19,20 +14,7 @@ var (
 
 // Start creates a new span with the given name and adds it to the parent span found in the context.
 func Start(ctx context.Context, name string) (context.Context, *Span) {
-	span := &Span{
-		name:       name,
-		startTime:  time.Now(),
-		children:   make([]*Span, 0),
-		attributes: make([]*attribute.Attribute, 0),
-		events:     make([]*event.Event, 0),
-		statusCode: status.Unset,
-	}
-
-	if parent, ok := ctx.Value(ctxKeyInstance).(*Span); ok {
-		span.parent = parent
-		parent.addChild(span)
-	}
-
+	span := New(name, FromContext(ctx))
 	return context.WithValue(ctx, ctxKeyInstance, span), span
 }
 

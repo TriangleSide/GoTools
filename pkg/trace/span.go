@@ -22,6 +22,26 @@ type Span struct {
 	mu         sync.RWMutex
 }
 
+// New creates a new span with the given name and optional parent.
+// If a parent is provided, the new span is added as a child of the parent.
+func New(name string, parent *Span) *Span {
+	span := &Span{
+		name:       name,
+		startTime:  time.Now(),
+		children:   make([]*Span, 0),
+		attributes: make([]*attribute.Attribute, 0),
+		events:     make([]*event.Event, 0),
+		statusCode: status.Unset,
+	}
+
+	if parent != nil {
+		span.parent = parent
+		parent.addChild(span)
+	}
+
+	return span
+}
+
 // addChild adds a child span to this span.
 func (s *Span) addChild(child *Span) {
 	s.mu.Lock()
