@@ -14,12 +14,12 @@ var (
 
 // Start creates a new span with the given name and adds it to the parent span found in the context.
 func Start(ctx context.Context, name string) (context.Context, *Span) {
-	span := New(name, FromContext(ctx))
+	span := New(name, fromContext(ctx))
 	return context.WithValue(ctx, ctxKeyInstance, span), span
 }
 
-// FromContext retrieves the current span from the context.
-func FromContext(ctx context.Context) *Span {
+// fromContext retrieves the current span from the context.
+func fromContext(ctx context.Context) *Span {
 	if span, ok := ctx.Value(ctxKeyInstance).(*Span); ok {
 		return span
 	}
