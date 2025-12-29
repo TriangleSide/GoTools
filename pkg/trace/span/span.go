@@ -81,11 +81,15 @@ func (s *Span) Name() string {
 }
 
 // SpanID returns the unique identifier for this span within its hierarchy.
+// This should NOT be used as a globally unique identifier.
+// A unique identifier for a span is a combination of an application ID, a TraceID, and a SpanID.
 func (s *Span) SpanID() string {
 	return s.spanID
 }
 
-// TraceID returns the trace ID of the span.
+// TraceID returns the distributed trace ID of the span.
+// This should NOT be used as a globally unique identifier.
+// A unique identifier for a span is a combination of an application ID, a TraceID, and a SpanID.
 func (s *Span) TraceID() string {
 	return s.traceID
 }
