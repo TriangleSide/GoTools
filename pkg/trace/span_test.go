@@ -12,6 +12,80 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/trace/status"
 )
 
+func TestNew_NilParent_CreatesRootSpan(t *testing.T) {
+	t.Parallel()
+	span := trace.New("test-span", nil)
+	assert.NotNil(t, span)
+	assert.Equals(t, "test-span", span.Name())
+	assert.Nil(t, span.Parent())
+	assert.Equals(t, 0, len(span.Children()))
+	assert.Equals(t, 0, len(span.Attributes()))
+	assert.Equals(t, 0, len(span.Events()))
+	assert.Equals(t, status.Unset, span.StatusCode())
+}
+
+func TestNew_WithParent_CreatesChildSpan(t *testing.T) {
+	t.Parallel()
+	parent := trace.New("parent", nil)
+	child := trace.New("child", parent)
+	assert.Equals(t, parent, child.Parent())
+	assert.Equals(t, 1, len(parent.Children()))
+	assert.Equals(t, child, parent.Children()[0])
+}
+
+func TestNew_MultipleChildren_AllAddedToParent(t *testing.T) {
+	t.Parallel()
+	parent := trace.New("parent", nil)
+	child1 := trace.New("child1", parent)
+	child2 := trace.New("child2", parent)
+	child3 := trace.New("child3", parent)
+	children := parent.Children()
+	assert.Equals(t, 3, len(children))
+	assert.Equals(t, child1, children[0])
+	assert.Equals(t, child2, children[1])
+	assert.Equals(t, child3, children[2])
+}
+
+func TestNew_NestedSpans_CreatesHierarchy(t *testing.T) {
+	t.Parallel()
+	root := trace.New("root", nil)
+	child := trace.New("child", root)
+	grandchild := trace.New("grandchild", child)
+	assert.Nil(t, root.Parent())
+	assert.Equals(t, root, child.Parent())
+	assert.Equals(t, child, grandchild.Parent())
+	assert.Equals(t, 1, len(root.Children()))
+	assert.Equals(t, 1, len(child.Children()))
+	assert.Equals(t, 0, len(grandchild.Children()))
+}
+
+func TestNew_RecordsStartTime(t *testing.T) {
+	t.Parallel()
+	before := time.Now()
+	span := trace.New("test", nil)
+	after := time.Now()
+	assert.True(t, !span.StartTime().Before(before))
+	assert.True(t, !span.StartTime().After(after))
+}
+
+func TestNew_ConcurrentChildCreation_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 100
+	parent := trace.New("parent", nil)
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			for range iterations {
+				trace.New("child", parent)
+			}
+		})
+	}
+	waitGroup.Wait()
+	children := parent.Children()
+	assert.Equals(t, goroutines*iterations, len(children))
+}
+
 func TestStartSpan_EmptyContext_CreatesRootSpan(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
