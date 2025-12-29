@@ -12,81 +12,7 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/trace/status"
 )
 
-func TestNew_NilParent_CreatesRootSpan(t *testing.T) {
-	t.Parallel()
-	span := trace.New("test-span", nil)
-	assert.NotNil(t, span)
-	assert.Equals(t, "test-span", span.Name())
-	assert.Nil(t, span.Parent())
-	assert.Equals(t, 0, len(span.Children()))
-	assert.Equals(t, 0, len(span.Attributes()))
-	assert.Equals(t, 0, len(span.Events()))
-	assert.Equals(t, status.Unset, span.StatusCode())
-}
-
-func TestNew_WithParent_CreatesChildSpan(t *testing.T) {
-	t.Parallel()
-	parent := trace.New("parent", nil)
-	child := trace.New("child", parent)
-	assert.Equals(t, parent, child.Parent())
-	assert.Equals(t, 1, len(parent.Children()))
-	assert.Equals(t, child, parent.Children()[0])
-}
-
-func TestNew_MultipleChildren_AllAddedToParent(t *testing.T) {
-	t.Parallel()
-	parent := trace.New("parent", nil)
-	child1 := trace.New("child1", parent)
-	child2 := trace.New("child2", parent)
-	child3 := trace.New("child3", parent)
-	children := parent.Children()
-	assert.Equals(t, 3, len(children))
-	assert.Equals(t, child1, children[0])
-	assert.Equals(t, child2, children[1])
-	assert.Equals(t, child3, children[2])
-}
-
-func TestNew_NestedSpans_CreatesHierarchy(t *testing.T) {
-	t.Parallel()
-	root := trace.New("root", nil)
-	child := trace.New("child", root)
-	grandchild := trace.New("grandchild", child)
-	assert.Nil(t, root.Parent())
-	assert.Equals(t, root, child.Parent())
-	assert.Equals(t, child, grandchild.Parent())
-	assert.Equals(t, 1, len(root.Children()))
-	assert.Equals(t, 1, len(child.Children()))
-	assert.Equals(t, 0, len(grandchild.Children()))
-}
-
-func TestNew_RecordsStartTime(t *testing.T) {
-	t.Parallel()
-	before := time.Now()
-	span := trace.New("test", nil)
-	after := time.Now()
-	assert.True(t, !span.StartTime().Before(before))
-	assert.True(t, !span.StartTime().After(after))
-}
-
-func TestNew_ConcurrentChildCreation_IsThreadSafe(t *testing.T) {
-	t.Parallel()
-	const goroutines = 10
-	const iterations = 100
-	parent := trace.New("parent", nil)
-	var waitGroup sync.WaitGroup
-	for range goroutines {
-		waitGroup.Go(func() {
-			for range iterations {
-				trace.New("child", parent)
-			}
-		})
-	}
-	waitGroup.Wait()
-	children := parent.Children()
-	assert.Equals(t, goroutines*iterations, len(children))
-}
-
-func TestStartSpan_EmptyContext_CreatesRootSpan(t *testing.T) {
+func TestStart_EmptyContext_CreatesRootSpan(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	resultCtx, span := trace.Start(ctx, t.Name())
@@ -96,7 +22,7 @@ func TestStartSpan_EmptyContext_CreatesRootSpan(t *testing.T) {
 	assert.Nil(t, span.Parent())
 }
 
-func TestStartSpan_WithParent_CreatesChildSpan(t *testing.T) {
+func TestStart_WithParent_CreatesChildSpan(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	ctx, parent := trace.Start(ctx, "parent")
@@ -107,7 +33,7 @@ func TestStartSpan_WithParent_CreatesChildSpan(t *testing.T) {
 	assert.Equals(t, child, children[0])
 }
 
-func TestStartSpan_MultipleChildren_AllAddedToParent(t *testing.T) {
+func TestStart_MultipleChildren_AllAddedToParent(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	ctx, parent := trace.Start(ctx, "parent")
@@ -121,7 +47,7 @@ func TestStartSpan_MultipleChildren_AllAddedToParent(t *testing.T) {
 	assert.Equals(t, child3, children[2])
 }
 
-func TestStartSpan_NestedSpans_CreatesHierarchy(t *testing.T) {
+func TestStart_NestedSpans_CreatesHierarchy(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	ctx, root := trace.Start(ctx, "root")
@@ -135,7 +61,7 @@ func TestStartSpan_NestedSpans_CreatesHierarchy(t *testing.T) {
 	assert.Equals(t, 0, len(grandchild.Children()))
 }
 
-func TestStartSpan_RecordsStartTime(t *testing.T) {
+func TestStart_RecordsStartTime(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	before := time.Now()
@@ -145,7 +71,7 @@ func TestStartSpan_RecordsStartTime(t *testing.T) {
 	assert.True(t, !span.StartTime().After(after))
 }
 
-func TestSpanEnd_RecordsEndTime(t *testing.T) {
+func TestStart_SpanEnd_RecordsEndTime(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -158,7 +84,7 @@ func TestSpanEnd_RecordsEndTime(t *testing.T) {
 	assert.True(t, !span.EndTime().After(after))
 }
 
-func TestSpanDuration_BeforeEnd_ReturnsDurationSinceStart(t *testing.T) {
+func TestStart_SpanDuration_BeforeEnd_ReturnsDurationSinceStart(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -167,7 +93,7 @@ func TestSpanDuration_BeforeEnd_ReturnsDurationSinceStart(t *testing.T) {
 	assert.True(t, duration >= 10*time.Millisecond)
 }
 
-func TestSpanDuration_AfterEnd_ReturnsFixedDuration(t *testing.T) {
+func TestStart_SpanDuration_AfterEnd_ReturnsFixedDuration(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -179,7 +105,7 @@ func TestSpanDuration_AfterEnd_ReturnsFixedDuration(t *testing.T) {
 	assert.Equals(t, duration1, duration2)
 }
 
-func TestSpanChildren_ReturnsDefensiveCopy(t *testing.T) {
+func TestStart_SpanChildren_ReturnsDefensiveCopy(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	ctx, parent := trace.Start(ctx, "parent")
@@ -191,7 +117,7 @@ func TestSpanChildren_ReturnsDefensiveCopy(t *testing.T) {
 	assert.NotNil(t, parent.Children()[0])
 }
 
-func TestStartSpan_ConcurrentChildCreation_IsThreadSafe(t *testing.T) {
+func TestStart_ConcurrentChildCreation_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
@@ -210,7 +136,7 @@ func TestStartSpan_ConcurrentChildCreation_IsThreadSafe(t *testing.T) {
 	assert.Equals(t, goroutines*iterations, len(children))
 }
 
-func TestSpanEnd_ConcurrentCalls_IsThreadSafe(t *testing.T) {
+func TestStart_SpanEnd_ConcurrentCalls_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	ctx := t.Context()
@@ -225,7 +151,7 @@ func TestSpanEnd_ConcurrentCalls_IsThreadSafe(t *testing.T) {
 	assert.False(t, span.EndTime().IsZero())
 }
 
-func TestSpanDuration_ConcurrentReads_IsThreadSafe(t *testing.T) {
+func TestStart_SpanDuration_ConcurrentReads_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
@@ -242,7 +168,7 @@ func TestSpanDuration_ConcurrentReads_IsThreadSafe(t *testing.T) {
 	waitGroup.Wait()
 }
 
-func TestSpanChildren_ConcurrentReads_IsThreadSafe(t *testing.T) {
+func TestStart_SpanChildren_ConcurrentReads_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
@@ -263,7 +189,7 @@ func TestSpanChildren_ConcurrentReads_IsThreadSafe(t *testing.T) {
 	waitGroup.Wait()
 }
 
-func TestSpan_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
+func TestStart_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 50
@@ -292,7 +218,7 @@ func TestSpan_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	assert.Equals(t, goroutines*iterations, len(children))
 }
 
-func TestSetAttributes_SingleAttribute_CanBeRetrieved(t *testing.T) {
+func TestStart_SetAttributes_SingleAttribute_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -303,7 +229,7 @@ func TestSetAttributes_SingleAttribute_CanBeRetrieved(t *testing.T) {
 	assert.Equals(t, "value", attrs[0].StringValue())
 }
 
-func TestSetAttributes_MultipleTypes_AllSupported(t *testing.T) {
+func TestStart_SetAttributes_MultipleTypes_AllSupported(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -325,7 +251,7 @@ func TestSetAttributes_MultipleTypes_AllSupported(t *testing.T) {
 	assert.Equals(t, true, attrs[3].BoolValue())
 }
 
-func TestAttributes_NoAttributes_ReturnsEmptySlice(t *testing.T) {
+func TestStart_Attributes_NoAttributes_ReturnsEmptySlice(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -333,7 +259,7 @@ func TestAttributes_NoAttributes_ReturnsEmptySlice(t *testing.T) {
 	assert.Equals(t, 0, len(attrs))
 }
 
-func TestAttributes_MultipleAttributes_ReturnsAll(t *testing.T) {
+func TestStart_Attributes_MultipleAttributes_ReturnsAll(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -352,7 +278,7 @@ func TestAttributes_MultipleAttributes_ReturnsAll(t *testing.T) {
 	assert.Equals(t, "value3", attrs[2].StringValue())
 }
 
-func TestAttributes_ReturnsDefensiveCopy(t *testing.T) {
+func TestStart_Attributes_ReturnsDefensiveCopy(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -364,7 +290,7 @@ func TestAttributes_ReturnsDefensiveCopy(t *testing.T) {
 	assert.Equals(t, "value", originalAttrs[0].StringValue())
 }
 
-func TestSetAttributes_ConcurrentWrites_IsThreadSafe(t *testing.T) {
+func TestStart_SetAttributes_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
@@ -384,7 +310,7 @@ func TestSetAttributes_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	assert.Equals(t, goroutines*iterations, len(attrs))
 }
 
-func TestAttributes_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
+func TestStart_Attributes_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 50
@@ -407,7 +333,7 @@ func TestAttributes_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	waitGroup.Wait()
 }
 
-func TestAddEvent_SingleEvent_CanBeRetrieved(t *testing.T) {
+func TestStart_AddEvent_SingleEvent_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -418,7 +344,7 @@ func TestAddEvent_SingleEvent_CanBeRetrieved(t *testing.T) {
 	assert.Equals(t, "test-event", events[0].Name())
 }
 
-func TestAddEvent_MultipleEvents_AllRetrieved(t *testing.T) {
+func TestStart_AddEvent_MultipleEvents_AllRetrieved(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -432,7 +358,7 @@ func TestAddEvent_MultipleEvents_AllRetrieved(t *testing.T) {
 	assert.Equals(t, "event3", events[2].Name())
 }
 
-func TestEvents_NoEvents_ReturnsEmptySlice(t *testing.T) {
+func TestStart_Events_NoEvents_ReturnsEmptySlice(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -440,7 +366,7 @@ func TestEvents_NoEvents_ReturnsEmptySlice(t *testing.T) {
 	assert.Equals(t, 0, len(events))
 }
 
-func TestEvents_ReturnsDefensiveCopy(t *testing.T) {
+func TestStart_Events_ReturnsDefensiveCopy(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -451,7 +377,7 @@ func TestEvents_ReturnsDefensiveCopy(t *testing.T) {
 	assert.Equals(t, "original", originalEvents[0].Name())
 }
 
-func TestAddEvent_WithAttributes_PreservesAttributes(t *testing.T) {
+func TestStart_AddEvent_WithAttributes_PreservesAttributes(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -467,7 +393,7 @@ func TestAddEvent_WithAttributes_PreservesAttributes(t *testing.T) {
 	assert.Equals(t, "value", attrs[0].StringValue())
 }
 
-func TestAddEvent_ConcurrentWrites_IsThreadSafe(t *testing.T) {
+func TestStart_AddEvent_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
@@ -486,7 +412,7 @@ func TestAddEvent_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	assert.Equals(t, goroutines*iterations, len(events))
 }
 
-func TestEvents_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
+func TestStart_Events_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 50
@@ -508,14 +434,14 @@ func TestEvents_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	waitGroup.Wait()
 }
 
-func TestStatus_DefaultValue_IsUnset(t *testing.T) {
+func TestStart_Status_DefaultValue_IsUnset(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
 	assert.Equals(t, status.Unset, span.StatusCode())
 }
 
-func TestSetStatus_Error_CanBeRetrieved(t *testing.T) {
+func TestStart_SetStatus_Error_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -523,7 +449,7 @@ func TestSetStatus_Error_CanBeRetrieved(t *testing.T) {
 	assert.Equals(t, status.Error, span.StatusCode())
 }
 
-func TestSetStatus_Success_CanBeRetrieved(t *testing.T) {
+func TestStart_SetStatus_Success_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -531,7 +457,7 @@ func TestSetStatus_Success_CanBeRetrieved(t *testing.T) {
 	assert.Equals(t, status.Success, span.StatusCode())
 }
 
-func TestSetStatus_CanBeOverwritten(t *testing.T) {
+func TestStart_SetStatus_CanBeOverwritten(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
@@ -541,7 +467,7 @@ func TestSetStatus_CanBeOverwritten(t *testing.T) {
 	assert.Equals(t, status.Success, span.StatusCode())
 }
 
-func TestSetStatus_ConcurrentWrites_IsThreadSafe(t *testing.T) {
+func TestStart_SetStatus_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
@@ -556,11 +482,11 @@ func TestSetStatus_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 		})
 	}
 	waitGroup.Wait()
-	s := span.StatusCode()
-	assert.True(t, s == status.Success || s == status.Unset || s == status.Error)
+	code := span.StatusCode()
+	assert.True(t, code == status.Success || code == status.Unset || code == status.Error)
 }
 
-func TestStatus_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
+func TestStart_Status_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 50

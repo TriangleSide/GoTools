@@ -1,13 +1,12 @@
 /*
-Package trace provides lightweight tracing with hierarchical spans for measuring
-the duration of operations.
+Package trace provides context-based span propagation for tracing operations.
 
-Spans represent units of work and can be organized in parent-child relationships.
-Each span records its start and end times, allowing measurement of how long
-operations take. Spans are propagated through context, enabling automatic
-parent-child linking across function boundaries.
+This package offers the Start function to create spans that are automatically
+linked to parent spans found in the context. Spans represent units of work and
+can be organized in parent-child relationships, enabling measurement of how long
+operations take across function boundaries.
 
-Use this package when you need to instrument code to understand timing and
-call hierarchies without external dependencies.
+Use this package when you need to instrument code with context-propagated tracing.
+For direct span manipulation, use the span subpackage.
 */
 package trace
