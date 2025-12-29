@@ -35,8 +35,8 @@ func TestCode_String_Success_ReturnsSuccess(t *testing.T) {
 	assert.Equals(t, "Success", status.Success.String())
 }
 
-func TestCode_String_UnknownValue_ReturnsUnset(t *testing.T) {
+func TestCode_String_UnknownValue_ReturnsUnknown(t *testing.T) {
 	t.Parallel()
 	unknownCode := status.Code(999)
-	assert.Equals(t, "Unset", unknownCode.String())
+	assert.Equals(t, "Unknown", unknownCode.String())
 }

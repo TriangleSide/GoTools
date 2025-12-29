@@ -17,11 +17,13 @@ const (
 // String returns a string representation of the status code.
 func (c Code) String() string {
 	switch c {
+	case Unset:
+		return "Unset"
 	case Error:
 		return "Error"
 	case Success:
 		return "Success"
 	default:
-		return "Unset"
+		return "Unknown"
 	}
 }
