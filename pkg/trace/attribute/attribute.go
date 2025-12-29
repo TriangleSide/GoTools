@@ -1,7 +1,6 @@
 package attribute
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -53,7 +52,7 @@ func (a *Attribute) AsString() string {
 	case TypeInt:
 		return strconv.FormatInt(a.intValue, 10)
 	case TypeFloat:
-		return fmt.Sprintf("%f", a.floatValue)
+		return strconv.FormatFloat(a.floatValue, 'g', -1, 64)
 	case TypeBool:
 		return strconv.FormatBool(a.boolValue)
 	default:

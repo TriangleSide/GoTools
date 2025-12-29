@@ -69,10 +69,13 @@ func (s *Span) addChild(child *Span) {
 }
 
 // End marks the span as complete by recording the end time.
+// Only the first call has any effect; subsequent calls are ignored.
 func (s *Span) End() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.endTime = time.Now()
+	if s.endTime.IsZero() {
+		s.endTime = time.Now()
+	}
 }
 
 // Name returns the name of the span.
@@ -162,7 +165,7 @@ func (s *Span) Events() []*event.Event {
 	return result
 }
 
-// SetStatusCode sets the statusCode code on the span.
+// SetStatusCode sets the status code on the span.
 func (s *Span) SetStatusCode(code status.Code) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
