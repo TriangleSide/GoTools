@@ -14,9 +14,10 @@ import (
 
 func TestNew_NilParent_CreatesRootSpan(t *testing.T) {
 	t.Parallel()
-	testSpan := span.New("test-span", nil)
+	testSpan := span.New("test-span", "trace-123", nil)
 	assert.NotNil(t, testSpan)
 	assert.Equals(t, "test-span", testSpan.Name())
+	assert.Equals(t, "trace-123", testSpan.TraceID())
 	assert.Nil(t, testSpan.Parent())
 	assert.Equals(t, 0, len(testSpan.Children()))
 	assert.Equals(t, 0, len(testSpan.Attributes()))
@@ -26,8 +27,8 @@ func TestNew_NilParent_CreatesRootSpan(t *testing.T) {
 
 func TestNew_WithParent_CreatesChildSpan(t *testing.T) {
 	t.Parallel()
-	parent := span.New("parent", nil)
-	child := span.New("child", parent)
+	parent := span.New("parent", "", nil)
+	child := span.New("child", "", parent)
 	assert.Equals(t, parent, child.Parent())
 	assert.Equals(t, 1, len(parent.Children()))
 	assert.Equals(t, child, parent.Children()[0])
@@ -35,10 +36,10 @@ func TestNew_WithParent_CreatesChildSpan(t *testing.T) {
 
 func TestNew_MultipleChildren_AllAddedToParent(t *testing.T) {
 	t.Parallel()
-	parent := span.New("parent", nil)
-	child1 := span.New("child1", parent)
-	child2 := span.New("child2", parent)
-	child3 := span.New("child3", parent)
+	parent := span.New("parent", "", nil)
+	child1 := span.New("child1", "", parent)
+	child2 := span.New("child2", "", parent)
+	child3 := span.New("child3", "", parent)
 	children := parent.Children()
 	assert.Equals(t, 3, len(children))
 	assert.Equals(t, child1, children[0])
@@ -48,9 +49,9 @@ func TestNew_MultipleChildren_AllAddedToParent(t *testing.T) {
 
 func TestNew_NestedSpans_CreatesHierarchy(t *testing.T) {
 	t.Parallel()
-	root := span.New("root", nil)
-	child := span.New("child", root)
-	grandchild := span.New("grandchild", child)
+	root := span.New("root", "", nil)
+	child := span.New("child", "", root)
+	grandchild := span.New("grandchild", "", child)
 	assert.Nil(t, root.Parent())
 	assert.Equals(t, root, child.Parent())
 	assert.Equals(t, child, grandchild.Parent())
@@ -62,7 +63,7 @@ func TestNew_NestedSpans_CreatesHierarchy(t *testing.T) {
 func TestNew_RecordsStartTime(t *testing.T) {
 	t.Parallel()
 	before := time.Now()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	after := time.Now()
 	assert.True(t, !s.StartTime().Before(before))
 	assert.True(t, !s.StartTime().After(after))
@@ -72,12 +73,12 @@ func TestNew_ConcurrentChildCreation_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
-	parent := span.New("parent", nil)
+	parent := span.New("parent", "", nil)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
 			for range iterations {
-				span.New("child", parent)
+				span.New("child", "", parent)
 			}
 		})
 	}
@@ -88,7 +89,7 @@ func TestNew_ConcurrentChildCreation_IsThreadSafe(t *testing.T) {
 
 func TestSpanEnd_RecordsEndTime(t *testing.T) {
 	t.Parallel()
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	assert.True(t, testSpan.EndTime().IsZero())
 	before := time.Now()
 	testSpan.End()
@@ -100,7 +101,7 @@ func TestSpanEnd_RecordsEndTime(t *testing.T) {
 
 func TestSpanDuration_BeforeEnd_ReturnsDurationSinceStart(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	time.Sleep(10 * time.Millisecond)
 	duration := s.Duration()
 	assert.True(t, duration >= 10*time.Millisecond)
@@ -108,7 +109,7 @@ func TestSpanDuration_BeforeEnd_ReturnsDurationSinceStart(t *testing.T) {
 
 func TestSpanDuration_AfterEnd_ReturnsFixedDuration(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	time.Sleep(10 * time.Millisecond)
 	s.End()
 	duration1 := s.Duration()
@@ -119,8 +120,8 @@ func TestSpanDuration_AfterEnd_ReturnsFixedDuration(t *testing.T) {
 
 func TestSpanChildren_ReturnsDefensiveCopy(t *testing.T) {
 	t.Parallel()
-	parent := span.New("parent", nil)
-	span.New("child", parent)
+	parent := span.New("parent", "", nil)
+	span.New("child", "", parent)
 	children1 := parent.Children()
 	children2 := parent.Children()
 	assert.Equals(t, len(children1), len(children2))
@@ -131,7 +132,7 @@ func TestSpanChildren_ReturnsDefensiveCopy(t *testing.T) {
 func TestSpanEnd_ConcurrentCalls_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
@@ -146,7 +147,7 @@ func TestSpanDuration_ConcurrentReads_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
@@ -162,9 +163,9 @@ func TestSpanChildren_ConcurrentReads_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
-	parent := span.New("parent", nil)
+	parent := span.New("parent", "", nil)
 	for range 5 {
-		span.New("child", parent)
+		span.New("child", "", parent)
 	}
 	var waitGroup sync.WaitGroup
 	for range goroutines {
@@ -182,12 +183,12 @@ func TestSpan_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 50
-	parent := span.New("parent", nil)
+	parent := span.New("parent", "", nil)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
 			for range iterations {
-				span.New("child", parent)
+				span.New("child", "", parent)
 			}
 		})
 		waitGroup.Go(func() {
@@ -208,7 +209,7 @@ func TestSpan_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 
 func TestSetAttributes_SingleAttribute_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	s.SetAttributes(attribute.String("key", "value"))
 	attrs := s.Attributes()
 	assert.Equals(t, 1, len(attrs))
@@ -218,7 +219,7 @@ func TestSetAttributes_SingleAttribute_CanBeRetrieved(t *testing.T) {
 
 func TestSetAttributes_MultipleTypes_AllSupported(t *testing.T) {
 	t.Parallel()
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	testSpan.SetAttributes(
 		attribute.String("string", "hello"),
 		attribute.Int("int", 42),
@@ -239,14 +240,14 @@ func TestSetAttributes_MultipleTypes_AllSupported(t *testing.T) {
 
 func TestAttributes_NoAttributes_ReturnsEmptySlice(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	attrs := s.Attributes()
 	assert.Equals(t, 0, len(attrs))
 }
 
 func TestAttributes_MultipleAttributes_ReturnsAll(t *testing.T) {
 	t.Parallel()
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	testSpan.SetAttributes(
 		attribute.String("key1", "value1"),
 		attribute.String("key2", "value2"),
@@ -264,7 +265,7 @@ func TestAttributes_MultipleAttributes_ReturnsAll(t *testing.T) {
 
 func TestAttributes_ReturnsDefensiveCopy(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	s.SetAttributes(attribute.String("key", "value"))
 	attrs := s.Attributes()
 	attrs[0] = attribute.String("key", "modified")
@@ -277,7 +278,7 @@ func TestSetAttributes_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	var waitGroup sync.WaitGroup
 	for i := range goroutines {
 		waitGroup.Go(func() {
@@ -296,7 +297,7 @@ func TestAttributes_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 50
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	var waitGroup sync.WaitGroup
 	for i := range goroutines {
 		waitGroup.Go(func() {
@@ -316,7 +317,7 @@ func TestAttributes_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 
 func TestAddEvent_SingleEvent_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	e := event.New("test-event")
 	s.AddEvent(e)
 	events := s.Events()
@@ -326,7 +327,7 @@ func TestAddEvent_SingleEvent_CanBeRetrieved(t *testing.T) {
 
 func TestAddEvent_MultipleEvents_AllRetrieved(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	s.AddEvent(event.New("event1"))
 	s.AddEvent(event.New("event2"))
 	s.AddEvent(event.New("event3"))
@@ -339,14 +340,14 @@ func TestAddEvent_MultipleEvents_AllRetrieved(t *testing.T) {
 
 func TestEvents_NoEvents_ReturnsEmptySlice(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	events := s.Events()
 	assert.Equals(t, 0, len(events))
 }
 
 func TestEvents_ReturnsDefensiveCopy(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	s.AddEvent(event.New("original"))
 	events := s.Events()
 	events[0] = event.New("modified")
@@ -356,7 +357,7 @@ func TestEvents_ReturnsDefensiveCopy(t *testing.T) {
 
 func TestAddEvent_WithAttributes_PreservesAttributes(t *testing.T) {
 	t.Parallel()
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	e := event.New("test-event",
 		attribute.String("key", "value"),
 		attribute.Int("count", 42),
@@ -373,7 +374,7 @@ func TestAddEvent_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
@@ -391,7 +392,7 @@ func TestEvents_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 50
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
@@ -410,27 +411,27 @@ func TestEvents_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 
 func TestStatus_DefaultValue_IsUnset(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	assert.Equals(t, status.Unset, s.StatusCode())
 }
 
 func TestSetStatus_Error_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	s.SetStatusCode(status.Error)
 	assert.Equals(t, status.Error, s.StatusCode())
 }
 
 func TestSetStatus_Success_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	s.SetStatusCode(status.Success)
 	assert.Equals(t, status.Success, s.StatusCode())
 }
 
 func TestSetStatus_CanBeOverwritten(t *testing.T) {
 	t.Parallel()
-	s := span.New("test", nil)
+	s := span.New("test", "", nil)
 	s.SetStatusCode(status.Error)
 	assert.Equals(t, status.Error, s.StatusCode())
 	s.SetStatusCode(status.Success)
@@ -441,7 +442,7 @@ func TestSetStatus_ConcurrentWrites_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 100
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
@@ -459,7 +460,7 @@ func TestStatus_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	t.Parallel()
 	const goroutines = 10
 	const iterations = 50
-	testSpan := span.New("test", nil)
+	testSpan := span.New("test", "", nil)
 	var waitGroup sync.WaitGroup
 	for range goroutines {
 		waitGroup.Go(func() {
@@ -474,4 +475,16 @@ func TestStatus_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 		})
 	}
 	waitGroup.Wait()
+}
+
+func TestTraceID_EmptyString_CanBeRetrieved(t *testing.T) {
+	t.Parallel()
+	s := span.New("test", "", nil)
+	assert.Equals(t, "", s.TraceID())
+}
+
+func TestTraceID_NonEmptyString_CanBeRetrieved(t *testing.T) {
+	t.Parallel()
+	s := span.New("test", "abc-123-def", nil)
+	assert.Equals(t, "abc-123-def", s.TraceID())
 }

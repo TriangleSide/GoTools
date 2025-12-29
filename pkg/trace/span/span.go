@@ -12,6 +12,7 @@ import (
 // Span represents a unit of work with timing information and hierarchical structure.
 type Span struct {
 	name       string
+	traceID    string
 	startTime  time.Time
 	endTime    time.Time
 	parent     *Span
@@ -22,11 +23,12 @@ type Span struct {
 	mu         sync.RWMutex
 }
 
-// New creates a new span with the given name and optional parent.
+// New creates a new span with the given name, trace ID, and optional parent.
 // If a parent is provided, the new span is added as a child of the parent.
-func New(name string, parent *Span) *Span {
+func New(name string, traceID string, parent *Span) *Span {
 	span := &Span{
 		name:       name,
+		traceID:    traceID,
 		startTime:  time.Now(),
 		children:   make([]*Span, 0),
 		attributes: make([]*attribute.Attribute, 0),
@@ -59,6 +61,11 @@ func (s *Span) End() {
 // Name returns the name of the span.
 func (s *Span) Name() string {
 	return s.name
+}
+
+// TraceID returns the trace ID of the span.
+func (s *Span) TraceID() string {
+	return s.traceID
 }
 
 // StartTime returns when the span started.

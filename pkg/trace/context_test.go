@@ -507,3 +507,37 @@ func TestStart_Status_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	}
 	waitGroup.Wait()
 }
+
+func TestSetTraceID_PassedToSpan_CanBeRetrieved(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctx = trace.SetTraceID(ctx, "abc123")
+	_, span := trace.Start(ctx, "test")
+	assert.Equals(t, "abc123", span.TraceID())
+}
+
+func TestStart_NoTraceIDSet_SpanHasEmptyTraceID(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, span := trace.Start(ctx, "test")
+	assert.Equals(t, "", span.TraceID())
+}
+
+func TestSetTraceID_Overwrite_LatestPassedToSpan(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctx = trace.SetTraceID(ctx, "first")
+	ctx = trace.SetTraceID(ctx, "second")
+	_, span := trace.Start(ctx, "test")
+	assert.Equals(t, "second", span.TraceID())
+}
+
+func TestSetTraceID_AllSpansReceiveSameID(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctx = trace.SetTraceID(ctx, "trace-123")
+	ctx, parent := trace.Start(ctx, "parent")
+	_, child := trace.Start(ctx, "child")
+	assert.Equals(t, "trace-123", parent.TraceID())
+	assert.Equals(t, "trace-123", child.TraceID())
+}
