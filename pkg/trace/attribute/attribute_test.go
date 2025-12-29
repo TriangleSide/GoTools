@@ -178,3 +178,45 @@ func TestAttribute_ConcurrentReads_IsThreadSafe(t *testing.T) {
 	}
 	waitGroup.Wait()
 }
+
+func TestType_String_ReturnsCorrectString(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		name     string
+		attrType attribute.Type
+		expected string
+	}{
+		{
+			name:     "String",
+			attrType: attribute.TypeString,
+			expected: "String",
+		},
+		{
+			name:     "Int",
+			attrType: attribute.TypeInt,
+			expected: "Int",
+		},
+		{
+			name:     "Float",
+			attrType: attribute.TypeFloat,
+			expected: "Float",
+		},
+		{
+			name:     "Bool",
+			attrType: attribute.TypeBool,
+			expected: "Bool",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equals(t, tc.expected, tc.attrType.String())
+		})
+	}
+}
+
+func TestType_String_UnknownType_ReturnsUnknown(t *testing.T) {
+	t.Parallel()
+	unknownType := attribute.Type(999)
+	assert.Equals(t, "Unknown", unknownType.String())
+}
