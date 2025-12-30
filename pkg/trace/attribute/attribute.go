@@ -49,6 +49,8 @@ func (a *Attribute) BoolValue() bool {
 // AsString returns a string representation of the attribute's value.
 func (a *Attribute) AsString() string {
 	switch a.attrType {
+	case TypeString:
+		return a.stringValue
 	case TypeInt:
 		return strconv.FormatInt(a.intValue, 10)
 	case TypeFloat:
@@ -56,6 +58,6 @@ func (a *Attribute) AsString() string {
 	case TypeBool:
 		return strconv.FormatBool(a.boolValue)
 	default:
-		return a.stringValue
+		return ""
 	}
 }

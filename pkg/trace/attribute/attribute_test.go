@@ -220,3 +220,9 @@ func TestType_String_UnknownType_ReturnsUnknown(t *testing.T) {
 	unknownType := attribute.Type(999)
 	assert.Equals(t, "Unknown", unknownType.String())
 }
+
+func TestAsString_UnknownType_ReturnsEmptyString(t *testing.T) {
+	t.Parallel()
+	attr := &attribute.Attribute{}
+	assert.Equals(t, "", attr.AsString())
+}
