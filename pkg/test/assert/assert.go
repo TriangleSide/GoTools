@@ -53,15 +53,17 @@ func assertPanic(tCtx *testContext, panicFunc func(), msg *string, exact bool) {
 		return
 	}
 
-	if msg != nil {
-		if exact {
-			if result.msg != *msg {
-				tCtx.fail(fmt.Sprintf("Expected panic message to equal '%s' but got '%s'.", *msg, result.msg))
-			}
-		} else {
-			if !strings.Contains(result.msg, *msg) {
-				tCtx.fail(fmt.Sprintf("Expected panic message to contain '%s' but got '%s'.", *msg, result.msg))
-			}
+	if msg == nil {
+		return
+	}
+
+	if exact {
+		if result.msg != *msg {
+			tCtx.fail(fmt.Sprintf("Expected panic message to equal '%s' but got '%s'.", *msg, result.msg))
+		}
+	} else {
+		if !strings.Contains(result.msg, *msg) {
+			tCtx.fail(fmt.Sprintf("Expected panic message to contain '%s' but got '%s'.", *msg, result.msg))
 		}
 	}
 }
