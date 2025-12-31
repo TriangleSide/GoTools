@@ -43,6 +43,7 @@ linters:
     - mnd
     - modernize
     - musttag
+    - nestif
     - nilerr
     - nilnil
     - noctx
