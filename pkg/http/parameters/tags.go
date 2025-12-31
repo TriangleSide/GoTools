@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
 	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
@@ -75,7 +74,7 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 }
 
 // buildFieldTagLookupKeys extracts and validates field tag lookup keys for type T.
-func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], *time.Duration, error) {
+func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], error) {
 	fieldsMetadata := structs.Metadata[T]()
 
 	tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)
@@ -92,20 +91,20 @@ func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKe
 			}
 
 			if customTagFound {
-				return nil, nil, fmt.Errorf("there can only be one encoding tag on the field '%s'", fieldName)
+				return nil, fmt.Errorf("there can only be one encoding tag on the field '%s'", fieldName)
 			}
 			customTagFound = true
 
 			normalizedLookupKeyForTag := lookupKeyNormalizer(originalLookupKeyForTag)
 			if !TagLookupKeyFollowsNamingConvention(normalizedLookupKeyForTag) {
-				return nil, nil, fmt.Errorf(
+				return nil, fmt.Errorf(
 					"tag '%s' with lookup key '%s' must adhere to the naming convention",
 					customTag, originalLookupKeyForTag)
 			}
 
 			_, lookupKeyAlreadySeenForTag := tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag]
 			if lookupKeyAlreadySeenForTag {
-				return nil, nil, fmt.Errorf(
+				return nil, fmt.Errorf(
 					"tag '%s' with lookup key '%s' is not unique",
 					customTag, originalLookupKeyForTag)
 			}
@@ -113,14 +112,14 @@ func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKe
 
 			jsonTagValue, jsonTagFound := fieldMetadata.Tags().Fetch(string(JSONTag))
 			if !jsonTagFound || jsonTagValue != "-" {
-				return nil, nil, fmt.Errorf(
+				return nil, fmt.Errorf(
 					"struct field '%s' with tag '%s' must have accompanying tag %s:\"-\"",
 					fieldName, customTag, JSONTag)
 			}
 		}
 	}
 
-	return readonly.NewMapBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), nil, nil
+	return readonly.NewMapBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), nil
 }
 
 // ExtractAndValidateFieldTagLookupKeys validates the struct tags and returns a map
