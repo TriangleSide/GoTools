@@ -1,6 +1,8 @@
 package span_test
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -556,4 +558,128 @@ func TestSpanID_ConcurrentChildCreation_AssignsUniqueIDs(t *testing.T) {
 		ids[id] = true
 	}
 	assert.Equals(t, goroutines*iterations+1, len(ids))
+}
+
+func TestRecordError_StandardError_SetsStatusAndAddsEvent(t *testing.T) {
+	t.Parallel()
+	s := span.New("test", "", nil)
+	testErr := errors.New("test error")
+	s.RecordError(testErr)
+	assert.Equals(t, status.Error, s.StatusCode())
+	events := s.Events()
+	assert.Equals(t, 1, len(events))
+	assert.Equals(t, "error", events[0].Name())
+	attrs := events[0].Attributes()
+	assert.Equals(t, 2, len(attrs))
+	assert.Equals(t, "error.message", attrs[0].Key())
+	assert.Equals(t, "test error", attrs[0].StringValue())
+	assert.Equals(t, "error.type", attrs[1].Key())
+	assert.Equals(t, "*errors.errorString", attrs[1].StringValue())
+}
+
+func TestRecordError_NilError_IsNoOp(t *testing.T) {
+	t.Parallel()
+	s := span.New("test", "", nil)
+	s.RecordError(nil)
+	assert.Equals(t, status.Unset, s.StatusCode())
+	events := s.Events()
+	assert.Equals(t, 0, len(events))
+}
+
+func TestRecordError_WrappedError_RecordsWrappedMessage(t *testing.T) {
+	t.Parallel()
+	s := span.New("test", "", nil)
+	innerErr := errors.New("inner error")
+	wrappedErr := fmt.Errorf("outer context: %w", innerErr)
+	s.RecordError(wrappedErr)
+	assert.Equals(t, status.Error, s.StatusCode())
+	events := s.Events()
+	assert.Equals(t, 1, len(events))
+	attrs := events[0].Attributes()
+	assert.Equals(t, "error.message", attrs[0].Key())
+	assert.Equals(t, "outer context: inner error", attrs[0].StringValue())
+	assert.Equals(t, "error.type", attrs[1].Key())
+	assert.Equals(t, "*fmt.wrapError", attrs[1].StringValue())
+}
+
+type customError struct {
+	code    int
+	message string
+}
+
+func (e *customError) Error() string {
+	return fmt.Sprintf("error %d: %s", e.code, e.message)
+}
+
+func TestRecordError_CustomErrorType_RecordsTypeInfo(t *testing.T) {
+	t.Parallel()
+	s := span.New("test", "", nil)
+	customErr := &customError{code: 404, message: "not found"}
+	s.RecordError(customErr)
+	assert.Equals(t, status.Error, s.StatusCode())
+	events := s.Events()
+	assert.Equals(t, 1, len(events))
+	attrs := events[0].Attributes()
+	assert.Equals(t, "error.message", attrs[0].Key())
+	assert.Equals(t, "error 404: not found", attrs[0].StringValue())
+	assert.Equals(t, "error.type", attrs[1].Key())
+	assert.Equals(t, "*span_test.customError", attrs[1].StringValue())
+}
+
+func TestRecordError_MultipleErrors_AllRecorded(t *testing.T) {
+	t.Parallel()
+	s := span.New("test", "", nil)
+	s.RecordError(errors.New("first error"))
+	s.RecordError(errors.New("second error"))
+	s.RecordError(errors.New("third error"))
+	assert.Equals(t, status.Error, s.StatusCode())
+	events := s.Events()
+	assert.Equals(t, 3, len(events))
+	attrs0 := events[0].Attributes()
+	assert.Equals(t, "first error", attrs0[0].StringValue())
+	attrs1 := events[1].Attributes()
+	assert.Equals(t, "second error", attrs1[0].StringValue())
+	attrs2 := events[2].Attributes()
+	assert.Equals(t, "third error", attrs2[0].StringValue())
+}
+
+func TestRecordError_ConcurrentCalls_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 100
+	testSpan := span.New("test", "", nil)
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			for range iterations {
+				testSpan.RecordError(errors.New("concurrent error"))
+			}
+		})
+	}
+	waitGroup.Wait()
+	assert.Equals(t, status.Error, testSpan.StatusCode())
+	events := testSpan.Events()
+	assert.Equals(t, goroutines*iterations, len(events))
+}
+
+func TestRecordError_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	const iterations = 50
+	testSpan := span.New("test", "", nil)
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			for range iterations {
+				testSpan.RecordError(errors.New("concurrent error"))
+			}
+		})
+		waitGroup.Go(func() {
+			for range iterations {
+				_ = testSpan.StatusCode()
+				_ = testSpan.Events()
+			}
+		})
+	}
+	waitGroup.Wait()
 }

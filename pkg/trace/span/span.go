@@ -1,6 +1,7 @@
 package span
 
 import (
+	"reflect"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -9,6 +10,17 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
 	"github.com/TriangleSide/GoTools/pkg/trace/event"
 	"github.com/TriangleSide/GoTools/pkg/trace/status"
+)
+
+const (
+	// errorEventName is the name used for error events recorded on a span.
+	errorEventName = "error"
+
+	// errorMessageKey is the attribute key for the error message.
+	errorMessageKey = "error.message"
+
+	// errorTypeKey is the attribute key for the error type.
+	errorTypeKey = "error.type"
 )
 
 // Span represents a unit of work with timing information and hierarchical structure.
@@ -177,4 +189,16 @@ func (s *Span) StatusCode() status.Code {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.statusCode
+}
+
+// RecordError records an error on the span by setting the status to Error and adding an error event.
+func (s *Span) RecordError(err error) {
+	if err == nil {
+		return
+	}
+	s.SetStatusCode(status.Error)
+	s.AddEvent(event.New(errorEventName,
+		attribute.String(errorMessageKey, err.Error()),
+		attribute.String(errorTypeKey, reflect.TypeOf(err).String()),
+	))
 }
