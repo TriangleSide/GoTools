@@ -126,9 +126,9 @@ func setStringIntoField(fieldPtr reflect.Value, fieldType reflect.Type, stringEn
 
 // getStructFieldValue retrieves the reflect.Value of a field, accounting for embedded anonymous structs.
 func getStructFieldValue(structValue reflect.Value, fieldName string, fieldMetadata *FieldMetadata) reflect.Value {
-	if fieldMetadata.Anonymous().Size() != 0 {
+	if len(fieldMetadata.Anonymous()) != 0 {
 		anonValue := structValue.Elem()
-		for _, anonymousName := range fieldMetadata.Anonymous().All() {
+		for _, anonymousName := range fieldMetadata.Anonymous() {
 			anonValue = anonValue.FieldByName(anonymousName)
 		}
 		return anonValue.FieldByName(fieldName)

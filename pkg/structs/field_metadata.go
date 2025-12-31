@@ -10,7 +10,7 @@ import (
 type FieldMetadata struct {
 	reflectType reflect.Type
 	tags        *readonly.Map[string, string]
-	anonymous   *readonly.Slice[string]
+	anonymous   []string
 }
 
 // Type returns the fields type.
@@ -35,6 +35,6 @@ func (f *FieldMetadata) Tags() *readonly.Map[string, string] {
 //	}
 //
 // If calling Anonymous on the struct Example and the field DeepField, ["DeepExample"] would be returned.
-func (f *FieldMetadata) Anonymous() *readonly.Slice[string] {
+func (f *FieldMetadata) Anonymous() []string {
 	return f.anonymous
 }
