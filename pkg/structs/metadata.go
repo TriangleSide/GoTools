@@ -71,12 +71,9 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 			}
 		}
 
-		anonymousChainBuilder := readonly.NewSliceBuilder[string]()
-		anonymousChainBuilder.Append(anonymousChain...)
-
 		fieldsToMetadata[field.Name] = &FieldMetadata{
 			reflectType: field.Type,
-			anonymous:   anonymousChainBuilder.Build(),
+			anonymous:   append([]string{}, anonymousChain...),
 			tags:        tagBuilder.Build(),
 		}
 	}

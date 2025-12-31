@@ -39,7 +39,7 @@ func TestMetadata_StringFieldWithoutTag_ReturnsFieldNameAndTypeWithoutMetadata(t
 	assert.True(t, metadata.Has("Value"))
 	assert.Equals(t, valueField.Type().Kind(), reflect.String)
 	assert.Equals(t, valueField.Tags().Size(), 0)
-	assert.Equals(t, valueField.Anonymous().Size(), 0)
+	assert.Equals(t, len(valueField.Anonymous()), 0)
 }
 
 func TestMetadata_FieldWithTag_ReturnsFieldNameAndTypeWithTagMetadata(t *testing.T) {
@@ -53,7 +53,7 @@ func TestMetadata_FieldWithTag_ReturnsFieldNameAndTypeWithTagMetadata(t *testing
 	assert.True(t, metadata.Has("Value"))
 	assert.Equals(t, valueField.Type().Kind(), reflect.Int)
 	assert.Equals(t, valueField.Tags().Get("key"), "Value")
-	assert.Equals(t, valueField.Anonymous().Size(), 0)
+	assert.Equals(t, len(valueField.Anonymous()), 0)
 }
 
 func TestMetadata_FieldWithMultipleTags_ReturnsFieldNameAndTypeWithTagsMetadata(t *testing.T) {
@@ -68,7 +68,7 @@ func TestMetadata_FieldWithMultipleTags_ReturnsFieldNameAndTypeWithTagsMetadata(
 	assert.Equals(t, valueField.Type().Kind(), reflect.Float32)
 	assert.Equals(t, valueField.Tags().Get("key1"), "Value1")
 	assert.Equals(t, valueField.Tags().Get("key2"), "Value2")
-	assert.Equals(t, valueField.Anonymous().Size(), 0)
+	assert.Equals(t, len(valueField.Anonymous()), 0)
 }
 
 func TestMetadata_MultipleFieldsWithTags_ReturnsFieldNamesAndTypesWithTagsMetadata(t *testing.T) {
@@ -123,29 +123,29 @@ func TestMetadata_NestedAnonymousStructs_IncludesAnonymousStructsFields(t *testi
 	assert.True(t, metadata.Has("DeepField"))
 	assert.Equals(t, deepField.Type().Kind(), reflect.String)
 	assert.Equals(t, deepField.Tags().Get("key"), "Deep")
-	assert.Equals(t, deepField.Anonymous().Size(), 2)
-	assert.Equals(t, deepField.Anonymous().At(0), "embeddedStruct1")
-	assert.Equals(t, deepField.Anonymous().At(1), "deepStruct")
+	assert.Equals(t, len(deepField.Anonymous()), 2)
+	assert.Equals(t, deepField.Anonymous()[0], "embeddedStruct1")
+	assert.Equals(t, deepField.Anonymous()[1], "deepStruct")
 
 	embeddedField1 := metadata.Get("EmbeddedField1")
 	assert.True(t, metadata.Has("EmbeddedField1"))
 	assert.Equals(t, embeddedField1.Type().Kind(), reflect.String)
 	assert.Equals(t, embeddedField1.Tags().Get("key"), "Embedded1")
-	assert.Equals(t, embeddedField1.Anonymous().Size(), 1)
-	assert.Equals(t, embeddedField1.Anonymous().At(0), "embeddedStruct1")
+	assert.Equals(t, len(embeddedField1.Anonymous()), 1)
+	assert.Equals(t, embeddedField1.Anonymous()[0], "embeddedStruct1")
 
 	embeddedField2 := metadata.Get("EmbeddedField2")
 	assert.True(t, metadata.Has("EmbeddedField2"))
 	assert.Equals(t, embeddedField2.Type().Kind(), reflect.String)
 	assert.Equals(t, embeddedField2.Tags().Get("key"), "Embedded2")
-	assert.Equals(t, embeddedField2.Anonymous().Size(), 1)
-	assert.Equals(t, embeddedField2.Anonymous().At(0), "embeddedStruct2")
+	assert.Equals(t, len(embeddedField2.Anonymous()), 1)
+	assert.Equals(t, embeddedField2.Anonymous()[0], "embeddedStruct2")
 
 	outerField := metadata.Get("OuterField")
 	assert.True(t, metadata.Has("OuterField"))
 	assert.Equals(t, outerField.Type().Kind(), reflect.String)
 	assert.Equals(t, outerField.Tags().Get("key"), "Outer")
-	assert.Equals(t, outerField.Anonymous().Size(), 0)
+	assert.Equals(t, len(outerField.Anonymous()), 0)
 }
 
 func TestMetadata_AmbiguousFieldName_Panics(t *testing.T) {
@@ -199,14 +199,14 @@ func TestMetadata_EmbeddedPointerToStruct_IncludesPointerStructFields(t *testing
 	assert.True(t, metadata.Has("EmbeddedField"))
 	assert.Equals(t, embeddedField.Type().Kind(), reflect.String)
 	assert.Equals(t, embeddedField.Tags().Get("key"), "Embedded")
-	assert.Equals(t, embeddedField.Anonymous().Size(), 1)
-	assert.Equals(t, embeddedField.Anonymous().At(0), "embeddedStruct")
+	assert.Equals(t, len(embeddedField.Anonymous()), 1)
+	assert.Equals(t, embeddedField.Anonymous()[0], "embeddedStruct")
 
 	outerField := metadata.Get("OuterField")
 	assert.True(t, metadata.Has("OuterField"))
 	assert.Equals(t, outerField.Type().Kind(), reflect.String)
 	assert.Equals(t, outerField.Tags().Get("key"), "Outer")
-	assert.Equals(t, outerField.Anonymous().Size(), 0)
+	assert.Equals(t, len(outerField.Anonymous()), 0)
 }
 
 func TestMetadataFromType_ValidStruct_ReturnsMetadata(t *testing.T) {
@@ -262,7 +262,7 @@ func TestMetadata_ConcurrentAccess_NoErrors(t *testing.T) {
 				assert.Equals(t, valueField.Type().Kind(), reflect.Float32)
 				assert.Equals(t, valueField.Tags().Get("key1"), "Value1")
 				assert.Equals(t, valueField.Tags().Get("key2"), "Value2")
-				assert.Equals(t, valueField.Anonymous().Size(), 0)
+				assert.Equals(t, len(valueField.Anonymous()), 0)
 			}
 		})
 	}
