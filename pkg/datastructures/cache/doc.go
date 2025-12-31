@@ -1,8 +1,7 @@
 /*
-Package cache provides a thread-safe key/value store with optional expiration.
+Package cache provides a thread-safe key/value store.
 
-Use this package when you need a concurrent-safe cache that supports time-to-live
-for entries. The cache automatically removes expired entries on access and provides
+Use this package when you need a concurrent-safe cache. The cache provides
 atomic get-or-set operations to prevent redundant computation for the same key.
 */
 package cache

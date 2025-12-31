@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
 	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
@@ -25,11 +24,11 @@ func Metadata[T any]() *readonly.Map[string, *FieldMetadata] {
 
 // MetadataFromType returns a map of a struct's field names to their respective metadata.
 func MetadataFromType(reflectType reflect.Type) *readonly.Map[string, *FieldMetadata] {
-	getOrSetFn := func(reflectType reflect.Type) (*readonly.Map[string, *FieldMetadata], *time.Duration, error) {
+	getOrSetFn := func(reflectType reflect.Type) (*readonly.Map[string, *FieldMetadata], error) {
 		fieldsToMetadata := make(map[string]*FieldMetadata)
 		processType(reflectType, fieldsToMetadata, []string{})
 		readOnlyMap := readonly.NewMapBuilder[string, *FieldMetadata]().SetMap(fieldsToMetadata).Build()
-		return readOnlyMap, nil, nil
+		return readOnlyMap, nil
 	}
 	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, getOrSetFn)
 	return fieldsToMetadata

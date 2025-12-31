@@ -2,12 +2,11 @@ package cache
 
 import (
 	"sync"
-	"time"
 )
 
 // GetOrSetFn is used in the GetOrSet function of the Cache interface.
-// If the value is not present, or if it's expired, the function gets called.
-type GetOrSetFn[Key comparable, Value any] func(Key) (Value, *time.Duration, error)
+// If the value is not present, the function gets called.
+type GetOrSetFn[Key comparable, Value any] func(Key) (Value, error)
 
 // getOrSetKeyLock is used by the GetOrSet function to make sure the function is not executed in parallel.
 type getOrSetKeyLock[Value any] struct {
@@ -16,51 +15,31 @@ type getOrSetKeyLock[Value any] struct {
 	FnError  error
 }
 
-// Cache stores key/value pairs with optional expiration.
+// Cache stores key/value pairs.
 type Cache[Key comparable, Value any] struct {
 	getOrSetKeyLocks sync.Map
 	keyToItem        sync.Map
 }
 
 // New creates a new Cache instance. The benefit of using Cache instead of a regular map is that
-// Cache is thread safe. It also handles expiring items.
+// Cache is thread safe.
 func New[Key comparable, Value any]() *Cache[Key, Value] {
 	return &Cache[Key, Value]{}
 }
 
-// item is what is stored in the internal map of the cache.
-type item[Value any] struct {
-	value  Value
-	expiry *time.Time
-}
-
-// Set sets a value and time-to-live in the cache.
-func (c *Cache[Key, Value]) Set(key Key, value Value, ttl *time.Duration) {
-	var expiry *time.Time
-	if ttl != nil {
-		expireTime := time.Now().Add(*ttl)
-		expiry = &expireTime
-	}
-	c.keyToItem.Store(key, &item[Value]{
-		value:  value,
-		expiry: expiry,
-	})
+// Set sets a value in the cache.
+func (c *Cache[Key, Value]) Set(key Key, value Value) {
+	c.keyToItem.Store(key, value)
 }
 
 // Get retrieves a value from the cache if present.
 func (c *Cache[Key, Value]) Get(key Key) (Value, bool) {
-	itemValueUncast, loaded := c.keyToItem.Load(key)
+	valueUncast, loaded := c.keyToItem.Load(key)
 	if !loaded {
 		var zeroValue Value
 		return zeroValue, false
 	}
-	itemValue := itemValueUncast.(*item[Value])
-	if itemValue.expiry != nil && time.Now().After(*itemValue.expiry) {
-		c.keyToItem.CompareAndDelete(key, itemValue)
-		var zeroValue Value
-		return zeroValue, false
-	}
-	return itemValue.value, true
+	return valueUncast.(Value), true
 }
 
 // GetOrSet tries to get the value, and if not present, it calls getOrSetFn to fetch and set the value.
@@ -90,29 +69,23 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, getOrSetFn GetOrSetFn[Key, Value])
 		return keyLock.FnValue, nil
 	}
 
-	var ttl *time.Duration
-	keyLock.FnValue, ttl, keyLock.FnError = getOrSetFn(key)
+	keyLock.FnValue, keyLock.FnError = getOrSetFn(key)
 	if keyLock.FnError != nil {
 		return keyLock.FnValue, keyLock.FnError
 	}
 
-	c.Set(key, keyLock.FnValue, ttl)
+	c.Set(key, keyLock.FnValue)
 	return keyLock.FnValue, nil
 }
 
 // Remove removes a key and its value from the cache if present.
 func (c *Cache[Key, Value]) Remove(key Key) (Value, bool) {
-	itemValueUncast, loaded := c.keyToItem.LoadAndDelete(key)
+	valueUncast, loaded := c.keyToItem.LoadAndDelete(key)
 	if !loaded {
 		var zeroValue Value
 		return zeroValue, false
 	}
-	itemValue := itemValueUncast.(*item[Value])
-	if itemValue.expiry != nil && time.Now().After(*itemValue.expiry) {
-		var zeroValue Value
-		return zeroValue, false
-	}
-	return itemValue.value, true
+	return valueUncast.(Value), true
 }
 
 // Clear removes all the values in the cache.
