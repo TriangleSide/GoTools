@@ -73,13 +73,6 @@ func New(name string, traceID string, parent *Span) *Span {
 	return span
 }
 
-// addChild adds a child span to this span.
-func (s *Span) addChild(child *Span) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.children = append(s.children, child)
-}
-
 // End marks the span as complete by recording the end time.
 // Only the first call has any effect; subsequent calls are ignored.
 func (s *Span) End() {
@@ -201,4 +194,11 @@ func (s *Span) RecordError(err error) {
 		attribute.String(errorMessageKey, err.Error()),
 		attribute.String(errorTypeKey, reflect.TypeOf(err).String()),
 	))
+}
+
+// addChild adds a child span to this span.
+func (s *Span) addChild(child *Span) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.children = append(s.children, child)
 }

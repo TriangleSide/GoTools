@@ -14,17 +14,20 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-// Decode populates a parameter struct with values from an HTTP request and performs validation on the struct.
-func Decode[T any](request *http.Request) (returnParams *T, returnErr error) {
-	defer func() {
-		if request.Body != nil {
-			if err := request.Body.Close(); err != nil {
-				returnErr = errors.Join(returnErr, fmt.Errorf("failed to close the request body: %w", err))
-				returnParams = nil
-			}
+// Decode populates a parameter struct with values from an HTTP request.
+// After decoding, it validates the struct and closes the request body.
+func Decode[T any](request *http.Request) (*T, error) {
+	params, err := decodeAndValidate[T](request)
+	if request.Body != nil {
+		if closeErr := request.Body.Close(); closeErr != nil {
+			return nil, errors.Join(err, fmt.Errorf("failed to close the request body: %w", closeErr))
 		}
-	}()
+	}
+	return params, err
+}
 
+// decodeAndValidate extracts parameter values from the request and validates the resulting struct.
+func decodeAndValidate[T any](request *http.Request) (*T, error) {
 	if reflect.TypeFor[T]().Kind() != reflect.Struct {
 		panic(errors.New("generic type must be a struct"))
 	}
@@ -70,8 +73,8 @@ func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 	return nil
 }
 
-// decodeQueryParameters identifies fields tagged with QueryTag and maps
-// corresponding URL query parameters to these fields.
+// decodeQueryParameters populates struct fields tagged with QueryTag using URL query parameter values.
+// For example, a field tagged with `urlQuery:"name"` is populated from the query parameter "name" in "?name=value".
 func decodeQueryParameters[T any](
 	params *T,
 	tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName],
@@ -101,8 +104,8 @@ func decodeQueryParameters[T any](
 	return nil
 }
 
-// decodeHeaderParameters identifies fields tagged with HeaderTag and maps
-// corresponding HTTP headers to these fields.
+// decodeHeaderParameters populates struct fields tagged with HeaderTag using HTTP header values.
+// For example, a field tagged with `httpHeader:"X-Request-ID"` is populated from the "X-Request-ID" header.
 func decodeHeaderParameters[T any](
 	params *T,
 	tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName],
@@ -130,8 +133,8 @@ func decodeHeaderParameters[T any](
 	return nil
 }
 
-// decodePathParameters identifies fields tagged with PathTag and maps
-// corresponding URL path parameters to these fields.
+// decodePathParameters populates struct fields tagged with PathTag using URL path parameter values.
+// For example, a field tagged with `urlPath:"id"` is populated from the path parameter "{id}" in "/users/{id}".
 func decodePathParameters[T any](
 	params *T,
 	tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName],

@@ -263,8 +263,9 @@ func TestDecode_EmptyStruct_ShouldSucceed(t *testing.T) {
 func TestDecode_NonJsonContentType_ShouldSkipJsonParsing(t *testing.T) {
 	t.Parallel()
 	jsonBody := `{"field":"value"}`
-	url := "/?QueryParam=value"
-	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, url, strings.NewReader(jsonBody))
+	urlWithQueryParam := "/?QueryParam=value"
+	request, err := http.NewRequestWithContext(
+		t.Context(), http.MethodPost, urlWithQueryParam, strings.NewReader(jsonBody))
 	assert.NoError(t, err)
 	request = request.WithContext(t.Context())
 	request.Header.Set(headers.ContentType, "text/plain")
