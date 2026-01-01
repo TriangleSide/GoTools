@@ -43,3 +43,13 @@ type ProcessorAlreadyRegisteredError struct {
 func (e *ProcessorAlreadyRegisteredError) Error() string {
 	return fmt.Sprintf("processor with name %q already registered", e.ProcessorName)
 }
+
+// ProcessorNotRegisteredError indicates an attempt to use a processor that has not been registered.
+type ProcessorNotRegisteredError struct {
+	ProcessorName string
+}
+
+// Error ensures ProcessorNotRegisteredError implements the error interface.
+func (e *ProcessorNotRegisteredError) Error() string {
+	return fmt.Sprintf("processor %q not registered", e.ProcessorName)
+}

@@ -236,7 +236,9 @@ func TestProcessAndValidate_ProcessorNotRegistered_ReturnsError(t *testing.T) {
 
 	conf, err := config.ProcessAndValidate[testStruct]()
 	assert.ErrorPart(t, err, "failed to process configuration")
-	assert.ErrorPart(t, err, "processor DOES_NOT_EXIST not registered")
+	var notRegErr *config.ProcessorNotRegisteredError
+	assert.True(t, errors.As(err, &notRegErr))
+	assert.Equals(t, notRegErr.ProcessorName, "DOES_NOT_EXIST")
 	assert.Nil(t, conf)
 }
 

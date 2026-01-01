@@ -30,7 +30,7 @@ func Process[T any]() (*T, error) {
 
 		fetcherNotCast, ok := processors.Load(processorType)
 		if !ok {
-			return nil, fmt.Errorf("processor %s not registered", processorType)
+			return nil, &ProcessorNotRegisteredError{ProcessorName: processorType}
 		}
 		fetcher := fetcherNotCast.(SourceFunc)
 
