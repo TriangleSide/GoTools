@@ -196,7 +196,7 @@ func TestSourceFetchError_Error_ReturnsFormattedMessage(t *testing.T) {
 		ProcessorName: "TEST_PROCESSOR",
 		Err:           cause,
 	}
-	expected := "failed to fetch the value for field TestField using processor TEST_PROCESSOR: underlying cause"
+	expected := "error while fetching the value for field TestField using processor TEST_PROCESSOR: underlying cause"
 	assert.Equals(t, err.Error(), expected)
 }
 

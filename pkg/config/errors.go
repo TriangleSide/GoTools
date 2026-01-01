@@ -64,7 +64,7 @@ type SourceFetchError struct {
 // Error ensures SourceFetchError implements the error interface.
 func (e *SourceFetchError) Error() string {
 	return fmt.Sprintf(
-		"failed to fetch the value for field %s using processor %s: %s",
+		"error while fetching the value for field %s using processor %s: %s",
 		e.FieldName, e.ProcessorName, e.Err.Error())
 }
 
