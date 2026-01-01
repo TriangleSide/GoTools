@@ -53,3 +53,25 @@ type ProcessorNotRegisteredError struct {
 func (e *ProcessorNotRegisteredError) Error() string {
 	return fmt.Sprintf("processor %q not registered", e.ProcessorName)
 }
+
+// SourceFetchError represents a failure to retrieve a configuration value from a source.
+type SourceFetchError struct {
+	FieldName     string
+	ProcessorName string
+	Err           error
+}
+
+// Error ensures SourceFetchError implements the error interface.
+func (e *SourceFetchError) Error() string {
+	return fmt.Sprintf(
+		"failed to fetch the value for field %s using processor %s: %s",
+		e.FieldName, e.ProcessorName, e.Err.Error())
+}
+
+// Unwrap returns the underlying wrapped error.
+func (e *SourceFetchError) Unwrap() error {
+	if e == nil || e.Err == nil {
+		return nil
+	}
+	return e.Err
+}
