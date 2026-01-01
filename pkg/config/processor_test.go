@@ -15,7 +15,7 @@ func TestProcessAndValidate_DefaultValueCannotBeAssigned_ReturnsError(t *testing
 		Value *int `config:"ENV" config_default:"NOT_AN_INT"`
 	}
 	conf, err := config.ProcessAndValidate[testStruct]()
-	assert.ErrorPart(t, err, "failed to assign default value NOT_AN_INT to field Value")
+	assert.ErrorPart(t, err, "failed to assign value NOT_AN_INT to field Value")
 	assert.Nil(t, conf)
 }
 
