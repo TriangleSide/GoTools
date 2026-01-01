@@ -188,6 +188,42 @@ func TestProcessorNotRegisteredError_Process_ReturnsProcessorNotRegisteredError(
 	assert.Equals(t, notRegErr.ProcessorName, "DOES_NOT_EXIST")
 }
 
+func TestNoValueFoundError_Error_ReturnsFormattedMessage(t *testing.T) {
+	t.Parallel()
+	err := &config.NoValueFoundError{FieldName: "TestField"}
+	assert.Equals(t, err.Error(), "no value found for field TestField")
+}
+
+func TestNoValueFoundError_ErrorsAs_ExtractsNoValueFoundError(t *testing.T) {
+	t.Parallel()
+	noValErr := &config.NoValueFoundError{FieldName: "TestField"}
+	wrapped := fmt.Errorf("wrapped: %w", noValErr)
+
+	var extracted *config.NoValueFoundError
+	assert.True(t, errors.As(wrapped, &extracted))
+	assert.Equals(t, extracted.FieldName, "TestField")
+}
+
+func TestNoValueFoundError_ErrorsIs_MatchesSameInstance(t *testing.T) {
+	t.Parallel()
+	err := &config.NoValueFoundError{FieldName: "TestField"}
+	wrapped := fmt.Errorf("wrapped: %w", err)
+	assert.True(t, errors.Is(wrapped, err))
+}
+
+func TestNoValueFoundError_Process_ReturnsNoValueFoundError(t *testing.T) {
+	t.Parallel()
+	type testStruct struct {
+		Value string `config:"ENV"`
+	}
+	_, err := config.Process[testStruct]()
+	assert.NotNil(t, err)
+
+	var noValErr *config.NoValueFoundError
+	assert.True(t, errors.As(err, &noValErr))
+	assert.Equals(t, noValErr.FieldName, "Value")
+}
+
 func TestSourceFetchError_Error_ReturnsFormattedMessage(t *testing.T) {
 	t.Parallel()
 	cause := errors.New("underlying cause")
