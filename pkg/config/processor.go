@@ -47,14 +47,14 @@ func Process[T any]() (*T, error) {
 
 			value = defaultValue
 			if err := structs.AssignToField(conf, fieldName, value); err != nil {
-				return nil, fmt.Errorf("failed to assign default value %s to field %s: %w", value, fieldName, err)
+				return nil, &FieldAssignmentError{FieldName: fieldName, Value: value, Err: err}
 			}
 
 			continue
 		}
 
 		if err := structs.AssignToField(conf, fieldName, value); err != nil {
-			return nil, fmt.Errorf("failed to assign value %s to field %s: %w", value, fieldName, err)
+			return nil, &FieldAssignmentError{FieldName: fieldName, Value: value, Err: err}
 		}
 	}
 
