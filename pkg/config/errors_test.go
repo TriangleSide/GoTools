@@ -150,3 +150,39 @@ func TestProcessorAlreadyRegisteredError_ErrorsIs_MatchesSameInstance(t *testing
 	wrapped := fmt.Errorf("wrapped: %w", err)
 	assert.True(t, errors.Is(wrapped, err))
 }
+
+func TestProcessorNotRegisteredError_Error_ReturnsFormattedMessage(t *testing.T) {
+	t.Parallel()
+	err := &config.ProcessorNotRegisteredError{ProcessorName: "TEST_PROCESSOR"}
+	assert.Equals(t, err.Error(), "processor \"TEST_PROCESSOR\" not registered")
+}
+
+func TestProcessorNotRegisteredError_ErrorsAs_ExtractsProcessorNotRegisteredError(t *testing.T) {
+	t.Parallel()
+	notRegErr := &config.ProcessorNotRegisteredError{ProcessorName: "TEST_PROCESSOR"}
+	wrapped := fmt.Errorf("wrapped: %w", notRegErr)
+
+	var extracted *config.ProcessorNotRegisteredError
+	assert.True(t, errors.As(wrapped, &extracted))
+	assert.Equals(t, extracted.ProcessorName, "TEST_PROCESSOR")
+}
+
+func TestProcessorNotRegisteredError_ErrorsIs_MatchesSameInstance(t *testing.T) {
+	t.Parallel()
+	err := &config.ProcessorNotRegisteredError{ProcessorName: "TEST_PROCESSOR"}
+	wrapped := fmt.Errorf("wrapped: %w", err)
+	assert.True(t, errors.Is(wrapped, err))
+}
+
+func TestProcessorNotRegisteredError_Process_ReturnsProcessorNotRegisteredError(t *testing.T) {
+	t.Parallel()
+	type testStruct struct {
+		Value string `config:"DOES_NOT_EXIST"`
+	}
+	_, err := config.Process[testStruct]()
+	assert.NotNil(t, err)
+
+	var notRegErr *config.ProcessorNotRegisteredError
+	assert.True(t, errors.As(err, &notRegErr))
+	assert.Equals(t, notRegErr.ProcessorName, "DOES_NOT_EXIST")
+}
