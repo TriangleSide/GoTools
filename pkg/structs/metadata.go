@@ -6,7 +6,6 @@ import (
 	"regexp"
 
 	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
-	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
 )
 
 var (
@@ -14,21 +13,20 @@ var (
 	tagMatchRegex = regexp.MustCompile(`(\w+):"([^"]*)"`)
 
 	// typeToMetadataCache is used to cache the result of the Metadata function.
-	typeToMetadataCache = cache.New[reflect.Type, *readonly.Map[string, *FieldMetadata]]()
+	typeToMetadataCache = cache.New[reflect.Type, map[string]*FieldMetadata]()
 )
 
 // Metadata returns a map of a struct's field names to their respective metadata.
-func Metadata[T any]() *readonly.Map[string, *FieldMetadata] {
+func Metadata[T any]() map[string]*FieldMetadata {
 	return MetadataFromType(reflect.TypeFor[T]())
 }
 
 // MetadataFromType returns a map of a struct's field names to their respective metadata.
-func MetadataFromType(reflectType reflect.Type) *readonly.Map[string, *FieldMetadata] {
-	getOrSetFn := func(reflectType reflect.Type) (*readonly.Map[string, *FieldMetadata], error) {
+func MetadataFromType(reflectType reflect.Type) map[string]*FieldMetadata {
+	getOrSetFn := func(reflectType reflect.Type) (map[string]*FieldMetadata, error) {
 		fieldsToMetadata := make(map[string]*FieldMetadata)
 		processType(reflectType, fieldsToMetadata, []string{})
-		readOnlyMap := readonly.NewMapBuilder[string, *FieldMetadata]().SetMap(fieldsToMetadata).Build()
-		return readOnlyMap, nil
+		return fieldsToMetadata, nil
 	}
 	fieldsToMetadata, _ := typeToMetadataCache.GetOrSet(reflectType, getOrSetFn)
 	return fieldsToMetadata
@@ -59,22 +57,19 @@ func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMet
 			panic(fmt.Errorf("field %s is ambiguous", field.Name))
 		}
 
-		tagBuilder := readonly.NewMapBuilder[string, string]()
+		tags := make(map[string]string)
 
 		if len(string(field.Tag)) != 0 {
 			matches := tagMatchRegex.FindAllStringSubmatch(string(field.Tag), -1)
 			for _, match := range matches {
-				tagBuilder.Set(readonly.MapEntry[string, string]{
-					Key:   match[1],
-					Value: match[2],
-				})
+				tags[match[1]] = match[2]
 			}
 		}
 
 		fieldsToMetadata[field.Name] = &FieldMetadata{
 			reflectType: field.Type,
 			anonymous:   append([]string{}, anonymousChain...),
-			tags:        tagBuilder.Build(),
+			tags:        tags,
 		}
 	}
 }

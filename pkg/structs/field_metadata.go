@@ -2,14 +2,12 @@ package structs
 
 import (
 	"reflect"
-
-	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
 )
 
 // FieldMetadata is the metadata extracted from a structs field.
 type FieldMetadata struct {
 	reflectType reflect.Type
-	tags        *readonly.Map[string, string]
+	tags        map[string]string
 	anonymous   []string
 }
 
@@ -19,7 +17,7 @@ func (f *FieldMetadata) Type() reflect.Type {
 }
 
 // Tags returns a map of tag names to its respective tag content.
-func (f *FieldMetadata) Tags() *readonly.Map[string, string] {
+func (f *FieldMetadata) Tags() map[string]string {
 	return f.tags
 }
 

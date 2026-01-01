@@ -100,8 +100,8 @@ func TestValueFromName_EmbeddedFields_ReturnsFieldValues(t *testing.T) {
 		Value: "Value",
 	}
 	allMetadata := structs.Metadata[testStruct]()
-	assert.Equals(t, allMetadata.Size(), 4)
-	for fieldName := range allMetadata.All() {
+	assert.Equals(t, len(allMetadata), 4)
+	for fieldName := range allMetadata {
 		_, err := structs.ValueFromName(instance, fieldName)
 		assert.NoError(t, err)
 	}

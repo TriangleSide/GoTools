@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
 	"github.com/TriangleSide/GoTools/pkg/http/headers"
 	"github.com/TriangleSide/GoTools/pkg/structs"
 	"github.com/TriangleSide/GoTools/pkg/validation"
@@ -77,10 +76,10 @@ func decodeJSONBodyParameters[T any](params *T, request *http.Request) error {
 // For example, a field tagged with `urlQuery:"name"` is populated from the query parameter "name" in "?name=value".
 func decodeQueryParameters[T any](
 	params *T,
-	tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName],
+	tagToLookupKeyToFieldName map[Tag]LookupKeyToFieldName,
 	request *http.Request,
 ) error {
-	lookupKeyToFieldName := tagToLookupKeyToFieldName.Get(QueryTag)
+	lookupKeyToFieldName := tagToLookupKeyToFieldName[QueryTag]
 	normalizer := tagToLookupKeyNormalizer[QueryTag]
 
 	for queryParameterName, queryParameterValues := range request.URL.Query() {
@@ -108,10 +107,10 @@ func decodeQueryParameters[T any](
 // For example, a field tagged with `httpHeader:"X-Request-ID"` is populated from the "X-Request-ID" header.
 func decodeHeaderParameters[T any](
 	params *T,
-	tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName],
+	tagToLookupKeyToFieldName map[Tag]LookupKeyToFieldName,
 	request *http.Request,
 ) error {
-	lookupKeyToFieldName := tagToLookupKeyToFieldName.Get(HeaderTag)
+	lookupKeyToFieldName := tagToLookupKeyToFieldName[HeaderTag]
 	normalizer := tagToLookupKeyNormalizer[HeaderTag]
 
 	for headerName, headerValues := range request.Header {
@@ -137,10 +136,10 @@ func decodeHeaderParameters[T any](
 // For example, a field tagged with `urlPath:"id"` is populated from the path parameter "{id}" in "/users/{id}".
 func decodePathParameters[T any](
 	params *T,
-	tagToLookupKeyToFieldName *readonly.Map[Tag, LookupKeyToFieldName],
+	tagToLookupKeyToFieldName map[Tag]LookupKeyToFieldName,
 	request *http.Request,
 ) error {
-	lookupKeyToFieldName := tagToLookupKeyToFieldName.Get(PathTag)
+	lookupKeyToFieldName := tagToLookupKeyToFieldName[PathTag]
 	normalizer := tagToLookupKeyNormalizer[PathTag]
 
 	for pathName, field := range lookupKeyToFieldName {
