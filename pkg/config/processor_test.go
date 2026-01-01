@@ -79,7 +79,11 @@ func TestProcessAndValidate_NoEnvAndNoDefault_ReturnsError(t *testing.T) {
 		Value string `config:"ENV"`
 	}
 	conf, err := config.ProcessAndValidate[noDefault]()
-	assert.ErrorPart(t, err, "no value found for field Value")
+	assert.NotNil(t, err)
+
+	var noValErr *config.NoValueFoundError
+	assert.True(t, errors.As(err, &noValErr))
+	assert.Equals(t, noValErr.FieldName, "Value")
 	assert.Nil(t, conf)
 }
 
@@ -203,7 +207,11 @@ func TestProcessAndValidate_CustomProcessorNotFound_NoDefault_ReturnsError(t *te
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
-	assert.ErrorPart(t, err, "no value found for field Value")
+	assert.NotNil(t, err)
+
+	var noValErr *config.NoValueFoundError
+	assert.True(t, errors.As(err, &noValErr))
+	assert.Equals(t, noValErr.FieldName, "Value")
 	assert.Nil(t, conf)
 }
 

@@ -54,6 +54,16 @@ func (e *ProcessorNotRegisteredError) Error() string {
 	return fmt.Sprintf("processor %q not registered", e.ProcessorName)
 }
 
+// NoValueFoundError indicates that no value was found for a required configuration field.
+type NoValueFoundError struct {
+	FieldName string
+}
+
+// Error ensures NoValueFoundError implements the error interface.
+func (e *NoValueFoundError) Error() string {
+	return "no value found for field " + e.FieldName
+}
+
 // SourceFetchError represents a failure to retrieve a configuration value from a source.
 type SourceFetchError struct {
 	FieldName     string

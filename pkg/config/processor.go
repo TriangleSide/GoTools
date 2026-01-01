@@ -42,7 +42,7 @@ func Process[T any]() (*T, error) {
 		if !found {
 			defaultValue, hasDefaultTag := fieldMetadata.Tags()[DefaultTag]
 			if !hasDefaultTag {
-				return nil, fmt.Errorf("no value found for field %s", fieldName)
+				return nil, &NoValueFoundError{FieldName: fieldName}
 			}
 
 			value = defaultValue
