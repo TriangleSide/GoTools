@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
-	"github.com/TriangleSide/GoTools/pkg/datastructures/readonly"
 	"github.com/TriangleSide/GoTools/pkg/structs"
 )
 
@@ -65,7 +64,7 @@ var (
 	lookupKeyFollowsNamingConvention = regexp.MustCompile(TagLookupKeyNamingConvention).MatchString
 
 	// lookupKeyExtractionCache stores the results of the ExtractAndValidateFieldTagLookupKeys function.
-	lookupKeyExtractionCache = cache.New[reflect.Type, *readonly.Map[Tag, LookupKeyToFieldName]]()
+	lookupKeyExtractionCache = cache.New[reflect.Type, map[Tag]LookupKeyToFieldName]()
 )
 
 // TagLookupKeyFollowsNamingConvention verifies if the tag value (the lookup key) follows the naming convention.
@@ -74,7 +73,7 @@ func TagLookupKeyFollowsNamingConvention(lookupKey string) bool {
 }
 
 // buildFieldTagLookupKeys extracts and validates field tag lookup keys for type T.
-func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKeyToFieldName], error) {
+func buildFieldTagLookupKeys[T any](_ reflect.Type) (map[Tag]LookupKeyToFieldName, error) {
 	fieldsMetadata := structs.Metadata[T]()
 
 	tagToLookupKeyToFieldName := make(map[Tag]LookupKeyToFieldName)
@@ -82,10 +81,10 @@ func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKe
 		tagToLookupKeyToFieldName[customTag] = make(LookupKeyToFieldName)
 	}
 
-	for fieldName, fieldMetadata := range fieldsMetadata.All() {
+	for fieldName, fieldMetadata := range fieldsMetadata {
 		customTagFound := false
 		for customTag, lookupKeyNormalizer := range tagToLookupKeyNormalizer {
-			originalLookupKeyForTag, customTagFoundOnField := fieldMetadata.Tags().Fetch(string(customTag))
+			originalLookupKeyForTag, customTagFoundOnField := fieldMetadata.Tags()[string(customTag)]
 			if !customTagFoundOnField {
 				continue
 			}
@@ -110,7 +109,7 @@ func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKe
 			}
 			tagToLookupKeyToFieldName[customTag][normalizedLookupKeyForTag] = fieldName
 
-			jsonTagValue, jsonTagFound := fieldMetadata.Tags().Fetch(string(JSONTag))
+			jsonTagValue, jsonTagFound := fieldMetadata.Tags()[string(JSONTag)]
 			if !jsonTagFound || jsonTagValue != "-" {
 				return nil, fmt.Errorf(
 					"struct field '%s' with tag '%s' must have accompanying tag %s:\"-\"",
@@ -119,7 +118,7 @@ func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKe
 		}
 	}
 
-	return readonly.NewMapBuilder[Tag, LookupKeyToFieldName]().SetMap(tagToLookupKeyToFieldName).Build(), nil
+	return tagToLookupKeyToFieldName, nil
 }
 
 // ExtractAndValidateFieldTagLookupKeys validates the struct tags and returns a map
@@ -140,7 +139,7 @@ func buildFieldTagLookupKeys[T any](_ reflect.Type) (*readonly.Map[Tag, LookupKe
 //			"my-id": "PathParameter"
 //		}
 //	}
-func ExtractAndValidateFieldTagLookupKeys[T any]() (*readonly.Map[Tag, LookupKeyToFieldName], error) {
+func ExtractAndValidateFieldTagLookupKeys[T any]() (map[Tag]LookupKeyToFieldName, error) {
 	reflectType := reflect.TypeFor[T]()
 	result, err := lookupKeyExtractionCache.GetOrSet(reflectType, buildFieldTagLookupKeys[T])
 	if err != nil {

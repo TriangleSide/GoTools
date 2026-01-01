@@ -353,10 +353,10 @@ func validateStructInternal(val reflect.Value, depth int) ([]*FieldError, error)
 	var fieldErrors []*FieldError
 	structMetadataMap := structs.MetadataFromType(val.Type())
 
-	for fieldName, fieldMetadata := range structMetadataMap.All() {
+	for fieldName, fieldMetadata := range structMetadataMap {
 		fieldValueFromStruct, _ := structs.ValueFromName(val.Interface(), fieldName)
 
-		if validationTag, hasValidationTag := fieldMetadata.Tags().Fetch(Tag); hasValidationTag {
+		if validationTag, hasValidationTag := fieldMetadata.Tags()[Tag]; hasValidationTag {
 			validationFieldErrors, err := checkValidatorsAgainstValue(
 				true, val, fieldName, fieldValueFromStruct, validationTag)
 			if err != nil {

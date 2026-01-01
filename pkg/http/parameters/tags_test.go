@@ -60,21 +60,24 @@ func TestExtractAndValidateFieldTagLookupKeys_ProperlyFormattedTags_ReturnsTagMa
 		tagToLookupKeyToFieldName, err := parameters.ExtractAndValidateFieldTagLookupKeys[testStruct]()
 		assert.NoError(t, err)
 
-		assert.True(t, tagToLookupKeyToFieldName.Has(parameters.QueryTag))
-		assert.True(t, tagToLookupKeyToFieldName.Has(parameters.HeaderTag))
-		assert.True(t, tagToLookupKeyToFieldName.Has(parameters.PathTag))
+		_, hasQueryTag := tagToLookupKeyToFieldName[parameters.QueryTag]
+		assert.True(t, hasQueryTag)
+		_, hasHeaderTag := tagToLookupKeyToFieldName[parameters.HeaderTag]
+		assert.True(t, hasHeaderTag)
+		_, hasPathTag := tagToLookupKeyToFieldName[parameters.PathTag]
+		assert.True(t, hasPathTag)
 
-		assert.Equals(t, len(tagToLookupKeyToFieldName.Get(parameters.QueryTag)), 2)
-		assert.Equals(t, tagToLookupKeyToFieldName.Get(parameters.QueryTag)["query1"], "QueryField1")
-		assert.Equals(t, tagToLookupKeyToFieldName.Get(parameters.QueryTag)["query2"], "QueryField2")
+		assert.Equals(t, len(tagToLookupKeyToFieldName[parameters.QueryTag]), 2)
+		assert.Equals(t, tagToLookupKeyToFieldName[parameters.QueryTag]["query1"], "QueryField1")
+		assert.Equals(t, tagToLookupKeyToFieldName[parameters.QueryTag]["query2"], "QueryField2")
 
-		assert.Equals(t, len(tagToLookupKeyToFieldName.Get(parameters.HeaderTag)), 2)
-		assert.Equals(t, tagToLookupKeyToFieldName.Get(parameters.HeaderTag)["header1"], "HeaderField1")
-		assert.Equals(t, tagToLookupKeyToFieldName.Get(parameters.HeaderTag)["header2"], "HeaderField2")
+		assert.Equals(t, len(tagToLookupKeyToFieldName[parameters.HeaderTag]), 2)
+		assert.Equals(t, tagToLookupKeyToFieldName[parameters.HeaderTag]["header1"], "HeaderField1")
+		assert.Equals(t, tagToLookupKeyToFieldName[parameters.HeaderTag]["header2"], "HeaderField2")
 
-		assert.Equals(t, len(tagToLookupKeyToFieldName.Get(parameters.PathTag)), 2)
-		assert.Equals(t, tagToLookupKeyToFieldName.Get(parameters.PathTag)["Path1"], "PathField1")
-		assert.Equals(t, tagToLookupKeyToFieldName.Get(parameters.PathTag)["Path2"], "PathField2")
+		assert.Equals(t, len(tagToLookupKeyToFieldName[parameters.PathTag]), 2)
+		assert.Equals(t, tagToLookupKeyToFieldName[parameters.PathTag]["Path1"], "PathField1")
+		assert.Equals(t, tagToLookupKeyToFieldName[parameters.PathTag]["Path2"], "PathField2")
 	}
 }
 

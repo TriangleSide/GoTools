@@ -22,8 +22,8 @@ func Process[T any]() (*T, error) {
 	fieldsMetadata := structs.Metadata[T]()
 	conf := new(T)
 
-	for fieldName, fieldMetadata := range fieldsMetadata.All() {
-		processorType, hasProcessorTag := fieldMetadata.Tags().Fetch(ProcessorTag)
+	for fieldName, fieldMetadata := range fieldsMetadata {
+		processorType, hasProcessorTag := fieldMetadata.Tags()[ProcessorTag]
 		if !hasProcessorTag {
 			continue
 		}
@@ -40,7 +40,7 @@ func Process[T any]() (*T, error) {
 		}
 
 		if !found {
-			defaultValue, hasDefaultTag := fieldMetadata.Tags().Fetch(DefaultTag)
+			defaultValue, hasDefaultTag := fieldMetadata.Tags()[DefaultTag]
 			if !hasDefaultTag {
 				return nil, fmt.Errorf("no value found for field %s", fieldName)
 			}
