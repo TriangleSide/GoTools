@@ -104,3 +104,49 @@ func TestFieldAssignmentError_RegularValueAssignment_ReturnsFieldAssignmentError
 	assert.Equals(t, fieldErr.FieldName, "Value")
 	assert.Equals(t, fieldErr.Value, "NOT_AN_INT")
 }
+
+func TestNilSourceFuncError_Error_ReturnsFormattedMessage(t *testing.T) {
+	t.Parallel()
+	err := &config.NilSourceFuncError{ProcessorName: "TEST_PROCESSOR"}
+	assert.Equals(t, err.Error(), "processor \"TEST_PROCESSOR\" requires a non-nil sourcing function")
+}
+
+func TestNilSourceFuncError_ErrorsAs_ExtractsNilSourceFuncError(t *testing.T) {
+	t.Parallel()
+	nilErr := &config.NilSourceFuncError{ProcessorName: "TEST_PROCESSOR"}
+	wrapped := fmt.Errorf("wrapped: %w", nilErr)
+
+	var extracted *config.NilSourceFuncError
+	assert.True(t, errors.As(wrapped, &extracted))
+	assert.Equals(t, extracted.ProcessorName, "TEST_PROCESSOR")
+}
+
+func TestNilSourceFuncError_ErrorsIs_MatchesSameInstance(t *testing.T) {
+	t.Parallel()
+	err := &config.NilSourceFuncError{ProcessorName: "TEST_PROCESSOR"}
+	wrapped := fmt.Errorf("wrapped: %w", err)
+	assert.True(t, errors.Is(wrapped, err))
+}
+
+func TestProcessorAlreadyRegisteredError_Error_ReturnsFormattedMessage(t *testing.T) {
+	t.Parallel()
+	err := &config.ProcessorAlreadyRegisteredError{ProcessorName: "TEST_PROCESSOR"}
+	assert.Equals(t, err.Error(), "processor with name \"TEST_PROCESSOR\" already registered")
+}
+
+func TestProcessorAlreadyRegisteredError_ErrorsAs_ExtractsProcessorAlreadyRegisteredError(t *testing.T) {
+	t.Parallel()
+	regErr := &config.ProcessorAlreadyRegisteredError{ProcessorName: "TEST_PROCESSOR"}
+	wrapped := fmt.Errorf("wrapped: %w", regErr)
+
+	var extracted *config.ProcessorAlreadyRegisteredError
+	assert.True(t, errors.As(wrapped, &extracted))
+	assert.Equals(t, extracted.ProcessorName, "TEST_PROCESSOR")
+}
+
+func TestProcessorAlreadyRegisteredError_ErrorsIs_MatchesSameInstance(t *testing.T) {
+	t.Parallel()
+	err := &config.ProcessorAlreadyRegisteredError{ProcessorName: "TEST_PROCESSOR"}
+	wrapped := fmt.Errorf("wrapped: %w", err)
+	assert.True(t, errors.Is(wrapped, err))
+}

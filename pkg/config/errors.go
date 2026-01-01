@@ -23,3 +23,23 @@ func (e *FieldAssignmentError) Unwrap() error {
 	}
 	return e.Err
 }
+
+// NilSourceFuncError indicates an attempt to register a nil SourceFunc for a processor.
+type NilSourceFuncError struct {
+	ProcessorName string
+}
+
+// Error ensures NilSourceFuncError implements the error interface.
+func (e *NilSourceFuncError) Error() string {
+	return fmt.Sprintf("processor %q requires a non-nil sourcing function", e.ProcessorName)
+}
+
+// ProcessorAlreadyRegisteredError indicates an attempt to register a processor with a name that is already in use.
+type ProcessorAlreadyRegisteredError struct {
+	ProcessorName string
+}
+
+// Error ensures ProcessorAlreadyRegisteredError implements the error interface.
+func (e *ProcessorAlreadyRegisteredError) Error() string {
+	return fmt.Sprintf("processor with name %q already registered", e.ProcessorName)
+}
