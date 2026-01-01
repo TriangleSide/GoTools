@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/config"
+	"github.com/TriangleSide/GoTools/pkg/structs"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
@@ -185,4 +186,91 @@ func TestProcessorNotRegisteredError_Process_ReturnsProcessorNotRegisteredError(
 	var notRegErr *config.ProcessorNotRegisteredError
 	assert.True(t, errors.As(err, &notRegErr))
 	assert.Equals(t, notRegErr.ProcessorName, "DOES_NOT_EXIST")
+}
+
+func TestSourceFetchError_Error_ReturnsFormattedMessage(t *testing.T) {
+	t.Parallel()
+	cause := errors.New("underlying cause")
+	err := &config.SourceFetchError{
+		FieldName:     "TestField",
+		ProcessorName: "TEST_PROCESSOR",
+		Err:           cause,
+	}
+	expected := "failed to fetch the value for field TestField using processor TEST_PROCESSOR: underlying cause"
+	assert.Equals(t, err.Error(), expected)
+}
+
+func TestSourceFetchError_Unwrap_NilReceiver_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	var err *config.SourceFetchError
+	assert.Nil(t, err.Unwrap())
+}
+
+func TestSourceFetchError_Unwrap_NilErr_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	err := &config.SourceFetchError{
+		FieldName:     "TestField",
+		ProcessorName: "TEST_PROCESSOR",
+		Err:           nil,
+	}
+	assert.Nil(t, err.Unwrap())
+}
+
+func TestSourceFetchError_Unwrap_ReturnsUnderlyingError(t *testing.T) {
+	t.Parallel()
+	cause := errors.New("underlying cause")
+	err := &config.SourceFetchError{
+		FieldName:     "TestField",
+		ProcessorName: "TEST_PROCESSOR",
+		Err:           cause,
+	}
+	assert.Equals(t, err.Unwrap(), cause)
+}
+
+func TestSourceFetchError_ErrorsIs_FindsUnderlyingError(t *testing.T) {
+	t.Parallel()
+	cause := errors.New("underlying cause")
+	err := &config.SourceFetchError{
+		FieldName:     "TestField",
+		ProcessorName: "TEST_PROCESSOR",
+		Err:           cause,
+	}
+	assert.True(t, errors.Is(err, cause))
+}
+
+func TestSourceFetchError_ErrorsAs_ExtractsSourceFetchError(t *testing.T) {
+	t.Parallel()
+	cause := errors.New("underlying cause")
+	fetchErr := &config.SourceFetchError{
+		FieldName:     "TestField",
+		ProcessorName: "TEST_PROCESSOR",
+		Err:           cause,
+	}
+	wrapped := fmt.Errorf("wrapped: %w", fetchErr)
+
+	var extracted *config.SourceFetchError
+	assert.True(t, errors.As(wrapped, &extracted))
+	assert.Equals(t, extracted.FieldName, "TestField")
+	assert.Equals(t, extracted.ProcessorName, "TEST_PROCESSOR")
+	assert.Equals(t, extracted.Err, cause)
+}
+
+func TestSourceFetchError_Process_ReturnsSourceFetchError(t *testing.T) {
+	t.Parallel()
+	fetchError := errors.New("fetch failed")
+	config.MustRegisterProcessor("FAILING_SOURCE", func(string, *structs.FieldMetadata) (string, bool, error) {
+		return "", false, fetchError
+	})
+
+	type testStruct struct {
+		Value string `config:"FAILING_SOURCE"`
+	}
+	_, err := config.Process[testStruct]()
+	assert.NotNil(t, err)
+
+	var fetchErr *config.SourceFetchError
+	assert.True(t, errors.As(err, &fetchErr))
+	assert.Equals(t, fetchErr.FieldName, "Value")
+	assert.Equals(t, fetchErr.ProcessorName, "FAILING_SOURCE")
+	assert.True(t, errors.Is(fetchErr, fetchError))
 }

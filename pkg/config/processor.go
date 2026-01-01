@@ -36,7 +36,7 @@ func Process[T any]() (*T, error) {
 
 		value, found, err := fetcher(fieldName, fieldMetadata)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch value for field %s using processor %s: %w", fieldName, processorType, err)
+			return nil, &SourceFetchError{FieldName: fieldName, ProcessorName: processorType, Err: err}
 		}
 
 		if !found {
