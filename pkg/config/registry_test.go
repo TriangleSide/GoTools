@@ -8,11 +8,14 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
-func TestMustRegisterProcessor_ReRegistered_Panics(t *testing.T) {
-	t.Parallel()
+func init() {
 	config.MustRegisterProcessor("TWICE", func(string, *structs.FieldMetadata) (string, bool, error) {
 		return "", true, nil
 	})
+}
+
+func TestMustRegisterProcessor_ReRegistered_Panics(t *testing.T) {
+	t.Parallel()
 	assert.PanicExact(t, func() {
 		config.MustRegisterProcessor("TWICE", func(string, *structs.FieldMetadata) (string, bool, error) {
 			return "", true, nil

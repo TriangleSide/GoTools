@@ -36,12 +36,13 @@ type Span struct {
 	attributes []*attribute.Attribute
 	events     []*event.Event
 	statusCode status.Code
+	opts       *spanOptions
 	mu         sync.RWMutex
 }
 
 // New creates a new span with the given name, trace ID, and optional parent.
 // If a parent is provided, the new span is added as a child of the parent.
-func New(name string, traceID string, parent *Span) *Span {
+func New(name string, traceID string, parent *Span, opts ...Option) *Span {
 	var spanID string
 	var idCounter *atomic.Uint64
 
@@ -63,6 +64,7 @@ func New(name string, traceID string, parent *Span) *Span {
 		attributes: make([]*attribute.Attribute, 0),
 		events:     make([]*event.Event, 0),
 		statusCode: status.Unset,
+		opts:       configure(opts...),
 	}
 
 	if parent != nil {
@@ -80,6 +82,9 @@ func (s *Span) End() {
 	defer s.mu.Unlock()
 	if s.endTime.IsZero() {
 		s.endTime = time.Now()
+		if s.opts.endCallback != nil {
+			s.opts.endCallback(s)
+		}
 	}
 }
 

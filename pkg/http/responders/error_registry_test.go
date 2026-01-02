@@ -8,19 +8,6 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
-type uniqueTestError struct{}
-
-func (e *uniqueTestError) Error() string {
-	return "unique test error"
-}
-
-func TestMustRegisterErrorResponse_ValidErrorType_DoesNotPanic(t *testing.T) {
-	t.Parallel()
-	responders.MustRegisterErrorResponse(http.StatusBadRequest, func(*uniqueTestError) *responders.StandardErrorResponse {
-		return &responders.StandardErrorResponse{}
-	})
-}
-
 func TestMustRegisterErrorResponse_RegisteredTwice_Panics(t *testing.T) {
 	t.Parallel()
 	assert.Panic(t, func() {

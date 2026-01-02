@@ -9,6 +9,22 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
 
+var errCustomProcessor = errors.New("custom processor failed")
+
+func init() {
+	config.MustRegisterProcessor("RETURNS_VALUE", func(string, *structs.FieldMetadata) (string, bool, error) {
+		return "value", true, nil
+	})
+
+	config.MustRegisterProcessor("NOT_FOUND", func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
+		return "", false, nil
+	})
+
+	config.MustRegisterProcessor("ERROR_PROCESSOR", func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
+		return "", false, errCustomProcessor
+	})
+}
+
 func TestProcessAndValidate_DefaultValueCannotBeAssigned_ReturnsError(t *testing.T) {
 	t.Parallel()
 	type testStruct struct {
@@ -135,53 +151,34 @@ func TestProcessAndValidate_EmbeddedAnonymousStruct_SetsBothFields(t *testing.T)
 func TestProcessAndValidate_CustomProcessor_UsesCustomProcessor(t *testing.T) {
 	t.Parallel()
 	type testStruct struct {
-		Value string `config:"CUSTOM"`
+		Value string `config:"RETURNS_VALUE"`
 	}
-
-	var called bool
-	config.MustRegisterProcessor("CUSTOM", func(string, *structs.FieldMetadata) (string, bool, error) {
-		called = true
-		return "custom", true, nil
-	})
 
 	conf, err := config.ProcessAndValidate[testStruct]()
 	assert.NoError(t, err)
 	assert.NotNil(t, conf)
-	assert.True(t, called)
-	assert.Equals(t, conf.Value, "custom")
+	assert.Equals(t, conf.Value, "value")
 }
 
 func TestProcessAndValidate_MultipleProcessors_UsesAllProcessors(t *testing.T) {
 	type testStruct struct {
 		EnvValue   string `config:"ENV"`
-		OtherValue string `config:"OTHER"`
+		OtherValue string `config:"RETURNS_VALUE"`
 	}
-
-	var called bool
-	config.MustRegisterProcessor("OTHER", func(string, *structs.FieldMetadata) (string, bool, error) {
-		called = true
-		return "OtherValue", true, nil
-	})
 
 	t.Setenv("ENV_VALUE", "EnvValue")
 	conf, err := config.ProcessAndValidate[testStruct]()
 	assert.NoError(t, err)
 	assert.NotNil(t, conf)
-	assert.True(t, called)
-	assert.Equals(t, conf.OtherValue, "OtherValue")
+	assert.Equals(t, conf.OtherValue, "value")
 	assert.Equals(t, conf.EnvValue, "EnvValue")
 }
 
 func TestProcessAndValidate_CustomProcessorNotFound_WithDefault_UsesDefault(t *testing.T) {
 	t.Parallel()
-	const procName = "NOT_FOUND_DEFAULT"
-
-	config.MustRegisterProcessor(procName, func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
-		return "", false, nil
-	})
 
 	type testStruct struct {
-		Value string `config:"NOT_FOUND_DEFAULT" config_default:"default"`
+		Value string `config:"NOT_FOUND" config_default:"default"`
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
@@ -192,14 +189,9 @@ func TestProcessAndValidate_CustomProcessorNotFound_WithDefault_UsesDefault(t *t
 
 func TestProcessAndValidate_CustomProcessorNotFound_NoDefault_ReturnsError(t *testing.T) {
 	t.Parallel()
-	const procName = "NOT_FOUND_NO_DEFAULT"
-
-	config.MustRegisterProcessor(procName, func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
-		return "", false, nil
-	})
 
 	type testStruct struct {
-		Value string `config:"NOT_FOUND_NO_DEFAULT"`
+		Value string `config:"NOT_FOUND"`
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
@@ -209,13 +201,6 @@ func TestProcessAndValidate_CustomProcessorNotFound_NoDefault_ReturnsError(t *te
 
 func TestProcessAndValidate_SourceFuncReturnsError_ReturnsError(t *testing.T) {
 	t.Parallel()
-	const procName = "ERROR_PROCESSOR"
-
-	customErr := errors.New("custom processor failed")
-
-	config.MustRegisterProcessor(procName, func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
-		return "", false, customErr
-	})
 
 	type testStruct struct {
 		Value string `config:"ERROR_PROCESSOR"`
@@ -224,7 +209,7 @@ func TestProcessAndValidate_SourceFuncReturnsError_ReturnsError(t *testing.T) {
 	conf, err := config.ProcessAndValidate[testStruct]()
 	assert.ErrorPart(t, err, "failed to process configuration")
 	assert.ErrorPart(t, err, "error while fetching the value for field Value using processor ERROR_PROCESSOR")
-	assert.ErrorPart(t, err, customErr.Error())
+	assert.ErrorPart(t, err, errCustomProcessor.Error())
 	assert.Nil(t, conf)
 }
 
