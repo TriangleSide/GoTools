@@ -7,23 +7,8 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/config"
 	"github.com/TriangleSide/GoTools/pkg/structs"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/test/once"
 )
-
-var errCustomProcessor = errors.New("custom processor failed")
-
-func init() {
-	config.MustRegisterProcessor("RETURNS_VALUE", func(string, *structs.FieldMetadata) (string, bool, error) {
-		return "value", true, nil
-	})
-
-	config.MustRegisterProcessor("NOT_FOUND", func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
-		return "", false, nil
-	})
-
-	config.MustRegisterProcessor("ERROR_PROCESSOR", func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
-		return "", false, errCustomProcessor
-	})
-}
 
 func TestProcessAndValidate_DefaultValueCannotBeAssigned_ReturnsError(t *testing.T) {
 	t.Parallel()
@@ -150,8 +135,16 @@ func TestProcessAndValidate_EmbeddedAnonymousStruct_SetsBothFields(t *testing.T)
 
 func TestProcessAndValidate_CustomProcessor_UsesCustomProcessor(t *testing.T) {
 	t.Parallel()
+
+	once.Do(t, func() {
+		config.MustRegisterProcessor("RETURNS_VALUE_CUSTOM_PROCESSOR",
+			func(string, *structs.FieldMetadata) (string, bool, error) {
+				return "value", true, nil
+			})
+	})
+
 	type testStruct struct {
-		Value string `config:"RETURNS_VALUE"`
+		Value string `config:"RETURNS_VALUE_CUSTOM_PROCESSOR"`
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
@@ -161,9 +154,16 @@ func TestProcessAndValidate_CustomProcessor_UsesCustomProcessor(t *testing.T) {
 }
 
 func TestProcessAndValidate_MultipleProcessors_UsesAllProcessors(t *testing.T) {
+	once.Do(t, func() {
+		config.MustRegisterProcessor("RETURNS_VALUE_MULTIPLE_PROCESSORS",
+			func(string, *structs.FieldMetadata) (string, bool, error) {
+				return "value", true, nil
+			})
+	})
+
 	type testStruct struct {
 		EnvValue   string `config:"ENV"`
-		OtherValue string `config:"RETURNS_VALUE"`
+		OtherValue string `config:"RETURNS_VALUE_MULTIPLE_PROCESSORS"`
 	}
 
 	t.Setenv("ENV_VALUE", "EnvValue")
@@ -177,8 +177,15 @@ func TestProcessAndValidate_MultipleProcessors_UsesAllProcessors(t *testing.T) {
 func TestProcessAndValidate_CustomProcessorNotFound_WithDefault_UsesDefault(t *testing.T) {
 	t.Parallel()
 
+	once.Do(t, func() {
+		config.MustRegisterProcessor("NOT_FOUND_WITH_DEFAULT",
+			func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
+				return "", false, nil
+			})
+	})
+
 	type testStruct struct {
-		Value string `config:"NOT_FOUND" config_default:"default"`
+		Value string `config:"NOT_FOUND_WITH_DEFAULT" config_default:"default"`
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
@@ -190,8 +197,15 @@ func TestProcessAndValidate_CustomProcessorNotFound_WithDefault_UsesDefault(t *t
 func TestProcessAndValidate_CustomProcessorNotFound_NoDefault_ReturnsError(t *testing.T) {
 	t.Parallel()
 
+	once.Do(t, func() {
+		config.MustRegisterProcessor("NOT_FOUND_NO_DEFAULT",
+			func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
+				return "", false, nil
+			})
+	})
+
 	type testStruct struct {
-		Value string `config:"NOT_FOUND"`
+		Value string `config:"NOT_FOUND_NO_DEFAULT"`
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
@@ -202,14 +216,22 @@ func TestProcessAndValidate_CustomProcessorNotFound_NoDefault_ReturnsError(t *te
 func TestProcessAndValidate_SourceFuncReturnsError_ReturnsError(t *testing.T) {
 	t.Parallel()
 
+	errCustomProcessorLocal := errors.New("custom processor failed")
+	once.Do(t, func() {
+		config.MustRegisterProcessor("ERROR_PROCESSOR_SOURCE_FUNC",
+			func(_ string, _ *structs.FieldMetadata) (string, bool, error) {
+				return "", false, errCustomProcessorLocal
+			})
+	})
+
 	type testStruct struct {
-		Value string `config:"ERROR_PROCESSOR"`
+		Value string `config:"ERROR_PROCESSOR_SOURCE_FUNC"`
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
 	assert.ErrorPart(t, err, "failed to process configuration")
-	assert.ErrorPart(t, err, "error while fetching the value for field Value using processor ERROR_PROCESSOR")
-	assert.ErrorPart(t, err, errCustomProcessor.Error())
+	assert.ErrorPart(t, err, "error while fetching the value for field Value using processor ERROR_PROCESSOR_SOURCE_FUNC")
+	assert.ErrorPart(t, err, errCustomProcessorLocal.Error())
 	assert.Nil(t, conf)
 }
 
