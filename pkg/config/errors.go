@@ -85,3 +85,21 @@ func (e *SourceFetchError) Unwrap() error {
 	}
 	return e.Err
 }
+
+// ValidationError represents a failure when validating the configuration struct.
+type ValidationError struct {
+	Err error
+}
+
+// Error ensures ValidationError implements the error interface.
+func (e *ValidationError) Error() string {
+	return "configuration validation failed: " + e.Err.Error()
+}
+
+// Unwrap returns the underlying wrapped error.
+func (e *ValidationError) Unwrap() error {
+	if e == nil || e.Err == nil {
+		return nil
+	}
+	return e.Err
+}

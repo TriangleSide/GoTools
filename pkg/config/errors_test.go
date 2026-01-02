@@ -310,3 +310,60 @@ func TestSourceFetchError_Process_ReturnsSourceFetchError(t *testing.T) {
 	assert.Equals(t, fetchErr.ProcessorName, "FAILING_SOURCE")
 	assert.True(t, errors.Is(fetchErr, fetchError))
 }
+
+func TestValidationError_Error_ReturnsFormattedMessage(t *testing.T) {
+	t.Parallel()
+	cause := errors.New("underlying cause")
+	err := &config.ValidationError{Err: cause}
+	assert.Equals(t, err.Error(), "configuration validation failed: underlying cause")
+}
+
+func TestValidationError_Unwrap_NilReceiver_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	var err *config.ValidationError
+	assert.Nil(t, err.Unwrap())
+}
+
+func TestValidationError_Unwrap_NilErr_ReturnsNil(t *testing.T) {
+	t.Parallel()
+	err := &config.ValidationError{Err: nil}
+	assert.Nil(t, err.Unwrap())
+}
+
+func TestValidationError_Unwrap_ReturnsUnderlyingError(t *testing.T) {
+	t.Parallel()
+	cause := errors.New("underlying cause")
+	err := &config.ValidationError{Err: cause}
+	assert.Equals(t, err.Unwrap(), cause)
+}
+
+func TestValidationError_ErrorsIs_FindsUnderlyingError(t *testing.T) {
+	t.Parallel()
+	cause := errors.New("underlying cause")
+	err := &config.ValidationError{Err: cause}
+	assert.True(t, errors.Is(err, cause))
+}
+
+func TestValidationError_ErrorsAs_ExtractsValidationError(t *testing.T) {
+	t.Parallel()
+	cause := errors.New("underlying cause")
+	valErr := &config.ValidationError{Err: cause}
+	wrapped := fmt.Errorf("wrapped: %w", valErr)
+
+	var extracted *config.ValidationError
+	assert.True(t, errors.As(wrapped, &extracted))
+	assert.Equals(t, extracted.Err, cause)
+}
+
+func TestValidationError_ProcessAndValidate_ReturnsValidationError(t *testing.T) {
+	t.Parallel()
+	type testStruct struct {
+		Value string `config:"ENV" config_default:"" validate:"required"`
+	}
+	_, err := config.ProcessAndValidate[testStruct]()
+	assert.NotNil(t, err)
+
+	var valErr *config.ValidationError
+	assert.True(t, errors.As(err, &valErr))
+	assert.NotNil(t, valErr.Err)
+}
