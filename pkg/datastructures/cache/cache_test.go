@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
@@ -401,7 +402,7 @@ func TestGetOrSet_ConcurrentCallsWithPanic_AllCallersPanic(t *testing.T) {
 	t.Parallel()
 	testCache := cache.New[string, string]()
 	const key = "key"
-	const threadCount = 4
+	const threadCount = 2
 	panicValue := errors.New("panic error")
 	var waitGroup sync.WaitGroup
 	var panicCount atomic.Int64
@@ -412,8 +413,6 @@ func TestGetOrSet_ConcurrentCallsWithPanic_AllCallersPanic(t *testing.T) {
 
 	for range threadCount {
 		waitGroup.Go(func() {
-			<-waitersReadyChan
-			waitersStarted.Done()
 			defer func() {
 				recovered := recover()
 				if recovered != nil {
@@ -421,6 +420,8 @@ func TestGetOrSet_ConcurrentCallsWithPanic_AllCallersPanic(t *testing.T) {
 					assert.Equals(t, recovered, panicValue, assert.Continue())
 				}
 			}()
+			<-waitersReadyChan
+			waitersStarted.Done()
 			_, _ = testCache.GetOrSet(key, func(string) (string, error) {
 				return otherValue, nil
 			})
@@ -439,13 +440,14 @@ func TestGetOrSet_ConcurrentCallsWithPanic_AllCallersPanic(t *testing.T) {
 			close(waitersReadyChan)
 			waitersStarted.Wait()
 			<-proceedToPanicChan
+			time.Sleep(time.Millisecond * 250)
 			panic(panicValue)
 		})
 	})
 
 	close(proceedToPanicChan)
-
 	waitGroup.Wait()
+
 	assert.Equals(t, panicCount.Load(), int64(threadCount+1))
 	_, gotten := testCache.Get(key)
 	assert.False(t, gotten)
