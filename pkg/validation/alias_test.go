@@ -9,10 +9,25 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
+func init() {
+	validation.MustRegisterAlias("alias_test_single", "required")
+	validation.MustRegisterAlias("alias_test_duplicate", "required")
+	validation.MustRegisterAlias("alias_test_multi", "dive,required,gt=0")
+	validation.MustRegisterAlias("alias_test_struct", "required,gt=0")
+	validation.MustRegisterAlias("alias_test_with_additional", "required")
+	validation.MustRegisterAlias("alias_test_first", "required")
+	validation.MustRegisterAlias("alias_test_second", "gt=0")
+	validation.MustRegisterAlias("alias_test_dive_rest", "required,gt=0")
+	validation.MustRegisterAlias("alias_test_params", "oneof=apple banana cherry")
+	validation.MustRegisterAlias("alias_test_field_error", "gt=10")
+	validation.MustRegisterAlias("alias_test_concurrent", "required,gt=0")
+	validation.MustRegisterAlias("alias_test_field_name", "required")
+	validation.MustRegisterAlias("alias_test_empty", "")
+	validation.MustRegisterAlias("alias_test_slice_struct", "dive,required")
+}
+
 func TestMustRegisterAlias_RegisteredAlias_CanBeUsedInVar(t *testing.T) {
 	t.Parallel()
-
-	validation.MustRegisterAlias("alias_test_single", string(validation.RequiredValidatorName))
 
 	err := validation.Var("value", "alias_test_single")
 	assert.NoError(t, err)
@@ -21,8 +36,6 @@ func TestMustRegisterAlias_RegisteredAlias_CanBeUsedInVar(t *testing.T) {
 func TestMustRegisterAlias_DuplicateName_Panics(t *testing.T) {
 	t.Parallel()
 
-	validation.MustRegisterAlias("alias_test_duplicate", string(validation.RequiredValidatorName))
-
 	assert.PanicPart(t, func() {
 		validation.MustRegisterAlias("alias_test_duplicate", string(validation.RequiredValidatorName))
 	}, "already exists")
@@ -30,8 +43,6 @@ func TestMustRegisterAlias_DuplicateName_Panics(t *testing.T) {
 
 func TestMustRegisterAlias_MultipleValidators_ExpandsCorrectly(t *testing.T) {
 	t.Parallel()
-
-	validation.MustRegisterAlias("alias_test_multi", "dive,required,gt=0")
 
 	type testCase struct {
 		name              string
@@ -78,8 +89,6 @@ func TestMustRegisterAlias_MultipleValidators_ExpandsCorrectly(t *testing.T) {
 func TestMustRegisterAlias_UsedInStruct_ValidatesCorrectly(t *testing.T) {
 	t.Parallel()
 
-	validation.MustRegisterAlias("alias_test_struct", "required,gt=0")
-
 	type testCase struct {
 		name              string
 		value             int
@@ -124,8 +133,6 @@ func TestMustRegisterAlias_UsedInStruct_ValidatesCorrectly(t *testing.T) {
 func TestMustRegisterAlias_WithAdditionalValidators_ProcessesAll(t *testing.T) {
 	t.Parallel()
 
-	validation.MustRegisterAlias("alias_test_with_additional", "required")
-
 	err := validation.Var(5, "alias_test_with_additional,gt=0")
 	assert.NoError(t, err)
 
@@ -138,9 +145,6 @@ func TestMustRegisterAlias_WithAdditionalValidators_ProcessesAll(t *testing.T) {
 
 func TestMustRegisterAlias_MultipleAliases_AllExpand(t *testing.T) {
 	t.Parallel()
-
-	validation.MustRegisterAlias("alias_test_first", "required")
-	validation.MustRegisterAlias("alias_test_second", "gt=0")
 
 	err := validation.Var(5, "alias_test_first,alias_test_second")
 	assert.NoError(t, err)
@@ -155,8 +159,6 @@ func TestMustRegisterAlias_MultipleAliases_AllExpand(t *testing.T) {
 func TestMustRegisterAlias_DiveWithAlias_ExpandsInRest(t *testing.T) {
 	t.Parallel()
 
-	validation.MustRegisterAlias("alias_test_dive_rest", "required,gt=0")
-
 	err := validation.Var([]int{1, 2, 3}, "dive,alias_test_dive_rest")
 	assert.NoError(t, err)
 
@@ -170,8 +172,6 @@ func TestMustRegisterAlias_DiveWithAlias_ExpandsInRest(t *testing.T) {
 func TestMustRegisterAlias_AliasWithParameters_WorksCorrectly(t *testing.T) {
 	t.Parallel()
 
-	validation.MustRegisterAlias("alias_test_params", "oneof=apple banana cherry")
-
 	err := validation.Var("apple", "alias_test_params")
 	assert.NoError(t, err)
 
@@ -181,8 +181,6 @@ func TestMustRegisterAlias_AliasWithParameters_WorksCorrectly(t *testing.T) {
 
 func TestMustRegisterAlias_ReturnsFieldError_WithExpandedValidator(t *testing.T) {
 	t.Parallel()
-
-	validation.MustRegisterAlias("alias_test_field_error", "gt=10")
 
 	err := validation.Var(5, "alias_test_field_error")
 	assert.Error(t, err)
@@ -194,8 +192,6 @@ func TestMustRegisterAlias_ReturnsFieldError_WithExpandedValidator(t *testing.T)
 
 func TestMustRegisterAlias_ConcurrentUsage_NoRaces(t *testing.T) {
 	t.Parallel()
-
-	validation.MustRegisterAlias("alias_test_concurrent", "required,gt=0")
 
 	const workers = 32
 	errs := make(chan error, workers)
@@ -230,8 +226,6 @@ func TestMustRegisterAlias_ConcurrentUsage_NoRaces(t *testing.T) {
 func TestMustRegisterAlias_StructFieldWithAliasFieldError_ReportsFieldName(t *testing.T) {
 	t.Parallel()
 
-	validation.MustRegisterAlias("alias_test_field_name", "required")
-
 	type testStruct struct {
 		MyField string `validate:"alias_test_field_name"`
 	}
@@ -243,16 +237,12 @@ func TestMustRegisterAlias_StructFieldWithAliasFieldError_ReportsFieldName(t *te
 func TestMustRegisterAlias_EmptyExpansion_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	validation.MustRegisterAlias("alias_test_empty", "")
-
 	err := validation.Var("value", "alias_test_empty")
 	assert.ErrorPart(t, err, "validation with name '' is not registered")
 }
 
 func TestMustRegisterAlias_SliceOfStructs_ValidatesElements(t *testing.T) {
 	t.Parallel()
-
-	validation.MustRegisterAlias("alias_test_slice_struct", "dive,required")
 
 	type inner struct {
 		Value int `validate:"gt=0"`

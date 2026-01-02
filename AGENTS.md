@@ -10,6 +10,7 @@
 ## Errors
 - Wrap errors with contextual information using `fmt.Errorf("...: %w", err)`.
 - Use `errors.New("...")` for errors that do not require formatting.
+- Use custom error structs when callers need error context for graceful handling.
 
 ## Panics
 - Use `fmt.Errorf("...")` as the panic argument when formatting is needed.

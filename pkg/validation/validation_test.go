@@ -1,13 +1,20 @@
 package validation_test
 
 import (
-	"errors"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
+
+func init() {
+	validation.MustRegisterValidator("not_correctly_filled",
+		func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
+			return validation.NewCallbackResult(), nil
+		})
+}
 
 func TestVar_UnknownValidator_ReturnsError(t *testing.T) {
 	t.Parallel()
@@ -40,21 +47,9 @@ func TestVar_MalformedSecondInstruction_ReturnsError(t *testing.T) {
 func TestVar_FieldErrorStopsValidation_SkipsRemainingValidators(t *testing.T) {
 	t.Parallel()
 
-	firstName := validation.Validator("validation_test_field_error_stops_remaining_first")
-	secondName := validation.Validator("validation_test_field_error_stops_remaining_second")
-
-	firstCallback := func(params *validation.CallbackParameters) (*validation.CallbackResult, error) {
-		fieldErr := validation.NewFieldError(params, errors.New("first field error"))
-		return validation.NewCallbackResult().AddFieldError(fieldErr), nil
-	}
-	secondCallback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
-		panic(errors.New("should not be called"))
-	}
-	validation.MustRegisterValidator(firstName, firstCallback)
-	validation.MustRegisterValidator(secondName, secondCallback)
-
-	err := validation.Var("anything", string(firstName)+validation.ValidatorsSep+string(secondName))
-	assert.ErrorPart(t, err, "first field error")
+	err := validation.Var("", string(validation.RequiredValidatorName)+validation.ValidatorsSep+"gt=0")
+	assert.ErrorPart(t, err, "zero-value")
+	assert.False(t, strings.Contains(err.Error(), "gt"))
 }
 
 func TestVar_RequiredWithNonZeroValue_ReturnsNoError(t *testing.T) {
@@ -436,18 +431,19 @@ func TestStruct_MapValueUnknownValidator_ReturnsError(t *testing.T) {
 func TestStruct_CallbackResultNotFilled_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	validatorName := validation.Validator("validation_test_not_filled")
-	callback := func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
-		return validation.NewCallbackResult(), nil
-	}
-	validation.MustRegisterValidator(validatorName, callback)
-
 	type testStruct struct {
-		Value string `validate:"validation_test_not_filled"`
+		Value string `validate:"not_correctly_filled"`
 	}
 
 	err := validation.Struct(&testStruct{Value: "test"})
-	assert.ErrorPart(t, err, "callback response is not correctly filled")
+	assert.ErrorPart(t, err, "callback response is not correctly filled for validator not_correctly_filled")
+}
+
+func TestVar_CallbackResultNotFilled_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	err := validation.Var("test", "not_correctly_filled")
+	assert.ErrorPart(t, err, "callback response is not correctly filled for validator not_correctly_filled")
 }
 
 func TestStruct_CycleInStruct_ReturnsError(t *testing.T) {

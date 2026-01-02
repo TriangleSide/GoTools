@@ -1,6 +1,7 @@
 package trace_test
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -9,8 +10,20 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/trace"
 	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
 	"github.com/TriangleSide/GoTools/pkg/trace/event"
+	"github.com/TriangleSide/GoTools/pkg/trace/span"
 	"github.com/TriangleSide/GoTools/pkg/trace/status"
 )
+
+type mockExporter struct {
+	mu            sync.Mutex
+	exportedSpans []*span.Span
+}
+
+func (m *mockExporter) Export(_ context.Context, s *span.Span) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.exportedSpans = append(m.exportedSpans, s)
+}
 
 func TestStart_EmptyContext_CreatesRootSpan(t *testing.T) {
 	t.Parallel()
@@ -337,8 +350,8 @@ func TestStart_AddEvent_SingleEvent_CanBeRetrieved(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	e := event.New("test-event")
-	span.AddEvent(e)
+	evt := event.New("test-event")
+	span.AddEvent(evt)
 	events := span.Events()
 	assert.Equals(t, 1, len(events))
 	assert.Equals(t, "test-event", events[0].Name())
@@ -381,11 +394,11 @@ func TestStart_AddEvent_WithAttributes_PreservesAttributes(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	_, span := trace.Start(ctx, "test")
-	e := event.New("test-event",
+	evt := event.New("test-event",
 		attribute.String("key", "value"),
 		attribute.Int("count", 42),
 	)
-	span.AddEvent(e)
+	span.AddEvent(evt)
 	events := span.Events()
 	attrs := events[0].Attributes()
 	assert.Equals(t, 2, len(attrs))
@@ -599,4 +612,40 @@ func TestStart_SpanID_ConcurrentChildCreation_AssignsUniqueIDs(t *testing.T) {
 		ids[id] = true
 	}
 	assert.Equals(t, goroutines*iterations+1, len(ids))
+}
+
+func TestSetExporter_SpanEnd_InvokesExporter(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	exp := &mockExporter{}
+	ctx = trace.SetExporter(ctx, exp)
+	_, testSpan := trace.Start(ctx, "test")
+	assert.Equals(t, 0, len(exp.exportedSpans))
+	testSpan.End()
+	assert.Equals(t, 1, len(exp.exportedSpans))
+	assert.Equals(t, testSpan, exp.exportedSpans[0])
+}
+
+func TestSetExporter_NoExporter_DoesNotPanic(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	_, testSpan := trace.Start(ctx, "test")
+	testSpan.End()
+}
+
+func TestSetExporter_NestedSpans_ExportsEachSpan(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	exp := &mockExporter{}
+	ctx = trace.SetExporter(ctx, exp)
+	ctx, root := trace.Start(ctx, "root")
+	ctx, child := trace.Start(ctx, "child")
+	_, grandchild := trace.Start(ctx, "grandchild")
+	grandchild.End()
+	child.End()
+	root.End()
+	assert.Equals(t, 3, len(exp.exportedSpans))
+	assert.Equals(t, grandchild, exp.exportedSpans[0])
+	assert.Equals(t, child, exp.exportedSpans[1])
+	assert.Equals(t, root, exp.exportedSpans[2])
 }

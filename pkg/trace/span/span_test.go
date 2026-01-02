@@ -683,3 +683,80 @@ func TestRecordError_ConcurrentReadAndWrite_IsThreadSafe(t *testing.T) {
 	}
 	waitGroup.Wait()
 }
+
+func TestWithEndCallback_OnEnd_CallbackInvoked(t *testing.T) {
+	t.Parallel()
+	var callbackSpan *span.Span
+	callbackInvoked := false
+	testSpan := span.New("test", "trace-123", nil, span.WithEndCallback(func(s *span.Span) {
+		callbackInvoked = true
+		callbackSpan = s
+	}))
+	assert.False(t, callbackInvoked)
+	testSpan.End()
+	assert.True(t, callbackInvoked)
+	assert.Equals(t, testSpan, callbackSpan)
+}
+
+func TestWithEndCallback_MultipleEndCalls_CallbackInvokedOnce(t *testing.T) {
+	t.Parallel()
+	callCount := 0
+	testSpan := span.New("test", "trace-123", nil, span.WithEndCallback(func(_ *span.Span) {
+		callCount++
+	}))
+	testSpan.End()
+	testSpan.End()
+	testSpan.End()
+	assert.Equals(t, 1, callCount)
+}
+
+func TestWithEndCallback_NilCallback_NoError(t *testing.T) {
+	t.Parallel()
+	testSpan := span.New("test", "trace-123", nil)
+	testSpan.End()
+	assert.False(t, testSpan.EndTime().IsZero())
+}
+
+func TestNew_WithOptions_DoesNotAffectOtherBehavior(t *testing.T) {
+	t.Parallel()
+	testSpan := span.New("test-span", "trace-123", nil, span.WithEndCallback(func(_ *span.Span) {}))
+	assert.NotNil(t, testSpan)
+	assert.Equals(t, "test-span", testSpan.Name())
+	assert.Equals(t, "trace-123", testSpan.TraceID())
+	assert.Nil(t, testSpan.Parent())
+	assert.Equals(t, 0, len(testSpan.Children()))
+	assert.Equals(t, 0, len(testSpan.Attributes()))
+	assert.Equals(t, 0, len(testSpan.Events()))
+	assert.Equals(t, status.Unset, testSpan.StatusCode())
+}
+
+func TestWithEndCallback_ChildSpan_CallbackInvoked(t *testing.T) {
+	t.Parallel()
+	callbackInvoked := false
+	parent := span.New("parent", "trace-123", nil)
+	child := span.New("child", "trace-123", parent, span.WithEndCallback(func(_ *span.Span) {
+		callbackInvoked = true
+	}))
+	child.End()
+	assert.True(t, callbackInvoked)
+}
+
+func TestWithEndCallback_ConcurrentCalls_IsThreadSafe(t *testing.T) {
+	t.Parallel()
+	const goroutines = 10
+	var callCount int64
+	var mu sync.Mutex
+	testSpan := span.New("test", "trace-123", nil, span.WithEndCallback(func(_ *span.Span) {
+		mu.Lock()
+		callCount++
+		mu.Unlock()
+	}))
+	var waitGroup sync.WaitGroup
+	for range goroutines {
+		waitGroup.Go(func() {
+			testSpan.End()
+		})
+	}
+	waitGroup.Wait()
+	assert.Equals(t, int64(1), callCount)
+}
