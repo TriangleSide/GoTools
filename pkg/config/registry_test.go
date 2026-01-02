@@ -6,16 +6,16 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/config"
 	"github.com/TriangleSide/GoTools/pkg/structs"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/test/once"
 )
-
-func init() {
-	config.MustRegisterProcessor("TWICE", func(string, *structs.FieldMetadata) (string, bool, error) {
-		return "", true, nil
-	})
-}
 
 func TestMustRegisterProcessor_ReRegistered_Panics(t *testing.T) {
 	t.Parallel()
+	once.Do(t, func() {
+		config.MustRegisterProcessor("TWICE", func(string, *structs.FieldMetadata) (string, bool, error) {
+			return "", true, nil
+		})
+	})
 	assert.PanicExact(t, func() {
 		config.MustRegisterProcessor("TWICE", func(string, *structs.FieldMetadata) (string, bool, error) {
 			return "", true, nil
