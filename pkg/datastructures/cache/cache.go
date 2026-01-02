@@ -10,9 +10,11 @@ type GetOrSetFn[Key comparable, Value any] func(Key) (Value, error)
 
 // getOrSetKeyLock is used by the GetOrSet function to make sure the function is not executed in parallel.
 type getOrSetKeyLock[Value any] struct {
-	WaitChan chan struct{}
-	FnValue  Value
-	FnError  error
+	WaitChan   chan struct{}
+	FnValue    Value
+	FnError    error
+	FnPanicked bool
+	FnPanic    any
 }
 
 // Cache stores key/value pairs.
@@ -53,6 +55,9 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, getOrSetFn GetOrSetFn[Key, Value])
 		// In this case, there is a concurrent call with the same key.
 		// Wait for the concurrent call to complete and return its fetched value.
 		<-keyLock.WaitChan
+		if keyLock.FnPanicked {
+			panic(keyLock.FnPanic)
+		}
 		return keyLock.FnValue, keyLock.FnError
 	}
 
@@ -69,7 +74,18 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, getOrSetFn GetOrSetFn[Key, Value])
 		return keyLock.FnValue, nil
 	}
 
-	keyLock.FnValue, keyLock.FnError = getOrSetFn(key)
+	func() {
+		defer func() {
+			if panicValue := recover(); panicValue != nil {
+				keyLock.FnPanicked = true
+				keyLock.FnPanic = panicValue
+			}
+		}()
+		keyLock.FnValue, keyLock.FnError = getOrSetFn(key)
+	}()
+	if keyLock.FnPanicked {
+		panic(keyLock.FnPanic)
+	}
 	if keyLock.FnError != nil {
 		return keyLock.FnValue, keyLock.FnError
 	}

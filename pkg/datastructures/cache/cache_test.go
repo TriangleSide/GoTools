@@ -7,11 +7,14 @@ import (
 	"math/big"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 )
+
+const otherValue = "other"
 
 func cacheMustHaveKeyAndValue[Key comparable, Value any](
 	t *testing.T, testCache *cache.Cache[Key, Value], key Key, value Value,
@@ -147,7 +150,7 @@ func TestGetOrSet_KeyExists_DoesNotCallFunction(t *testing.T) {
 	fnCalled := false
 	returnVal, err := testCache.GetOrSet(key, func(string) (string, error) {
 		fnCalled = true
-		return "other", nil
+		return otherValue, nil
 	})
 	assert.False(t, fnCalled)
 	assert.NoError(t, err)
@@ -263,7 +266,7 @@ func TestGetOrSet_ConcurrentCalls_ReturnsFirstCallersValue(t *testing.T) {
 		waitGroup.Go(func() {
 			<-firstWaitChan
 			returnedValue, err := testCache.GetOrSet(key, func(string) (string, error) {
-				return "other", nil
+				return otherValue, nil
 			})
 			assert.NoError(t, err, assert.Continue())
 			assert.Equals(t, returnedValue, "first", assert.Continue())
@@ -378,4 +381,72 @@ func TestCache_PointerValues_Works(t *testing.T) {
 	gottenValue, gotten := testCache.Get("key")
 	assert.True(t, gotten)
 	assert.Equals(t, *gottenValue, value)
+}
+
+func TestGetOrSet_FunctionPanics_Panics(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	panicValue := errors.New("panic error")
+	assert.PanicExact(t, func() {
+		_, _ = testCache.GetOrSet(key, func(string) (string, error) {
+			panic(panicValue)
+		})
+	}, panicValue.Error())
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
+}
+
+func TestGetOrSet_ConcurrentCallsWithPanic_AllCallersPanic(t *testing.T) {
+	t.Parallel()
+	testCache := cache.New[string, string]()
+	const key = "key"
+	const threadCount = 4
+	panicValue := errors.New("panic error")
+	var waitGroup sync.WaitGroup
+	var panicCount atomic.Int64
+	waitersReadyChan := make(chan struct{})
+	proceedToPanicChan := make(chan struct{})
+	var waitersStarted sync.WaitGroup
+	waitersStarted.Add(threadCount)
+
+	for range threadCount {
+		waitGroup.Go(func() {
+			<-waitersReadyChan
+			waitersStarted.Done()
+			defer func() {
+				recovered := recover()
+				if recovered != nil {
+					panicCount.Add(1)
+					assert.Equals(t, recovered, panicValue, assert.Continue())
+				}
+			}()
+			_, _ = testCache.GetOrSet(key, func(string) (string, error) {
+				return otherValue, nil
+			})
+		})
+	}
+
+	waitGroup.Go(func() {
+		defer func() {
+			recovered := recover()
+			if recovered != nil {
+				panicCount.Add(1)
+				assert.Equals(t, recovered, panicValue, assert.Continue())
+			}
+		}()
+		_, _ = testCache.GetOrSet(key, func(string) (string, error) {
+			close(waitersReadyChan)
+			waitersStarted.Wait()
+			<-proceedToPanicChan
+			panic(panicValue)
+		})
+	})
+
+	close(proceedToPanicChan)
+
+	waitGroup.Wait()
+	assert.Equals(t, panicCount.Load(), int64(threadCount+1))
+	_, gotten := testCache.Get(key)
+	assert.False(t, gotten)
 }
