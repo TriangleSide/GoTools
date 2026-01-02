@@ -69,7 +69,7 @@ func ProcessAndValidate[T any]() (*T, error) {
 	}
 
 	if err := validation.Struct(conf); err != nil {
-		return nil, fmt.Errorf("failed while validating the configuration: %w", err)
+		return nil, &ValidationError{Err: err}
 	}
 
 	return conf, nil
