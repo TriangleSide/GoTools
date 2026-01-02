@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/TriangleSide/GoTools/pkg/structs"
@@ -30,31 +31,33 @@ func Process[T any]() (*T, error) {
 
 		fetcherNotCast, ok := processors.Load(processorType)
 		if !ok {
-			return nil, &ProcessorNotRegisteredError{ProcessorName: processorType}
+			return nil, fmt.Errorf("processor %q not registered", processorType)
 		}
 		fetcher := fetcherNotCast.(SourceFunc)
 
 		value, found, err := fetcher(fieldName, fieldMetadata)
 		if err != nil {
-			return nil, &SourceFetchError{FieldName: fieldName, ProcessorName: processorType, Err: err}
+			return nil, fmt.Errorf(
+				"error while fetching the value for field %s using processor %s: %w",
+				fieldName, processorType, err)
 		}
 
 		if !found {
 			defaultValue, hasDefaultTag := fieldMetadata.Tags()[DefaultTag]
 			if !hasDefaultTag {
-				return nil, &NoValueFoundError{FieldName: fieldName}
+				return nil, errors.New("no value found for field " + fieldName)
 			}
 
 			value = defaultValue
 			if err := structs.AssignToField(conf, fieldName, value); err != nil {
-				return nil, &FieldAssignmentError{FieldName: fieldName, Value: value, Err: err}
+				return nil, fmt.Errorf("failed to assign value %s to field %s: %w", value, fieldName, err)
 			}
 
 			continue
 		}
 
 		if err := structs.AssignToField(conf, fieldName, value); err != nil {
-			return nil, &FieldAssignmentError{FieldName: fieldName, Value: value, Err: err}
+			return nil, fmt.Errorf("failed to assign value %s to field %s: %w", value, fieldName, err)
 		}
 	}
 
@@ -69,7 +72,7 @@ func ProcessAndValidate[T any]() (*T, error) {
 	}
 
 	if err := validation.Struct(conf); err != nil {
-		return nil, &ValidationError{Err: err}
+		return nil, fmt.Errorf("configuration validation failed: %w", err)
 	}
 
 	return conf, nil

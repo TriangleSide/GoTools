@@ -79,11 +79,7 @@ func TestProcessAndValidate_NoEnvAndNoDefault_ReturnsError(t *testing.T) {
 		Value string `config:"ENV"`
 	}
 	conf, err := config.ProcessAndValidate[noDefault]()
-	assert.NotNil(t, err)
-
-	var noValErr *config.NoValueFoundError
-	assert.True(t, errors.As(err, &noValErr))
-	assert.Equals(t, noValErr.FieldName, "Value")
+	assert.ErrorPart(t, err, "no value found for field Value")
 	assert.Nil(t, conf)
 }
 
@@ -207,11 +203,7 @@ func TestProcessAndValidate_CustomProcessorNotFound_NoDefault_ReturnsError(t *te
 	}
 
 	conf, err := config.ProcessAndValidate[testStruct]()
-	assert.NotNil(t, err)
-
-	var noValErr *config.NoValueFoundError
-	assert.True(t, errors.As(err, &noValErr))
-	assert.Equals(t, noValErr.FieldName, "Value")
+	assert.ErrorPart(t, err, "no value found for field Value")
 	assert.Nil(t, conf)
 }
 
@@ -244,9 +236,7 @@ func TestProcessAndValidate_ProcessorNotRegistered_ReturnsError(t *testing.T) {
 
 	conf, err := config.ProcessAndValidate[testStruct]()
 	assert.ErrorPart(t, err, "failed to process configuration")
-	var notRegErr *config.ProcessorNotRegisteredError
-	assert.True(t, errors.As(err, &notRegErr))
-	assert.Equals(t, notRegErr.ProcessorName, "DOES_NOT_EXIST")
+	assert.ErrorPart(t, err, "processor \"DOES_NOT_EXIST\" not registered")
 	assert.Nil(t, conf)
 }
 
