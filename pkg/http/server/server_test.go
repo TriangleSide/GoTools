@@ -43,22 +43,6 @@ func (t *testHandler) RegisterEndpoints(builder *endpoints.Builder) {
 	})
 }
 
-type testResponseError struct{}
-
-func (t *testResponseError) Error() string {
-	return "test error response"
-}
-
-func init() {
-	responders.MustRegisterErrorResponse(
-		http.StatusInternalServerError,
-		func(err *testResponseError) *responders.StandardErrorResponse {
-			return &responders.StandardErrorResponse{
-				Message: err.Error(),
-			}
-		})
-}
-
 func getDefaultConfig(t *testing.T) *server.Config {
 	t.Helper()
 	defaults := &server.Config{
@@ -941,7 +925,7 @@ func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
 			Path:   "/error",
 			Method: http.MethodGet,
 			Handler: func(writer http.ResponseWriter, _ *http.Request) {
-				responders.Error(writer, &testResponseError{})
+				responders.Error(writer, errors.New("error"))
 			},
 		},
 		&testHandler{

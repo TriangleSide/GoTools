@@ -107,23 +107,6 @@ func TestError_WrappedWithCustomRegisteredType_ReturnsCustomMessageAndStatus(t *
 	assert.NoError(t, writeError)
 }
 
-func TestError_MultiplePointerIndirections_ReturnsCustomMessageAndStatus(t *testing.T) {
-	t.Parallel()
-	recorder := httptest.NewRecorder()
-	var writeError error
-	writeErrorCallback := func(err error) { writeError = err }
-	baseErr := &testError{}       // *testError
-	ptrErr := &baseErr            // **testError
-	doublePtrErr := &ptrErr       // ***testError
-	triplePtrErr := &doublePtrErr // ****testError
-	// ***triplePtrErr dereferences three times to get *testError, which implements error.
-	responders.Error(recorder, ***triplePtrErr, responders.WithErrorCallback(writeErrorCallback))
-	assert.Equals(t, recorder.Code, http.StatusBadRequest)
-	httpError := mustDeserializeError(t, recorder)
-	assert.Equals(t, httpError.Message, "test error")
-	assert.NoError(t, writeError)
-}
-
 func TestError_WriterError_InvokesCallback(t *testing.T) {
 	t.Parallel()
 	recorder := httptest.NewRecorder()

@@ -9,7 +9,7 @@ CGO_CONTAINER_RUN := $(CONTAINER_RUN) -e CGO_ENABLED=1 golang:$(GO_CONTAINER_VER
 .PHONY: test
 test:
 	@echo "Running unit tests with coverage report."
-	@$(CGO_CONTAINER_RUN) test ./pkg/... -coverprofile=test_coverage.out -count=1 -race=1
+	@$(CGO_CONTAINER_RUN) test ./pkg/... -coverprofile=test_coverage.out -count=2 -race=1
 	@$(GO_CONTAINER_RUN) tool cover -html=test_coverage.out -o test_coverage.html
 	@echo "Test suites completed."
 

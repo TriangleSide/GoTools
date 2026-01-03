@@ -6,15 +6,9 @@ import (
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/GoTools/pkg/test/once"
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
-
-func init() {
-	validation.MustRegisterValidator("not_correctly_filled",
-		func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
-			return validation.NewCallbackResult(), nil
-		})
-}
 
 func TestVar_UnknownValidator_ReturnsError(t *testing.T) {
 	t.Parallel()
@@ -431,19 +425,33 @@ func TestStruct_MapValueUnknownValidator_ReturnsError(t *testing.T) {
 func TestStruct_CallbackResultNotFilled_ReturnsError(t *testing.T) {
 	t.Parallel()
 
+	once.Do(t, func() {
+		validation.MustRegisterValidator("not_correctly_filled_struct",
+			func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
+				return validation.NewCallbackResult(), nil
+			})
+	})
+
 	type testStruct struct {
-		Value string `validate:"not_correctly_filled"`
+		Value string `validate:"not_correctly_filled_struct"`
 	}
 
 	err := validation.Struct(&testStruct{Value: "test"})
-	assert.ErrorPart(t, err, "callback response is not correctly filled for validator not_correctly_filled")
+	assert.ErrorPart(t, err, "callback response is not correctly filled for validator not_correctly_filled_struct")
 }
 
 func TestVar_CallbackResultNotFilled_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	err := validation.Var("test", "not_correctly_filled")
-	assert.ErrorPart(t, err, "callback response is not correctly filled for validator not_correctly_filled")
+	once.Do(t, func() {
+		validation.MustRegisterValidator("not_correctly_filled_var",
+			func(*validation.CallbackParameters) (*validation.CallbackResult, error) {
+				return validation.NewCallbackResult(), nil
+			})
+	})
+
+	err := validation.Var("test", "not_correctly_filled_var")
+	assert.ErrorPart(t, err, "callback response is not correctly filled for validator not_correctly_filled_var")
 }
 
 func TestStruct_CycleInStruct_ReturnsError(t *testing.T) {
