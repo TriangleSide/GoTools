@@ -425,7 +425,7 @@ func TestShutdown_WithExpiredContext_ReturnsError(t *testing.T) {
 
 	clientChan := make(chan struct{})
 	go func() {
-		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://"+serverAddr+"/slow", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+serverAddr+"/slow", nil)
 		response, clientErr := http.DefaultClient.Do(req)
 		assert.NoError(t, clientErr)
 		assert.NoError(t, response.Body.Close())
