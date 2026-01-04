@@ -33,7 +33,7 @@ func Start(ctx context.Context, name string) (context.Context, *span.Span) {
 	var opts []span.Option
 	if exp := exporterFromContext(ctx); exp != nil {
 		opts = append(opts, span.WithEndCallback(func(s *span.Span) {
-			exp.Export(context.Background(), s)
+			exp.Export(s)
 		}))
 	}
 	s := span.New(name, traceIDFromContext(ctx), spanFromContext(ctx), opts...)
