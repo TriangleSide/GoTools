@@ -1,7 +1,6 @@
 package trace_test
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
@@ -19,7 +18,7 @@ type mockExporter struct {
 	exportedSpans []*span.Span
 }
 
-func (m *mockExporter) Export(_ context.Context, s *span.Span) {
+func (m *mockExporter) Export(s *span.Span) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.exportedSpans = append(m.exportedSpans, s)
