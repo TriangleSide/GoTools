@@ -23,6 +23,24 @@ const (
 	LessThanOrEqualValidatorName Validator = "lte"
 )
 
+var (
+	// convertToFloatMap maps reflect.Kind to functions that convert reflect.Value to float64.
+	convertToFloatMap = map[reflect.Kind]func(reflect.Value) float64{
+		reflect.Int:     func(v reflect.Value) float64 { return float64(v.Int()) },
+		reflect.Int8:    func(v reflect.Value) float64 { return float64(v.Int()) },
+		reflect.Int16:   func(v reflect.Value) float64 { return float64(v.Int()) },
+		reflect.Int32:   func(v reflect.Value) float64 { return float64(v.Int()) },
+		reflect.Int64:   func(v reflect.Value) float64 { return float64(v.Int()) },
+		reflect.Uint:    func(v reflect.Value) float64 { return float64(v.Uint()) },
+		reflect.Uint8:   func(v reflect.Value) float64 { return float64(v.Uint()) },
+		reflect.Uint16:  func(v reflect.Value) float64 { return float64(v.Uint()) },
+		reflect.Uint32:  func(v reflect.Value) float64 { return float64(v.Uint()) },
+		reflect.Uint64:  func(v reflect.Value) float64 { return float64(v.Uint()) },
+		reflect.Float32: func(v reflect.Value) float64 { return v.Float() },
+		reflect.Float64: func(v reflect.Value) float64 { return v.Float() },
+	}
+)
+
 // init registers the numeric comparison validators (gt, gte, lt, lte) for comparing values against thresholds.
 func init() {
 	registerComparisonValidation(GreaterThanValidatorName,
@@ -48,21 +66,16 @@ func registerComparisonValidation(name Validator, compareFunc func(a, b float64)
 			return NewCallbackResult().AddFieldError(NewFieldError(params, errValueIsNil)), nil
 		}
 
-		var val float64
-		switch kind := value.Kind(); kind {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			val = float64(value.Int())
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			val = float64(value.Uint())
-		case reflect.Float32, reflect.Float64:
-			val = value.Float()
-		default:
-			fieldErr := NewFieldError(params, fmt.Errorf("the %s validation not supported for kind %s", name, kind))
+		convertFunc, ok := convertToFloatMap[value.Kind()]
+		if !ok {
+			fieldErr := NewFieldError(params, fmt.Errorf("the %s validation not supported for kind %s", name, value.Kind()))
 			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 
-		if !compareFunc(val, threshold) {
-			fieldErr := NewFieldError(params, fmt.Errorf("the value %v must be %s %v", val, operator, threshold))
+		valFloat64 := convertFunc(value)
+
+		if !compareFunc(valFloat64, threshold) {
+			fieldErr := NewFieldError(params, fmt.Errorf("the value %v must be %s %v", valFloat64, operator, threshold))
 			return NewCallbackResult().AddFieldError(fieldErr), nil
 		}
 

@@ -29,10 +29,9 @@ func init() {
 		}
 
 		var valueStr string
-		switch value.Kind() {
-		case reflect.String:
+		if value.Kind() == reflect.String {
 			valueStr = value.String()
-		default:
+		} else {
 			valueStr = fmt.Sprintf("%v", value)
 		}
 

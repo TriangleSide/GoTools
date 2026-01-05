@@ -12,7 +12,6 @@ import (
 var (
 	// typeToAssignHandlers maps primitive types to their string parsing handlers.
 	typeToAssignHandlers = map[reflect.Kind]func(fieldPtr reflect.Value, stringEncodedValue string) error{
-		reflect.String:  setStringIntoString,
 		reflect.Int:     setStringIntoInt,
 		reflect.Int8:    setStringIntoInt,
 		reflect.Int16:   setStringIntoInt,
@@ -37,12 +36,6 @@ func setStringIntoJSONType(fieldPtr reflect.Value, stringEncodedValue string) er
 	if err := json.Unmarshal([]byte(stringEncodedValue), fieldPtr.Interface()); err != nil {
 		return fmt.Errorf("json unmarshal error: %w", err)
 	}
-	return nil
-}
-
-// setStringIntoString handles string types.
-func setStringIntoString(fieldPtr reflect.Value, stringEncodedValue string) error {
-	fieldPtr.Elem().SetString(stringEncodedValue)
 	return nil
 }
 
@@ -104,6 +97,11 @@ func setStringIntoField(fieldPtr reflect.Value, fieldType reflect.Type, stringEn
 		return textUnmarshalErr
 	}
 	if testUnmarshalHandled {
+		return nil
+	}
+
+	if fieldType.Kind() == reflect.String {
+		fieldPtr.Elem().SetString(stringEncodedValue)
 		return nil
 	}
 

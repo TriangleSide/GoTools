@@ -43,10 +43,9 @@ func init() {
 		}
 
 		var requiredFieldValueStr string
-		switch requiredFieldValue.Kind() {
-		case reflect.String:
+		if requiredFieldValue.Kind() == reflect.String {
 			requiredFieldValueStr = requiredFieldValue.String()
-		default:
+		} else {
 			requiredFieldValueStr = fmt.Sprintf("%v", requiredFieldValue.Interface())
 		}
 

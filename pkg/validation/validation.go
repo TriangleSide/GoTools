@@ -279,8 +279,8 @@ func checkValidatorsAgainstValue(
 // validateContainerElements validates elements within slices, arrays, and maps.
 func validateContainerElements(depth int, val reflect.Value) ([]*FieldError, error) {
 	var fieldErrors []*FieldError
-	switch val.Kind() {
-	case reflect.Slice, reflect.Array:
+
+	if val.Kind() == reflect.Slice || val.Kind() == reflect.Array {
 		for i := range val.Len() {
 			elementFieldErrors, err := validateRecursively(depth+1, val.Index(i))
 			if err != nil {
@@ -288,7 +288,10 @@ func validateContainerElements(depth int, val reflect.Value) ([]*FieldError, err
 			}
 			fieldErrors = append(fieldErrors, elementFieldErrors...)
 		}
-	case reflect.Map:
+		return fieldErrors, nil
+	}
+
+	if val.Kind() == reflect.Map {
 		mapRange := val.MapRange()
 		for mapRange.Next() {
 			keyFieldErrors, err := validateRecursively(depth+1, mapRange.Key())
@@ -302,9 +305,9 @@ func validateContainerElements(depth int, val reflect.Value) ([]*FieldError, err
 			}
 			fieldErrors = append(fieldErrors, valueFieldErrors...)
 		}
-	default:
-		// Not a container type; skipping.
+		return fieldErrors, nil
 	}
+
 	return fieldErrors, nil
 }
 
