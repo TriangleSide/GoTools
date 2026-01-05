@@ -50,6 +50,7 @@ func Migrate(ctx context.Context, manager Manager, opts ...Option) (returnErr er
 
 	ctxDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.MigrationDeadlineMillis))
 	ctx, cancel := context.WithDeadline(ctx, ctxDeadline)
+
 	defer func() {
 		cancel()
 		releaseMigrationLockWG.Wait()

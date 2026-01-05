@@ -83,9 +83,11 @@ func (c *Cache[Key, Value]) GetOrSet(key Key, getOrSetFn GetOrSetFn[Key, Value])
 		}()
 		keyLock.FnValue, keyLock.FnError = getOrSetFn(key)
 	}()
+
 	if keyLock.FnPanicked {
 		panic(keyLock.FnPanic)
 	}
+
 	if keyLock.FnError != nil {
 		return keyLock.FnValue, keyLock.FnError
 	}

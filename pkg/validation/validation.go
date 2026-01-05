@@ -107,8 +107,8 @@ func parseValidationTag(validateTagContents string) ([]validatorWithInstruction,
 //   - Output: "required,min=1,max=100"
 func expandAliases(validateTagContents string) string {
 	segments := strings.Split(validateTagContents, ValidatorsSep)
-	var result []string
 
+	var result []string
 	for _, segment := range segments {
 		parsed, parseErr := parseValidatorWithInstruction(segment)
 		if parseErr != nil {
