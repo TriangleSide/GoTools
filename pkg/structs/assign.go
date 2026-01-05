@@ -33,17 +33,20 @@ func setStringIntoJSONType(fieldPtr reflect.Value, fieldType reflect.Type, strin
 			return false, fmt.Errorf("json unmarshal error: %w", err)
 		}
 		return true, nil
+	default:
+		return false, nil
 	}
-	return false, nil
 }
 
 // setStringIntoString handles string types.
 func setStringIntoString(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
-	if fieldType.Kind() == reflect.String {
+	switch fieldType.Kind() {
+	case reflect.String:
 		fieldPtr.Elem().SetString(stringEncodedValue)
 		return true, nil
+	default:
+		return false, nil
 	}
-	return false, nil
 }
 
 // setStringIntoInt handles signed integer types (Int, Int8, Int16, Int32, Int64).
@@ -56,8 +59,9 @@ func setStringIntoInt(fieldPtr reflect.Value, fieldType reflect.Type, stringEnco
 		}
 		fieldPtr.Elem().SetInt(parsed)
 		return true, nil
+	default:
+		return false, nil
 	}
-	return false, nil
 }
 
 // setStringIntoUint handles unsigned integer types (Uint, Uint8, Uint16, Uint32, Uint64).
@@ -70,8 +74,9 @@ func setStringIntoUint(fieldPtr reflect.Value, fieldType reflect.Type, stringEnc
 		}
 		fieldPtr.Elem().SetUint(parsed)
 		return true, nil
+	default:
+		return false, nil
 	}
-	return false, nil
 }
 
 // setStringIntoFloat handles floating point types (Float32, Float64).
@@ -84,21 +89,24 @@ func setStringIntoFloat(fieldPtr reflect.Value, fieldType reflect.Type, stringEn
 		}
 		fieldPtr.Elem().SetFloat(parsed)
 		return true, nil
+	default:
+		return false, nil
 	}
-	return false, nil
 }
 
 // setStringIntoBool handles boolean types.
 func setStringIntoBool(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
-	if fieldType.Kind() == reflect.Bool {
+	switch fieldType.Kind() {
+	case reflect.Bool:
 		parsed, err := strconv.ParseBool(stringEncodedValue)
 		if err != nil {
 			return false, fmt.Errorf("bool parsing error: %w", err)
 		}
 		fieldPtr.Elem().SetBool(parsed)
 		return true, nil
+	default:
+		return false, nil
 	}
-	return false, nil
 }
 
 // setStringIntoField parses a string-encoded value and sets it into the provided fieldPtr based on its type.

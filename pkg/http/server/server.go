@@ -43,12 +43,9 @@ func New(opts ...Option) (*Server, error) {
 
 	serveMux := configureServeMux(srvOpts)
 
-	var tlsConfig *tls.Config
-	if envConfig.HTTPServerTLSMode != TLSModeOff {
-		tlsConfig, err = configureTLS(envConfig)
-		if err != nil {
-			return nil, err
-		}
+	tlsConfig, err := configureTLS(envConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure TLS: %w", err)
 	}
 
 	srv := &Server{
@@ -158,6 +155,8 @@ func configureServeMux(srvOpts *serverOptions) *http.ServeMux {
 // configureTLS creates a TLS configuration based on the specified TLS mode.
 func configureTLS(envConfig *Config) (*tls.Config, error) {
 	switch envConfig.HTTPServerTLSMode {
+	case TLSModeOff:
+		return nil, nil
 	case TLSModeTLS:
 		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
