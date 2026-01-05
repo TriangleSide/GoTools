@@ -1,7 +1,6 @@
 package metric_test
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
@@ -85,7 +84,7 @@ func TestValues_WithEmptyDimension_ReturnsEmptySlice(t *testing.T) {
 func TestRecord_WithValidContext_ExportsPoint(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporter{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("metric_name")
 	beforeRecord := time.Now()
 	dim.Record(ctx, 100.0)
@@ -101,14 +100,14 @@ func TestRecord_WithNilExporter_Panics(t *testing.T) {
 	t.Parallel()
 	dim := metric.New("test")
 	assert.PanicPart(t, func() {
-		dim.Record(context.Background(), 1.0)
+		dim.Record(t.Context(), 1.0)
 	}, "metric exporter is nil")
 }
 
 func TestRecord_MultipleRecords_ExportsAllPoints(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporter{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("counter")
 	dim.Record(ctx, 1.0)
 	dim.Record(ctx, 2.0)
@@ -123,7 +122,7 @@ func TestRecord_MultipleRecords_ExportsAllPoints(t *testing.T) {
 func TestRecord_MultipleDimensions_ExportsWithCorrectDimensions(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporter{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim1 := metric.New("metric1")
 	dim2 := metric.New("metric2", "label")
 	dim1.Record(ctx, 10.0)
@@ -137,7 +136,7 @@ func TestRecord_MultipleDimensions_ExportsWithCorrectDimensions(t *testing.T) {
 func TestRecord_ConcurrentRecords_AllPointsExported(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporter{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("concurrent_metric")
 
 	var waitGroup sync.WaitGroup
@@ -159,7 +158,7 @@ func TestRecord_ConcurrentRecords_AllPointsExported(t *testing.T) {
 func TestRecord_WithZeroValue_ExportsPointWithZeroValue(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporter{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("zero_metric")
 	dim.Record(ctx, 0.0)
 	points := exp.Points()
@@ -170,7 +169,7 @@ func TestRecord_WithZeroValue_ExportsPointWithZeroValue(t *testing.T) {
 func TestRecord_WithNegativeValue_ExportsPointWithNegativeValue(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporter{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("negative_metric")
 	dim.Record(ctx, -42.5)
 	points := exp.Points()
@@ -181,7 +180,7 @@ func TestRecord_WithNegativeValue_ExportsPointWithNegativeValue(t *testing.T) {
 func TestRecordAt_WithValidContext_ExportsPointWithSpecifiedTime(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporter{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("metric_name")
 	recordTime := time.Date(2025, 6, 15, 10, 30, 0, 0, time.UTC)
 	dim.RecordAt(ctx, recordTime, 200.0)
@@ -196,14 +195,14 @@ func TestRecordAt_WithNilExporter_Panics(t *testing.T) {
 	t.Parallel()
 	dim := metric.New("test")
 	assert.PanicPart(t, func() {
-		dim.RecordAt(context.Background(), time.Now(), 1.0)
+		dim.RecordAt(t.Context(), time.Now(), 1.0)
 	}, "metric exporter is nil")
 }
 
 func TestRecordAt_ModifyingDimensionAfterRecord_DoesNotAffectExportedPoint(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporter{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("original")
 	dim.RecordAt(ctx, time.Now(), 1.0)
 	points := exp.Points()

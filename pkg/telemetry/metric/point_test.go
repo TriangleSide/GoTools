@@ -1,7 +1,6 @@
 package metric_test
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
@@ -32,7 +31,7 @@ func (m *mockExporterForPointTest) Points() []*metric.Point {
 func TestPointDimension_ReturnsCorrectDimension(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporterForPointTest{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("dim1", "dim2")
 	dim.Record(ctx, 1.0)
 	points := exp.Points()
@@ -43,7 +42,7 @@ func TestPointDimension_ReturnsCorrectDimension(t *testing.T) {
 func TestPointTime_ReturnsCorrectTime(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporterForPointTest{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("dim1")
 	expectedTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
 	dim.RecordAt(ctx, expectedTime, 1.0)
@@ -55,7 +54,7 @@ func TestPointTime_ReturnsCorrectTime(t *testing.T) {
 func TestPointValue_ReturnsCorrectValue(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporterForPointTest{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	dim := metric.New("dim1")
 	dim.Record(ctx, 42.5)
 	points := exp.Points()

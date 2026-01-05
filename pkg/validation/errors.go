@@ -19,21 +19,27 @@ type FieldError struct {
 // NewFieldError instantiates a *FieldError.
 func NewFieldError(params *CallbackParameters, err error) *FieldError {
 	var builder strings.Builder
+
 	builder.WriteString("validation failed")
+
 	if params.IsStructValidation {
 		builder.WriteString(" on field '")
 		builder.WriteString(params.StructFieldName)
 		builder.WriteString("'")
 	}
+
 	builder.WriteString(" with validator '")
 	builder.WriteString(string(params.Validator))
 	builder.WriteString("'")
+
 	if params.Parameters != "" {
 		builder.WriteString(" and parameters '")
 		builder.WriteString(params.Parameters)
 		builder.WriteString("'")
 	}
+
 	builder.WriteString(" because %w")
+
 	return &FieldError{
 		err: fmt.Errorf(builder.String(), err),
 	}

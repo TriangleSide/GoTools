@@ -149,14 +149,15 @@ func AssignToField[T any](obj *T, fieldName string, stringEncodedValue string) e
 	}
 
 	fieldsToMetadata := Metadata[T]()
+
 	fieldMetadata, foundFieldMetadata := fieldsToMetadata[fieldName]
 	if !foundFieldMetadata {
 		return fmt.Errorf("no field '%s' in struct '%s'", fieldName, structValue.Type().String())
 	}
 
 	structFieldValue := getStructFieldValue(structValue, fieldName, fieldMetadata)
-
 	originalFieldType := structFieldValue.Type()
+
 	fieldType := originalFieldType
 	if originalFieldType.Kind() == reflect.Ptr {
 		fieldType = originalFieldType.Elem()

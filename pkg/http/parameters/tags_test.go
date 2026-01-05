@@ -52,8 +52,8 @@ func TestExtractAndValidateFieldTagLookupKeys_ProperlyFormattedTags_ReturnsTagMa
 		HeaderField2 string `httpHeader:"Header2"   json:"-"               otherTag2:"value2"`
 		PathField1   string `json:"-"               otherTag3:""           urlPath:"Path1"`
 		PathField2   string `json:"-"               otherTag4:"!@#$%^&*()" urlPath:"Path2"`
-		JSONField1   string `json:"JSON1,omitempty"`
-		JSONField2   string `json:"JSON2,omitempty"`
+		JSONField1   string `json:"json1,omitempty"`
+		JSONField2   string `json:"json2,omitempty"`
 	}
 
 	for range 3 {

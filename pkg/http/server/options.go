@@ -16,7 +16,7 @@ type serverOptions struct {
 	listenerProvider func(bindIP string, bindPort uint16) (*net.TCPListener, error)
 	boundCallback    func(tcpAddr *net.TCPAddr)
 	commonMiddleware []middleware.Middleware
-	registrars       []endpoints.EndpointHandler
+	endpointHandlers []endpoints.EndpointHandler
 }
 
 // configure applies the options to the default serverOptions values.
@@ -76,8 +76,8 @@ func WithCommonMiddleware(commonMiddleware ...middleware.Middleware) Option {
 }
 
 // WithEndpoints adds endpoint handlers to the server.
-func WithEndpoints(registrars ...endpoints.EndpointHandler) Option {
+func WithEndpoints(endpointHandlers ...endpoints.EndpointHandler) Option {
 	return func(srvOpts *serverOptions) {
-		srvOpts.registrars = append(srvOpts.registrars, registrars...)
+		srvOpts.endpointHandlers = append(srvOpts.endpointHandlers, endpointHandlers...)
 	}
 }

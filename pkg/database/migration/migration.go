@@ -34,7 +34,7 @@ type PersistedStatus struct {
 }
 
 // Migrate orchestrates database migrations using the provided Manager and options.
-func Migrate(manager Manager, opts ...Option) (returnErr error) {
+func Migrate(ctx context.Context, manager Manager, opts ...Option) (returnErr error) {
 	migrateCfg := configure(opts...)
 	cfg, err := migrateCfg.configProvider()
 	if err != nil {
@@ -49,7 +49,7 @@ func Migrate(manager Manager, opts ...Option) (returnErr error) {
 	var releaseMigrationLockWG sync.WaitGroup
 
 	ctxDeadline := time.Now().Add(time.Millisecond * time.Duration(cfg.MigrationDeadlineMillis))
-	ctx, cancel := context.WithDeadline(context.Background(), ctxDeadline)
+	ctx, cancel := context.WithDeadline(ctx, ctxDeadline)
 	defer func() {
 		cancel()
 		releaseMigrationLockWG.Wait()
