@@ -9,13 +9,85 @@ import (
 	"strconv"
 )
 
-// setStringIntoTextUnmarshaller parses a string-encoded value and sets it into an
-// interface that implements encoding.TextUnmarshaler.
-// It handles types implementing encoding.TextUnmarshaler, basic types, and complex types (via JSON).
-func setStringIntoTextUnmarshaller(
-	fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string,
-) (bool, error) {
-	if reflect.PointerTo(fieldType).Implements(reflect.TypeFor[encoding.TextUnmarshaler]()) {
+var (
+	// typeToAssignHandlers maps primitive types to their string parsing handlers.
+	typeToAssignHandlers = map[reflect.Kind]func(fieldPtr reflect.Value, stringEncodedValue string) error{
+		reflect.String:  setStringIntoString,
+		reflect.Int:     setStringIntoInt,
+		reflect.Int8:    setStringIntoInt,
+		reflect.Int16:   setStringIntoInt,
+		reflect.Int32:   setStringIntoInt,
+		reflect.Int64:   setStringIntoInt,
+		reflect.Uint:    setStringIntoUint,
+		reflect.Uint8:   setStringIntoUint,
+		reflect.Uint16:  setStringIntoUint,
+		reflect.Uint32:  setStringIntoUint,
+		reflect.Uint64:  setStringIntoUint,
+		reflect.Float32: setStringIntoFloat,
+		reflect.Float64: setStringIntoFloat,
+		reflect.Bool:    setStringIntoBool,
+		reflect.Map:     setStringIntoJSONType,
+		reflect.Slice:   setStringIntoJSONType,
+		reflect.Struct:  setStringIntoJSONType,
+	}
+)
+
+// setStringIntoJSONType handles Map, Slice, and Struct types by JSON unmarshaling.
+func setStringIntoJSONType(fieldPtr reflect.Value, stringEncodedValue string) error {
+	if err := json.Unmarshal([]byte(stringEncodedValue), fieldPtr.Interface()); err != nil {
+		return fmt.Errorf("json unmarshal error: %w", err)
+	}
+	return nil
+}
+
+// setStringIntoString handles string types.
+func setStringIntoString(fieldPtr reflect.Value, stringEncodedValue string) error {
+	fieldPtr.Elem().SetString(stringEncodedValue)
+	return nil
+}
+
+// setStringIntoInt handles signed integer types (Int, Int8, Int16, Int32, Int64).
+func setStringIntoInt(fieldPtr reflect.Value, stringEncodedValue string) error {
+	parsed, err := strconv.ParseInt(stringEncodedValue, 10, fieldPtr.Elem().Type().Bits())
+	if err != nil {
+		return fmt.Errorf("int parsing error: %w", err)
+	}
+	fieldPtr.Elem().SetInt(parsed)
+	return nil
+}
+
+// setStringIntoUint handles unsigned integer types (Uint, Uint8, Uint16, Uint32, Uint64).
+func setStringIntoUint(fieldPtr reflect.Value, stringEncodedValue string) error {
+	parsed, err := strconv.ParseUint(stringEncodedValue, 10, fieldPtr.Elem().Type().Bits())
+	if err != nil {
+		return fmt.Errorf("unsigned int parsing error: %w", err)
+	}
+	fieldPtr.Elem().SetUint(parsed)
+	return nil
+}
+
+// setStringIntoFloat handles floating point types (Float32, Float64).
+func setStringIntoFloat(fieldPtr reflect.Value, stringEncodedValue string) error {
+	parsed, err := strconv.ParseFloat(stringEncodedValue, fieldPtr.Elem().Type().Bits())
+	if err != nil {
+		return fmt.Errorf("float parsing error: %w", err)
+	}
+	fieldPtr.Elem().SetFloat(parsed)
+	return nil
+}
+
+// setStringIntoBool handles boolean types.
+func setStringIntoBool(fieldPtr reflect.Value, stringEncodedValue string) error {
+	parsed, err := strconv.ParseBool(stringEncodedValue)
+	if err != nil {
+		return fmt.Errorf("bool parsing error: %w", err)
+	}
+	fieldPtr.Elem().SetBool(parsed)
+	return nil
+}
+
+func setStringIntoTextUnmarshaler(fieldPtr reflect.Value, stringEncodedValue string) (bool, error) {
+	if reflect.PointerTo(fieldPtr.Elem().Type()).Implements(reflect.TypeFor[encoding.TextUnmarshaler]()) {
 		unmarshaler := fieldPtr.Interface().(encoding.TextUnmarshaler)
 		if err := unmarshaler.UnmarshalText([]byte(stringEncodedValue)); err != nil {
 			return false, fmt.Errorf("text unmarshal error: %w", err)
@@ -25,110 +97,24 @@ func setStringIntoTextUnmarshaller(
 	return false, nil
 }
 
-// setStringIntoJSONType handles Map, Slice, and Struct types by JSON unmarshaling.
-func setStringIntoJSONType(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
-	switch fieldType.Kind() {
-	case reflect.Map, reflect.Slice, reflect.Struct:
-		if err := json.Unmarshal([]byte(stringEncodedValue), fieldPtr.Interface()); err != nil {
-			return false, fmt.Errorf("json unmarshal error: %w", err)
-		}
-		return true, nil
-	default:
-		return false, nil
-	}
-}
-
-// setStringIntoString handles string types.
-func setStringIntoString(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
-	switch fieldType.Kind() {
-	case reflect.String:
-		fieldPtr.Elem().SetString(stringEncodedValue)
-		return true, nil
-	default:
-		return false, nil
-	}
-}
-
-// setStringIntoInt handles signed integer types (Int, Int8, Int16, Int32, Int64).
-func setStringIntoInt(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
-	switch fieldType.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		parsed, err := strconv.ParseInt(stringEncodedValue, 10, fieldType.Bits())
-		if err != nil {
-			return false, fmt.Errorf("int parsing error: %w", err)
-		}
-		fieldPtr.Elem().SetInt(parsed)
-		return true, nil
-	default:
-		return false, nil
-	}
-}
-
-// setStringIntoUint handles unsigned integer types (Uint, Uint8, Uint16, Uint32, Uint64).
-func setStringIntoUint(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
-	switch fieldType.Kind() {
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		parsed, err := strconv.ParseUint(stringEncodedValue, 10, fieldType.Bits())
-		if err != nil {
-			return false, fmt.Errorf("unsigned int parsing error: %w", err)
-		}
-		fieldPtr.Elem().SetUint(parsed)
-		return true, nil
-	default:
-		return false, nil
-	}
-}
-
-// setStringIntoFloat handles floating point types (Float32, Float64).
-func setStringIntoFloat(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
-	switch fieldType.Kind() {
-	case reflect.Float32, reflect.Float64:
-		parsed, err := strconv.ParseFloat(stringEncodedValue, fieldType.Bits())
-		if err != nil {
-			return false, fmt.Errorf("float parsing error: %w", err)
-		}
-		fieldPtr.Elem().SetFloat(parsed)
-		return true, nil
-	default:
-		return false, nil
-	}
-}
-
-// setStringIntoBool handles boolean types.
-func setStringIntoBool(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) (bool, error) {
-	switch fieldType.Kind() {
-	case reflect.Bool:
-		parsed, err := strconv.ParseBool(stringEncodedValue)
-		if err != nil {
-			return false, fmt.Errorf("bool parsing error: %w", err)
-		}
-		fieldPtr.Elem().SetBool(parsed)
-		return true, nil
-	default:
-		return false, nil
-	}
-}
-
 // setStringIntoField parses a string-encoded value and sets it into the provided fieldPtr based on its type.
 func setStringIntoField(fieldPtr reflect.Value, fieldType reflect.Type, stringEncodedValue string) error {
-	handlers := []func(reflect.Value, reflect.Type, string) (bool, error){
-		setStringIntoTextUnmarshaller,
-		setStringIntoJSONType,
-		setStringIntoString,
-		setStringIntoInt,
-		setStringIntoUint,
-		setStringIntoFloat,
-		setStringIntoBool,
+	testUnmarshalHandled, textUnmarshalErr := setStringIntoTextUnmarshaler(fieldPtr, stringEncodedValue)
+	if textUnmarshalErr != nil {
+		return textUnmarshalErr
 	}
-	for _, handler := range handlers {
-		handled, err := handler(fieldPtr, fieldType, stringEncodedValue)
+	if testUnmarshalHandled {
+		return nil
+	}
+
+	if handler, ok := typeToAssignHandlers[fieldType.Kind()]; ok {
+		err := handler(fieldPtr, stringEncodedValue)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to set value to type %q: %w", fieldType.String(), err)
 		}
-		if handled {
-			return nil
-		}
+		return nil
 	}
+
 	return fmt.Errorf("unsupported field type: %s", fieldType)
 }
 
