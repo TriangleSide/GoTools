@@ -156,7 +156,8 @@ func configureServeMux(srvOpts *serverOptions) *http.ServeMux {
 func configureTLS(envConfig *Config) (*tls.Config, error) {
 	switch envConfig.HTTPServerTLSMode {
 	case TLSModeOff:
-		return nil, nil
+		var tlsConfig *tls.Config
+		return tlsConfig, nil
 	case TLSModeTLS:
 		serverCert, err := tls.LoadX509KeyPair(envConfig.HTTPServerCert, envConfig.HTTPServerKey)
 		if err != nil {
