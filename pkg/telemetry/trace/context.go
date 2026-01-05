@@ -3,8 +3,8 @@ package trace
 import (
 	"context"
 
-	"github.com/TriangleSide/GoTools/pkg/trace/exporter"
-	"github.com/TriangleSide/GoTools/pkg/trace/span"
+	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/exporter"
+	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/span"
 )
 
 // ctxKey is the type used for storing the span in context.

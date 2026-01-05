@@ -1,7 +1,7 @@
 package exporter
 
 import (
-	"github.com/TriangleSide/GoTools/pkg/trace/span"
+	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/span"
 )
 
 // Exporter defines the interface for exporting spans to a tracing backend.

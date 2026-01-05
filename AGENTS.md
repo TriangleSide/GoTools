@@ -26,6 +26,7 @@
 - Comments should not describe implementation details.
 - Comments should include examples of input and output only when necessary for clarity.
 - Ensure existing comments remain accurate after making changes.
+- Comments must be written in third person. Avoid second-person pronouns (you, your).
 
 ## Testing
 - Run the entire test suite with: `make test`

@@ -3,8 +3,8 @@ package status_test
 import (
 	"testing"
 
+	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/status"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/trace/status"
 )
 
 func TestCode_Unset_IsZeroValue(t *testing.T) {
