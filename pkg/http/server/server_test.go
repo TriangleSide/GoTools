@@ -92,14 +92,13 @@ func startServer(t *testing.T, options ...server.Option) string {
 	srv, err := server.New(allOpts...)
 	assert.NoError(t, err)
 	assert.NotNil(t, srv)
-	waitForShutdown := make(chan struct{})
 	t.Cleanup(func() {
-		assert.NoError(t, srv.Shutdown(context.Background()))
-		<-waitForShutdown
+		shutdownCtx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+		defer cancel()
+		assert.NoError(t, srv.Shutdown(shutdownCtx), assert.Continue())
 	})
 	go func() {
-		assert.NoError(t, srv.Run())
-		close(waitForShutdown)
+		assert.NoError(t, srv.Run(), assert.Continue())
 	}()
 	<-waitUntilReady
 	return address

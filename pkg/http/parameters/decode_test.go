@@ -298,8 +298,8 @@ func TestDecode_StructWithManyDifferentFields_ShouldSucceed(t *testing.T) {
 	}
 
 	type internalStruct struct {
-		SubField1 string `json:"SubField1" validate:"required"`
-		SubField2 int    `json:"SubField2" validate:"required"`
+		SubField1 string `json:"subField1" validate:"required"`
+		SubField2 int    `json:"subField2" validate:"required"`
 	}
 
 	type parameterFields struct {
@@ -344,22 +344,22 @@ func TestDecode_StructWithManyDifferentFields_ShouldSucceed(t *testing.T) {
 
 		PathPtrStringField *string `json:"-" urlPath:"PathPtrStringField" validate:"required"`
 
-		JSONStringField string            `json:"JSONStringField,omitempty" validate:"required"`
-		JSONIntField    int               `json:"JSONIntField,omitempty"    validate:"required"`
-		JSONFloatField  float64           `json:"JSONFloatField,omitempty"  validate:"required"`
-		JSONBoolField   bool              `json:"JSONBoolField,omitempty"   validate:"required"`
-		JSONStructField internalStruct    `json:"JSONStructField"           validate:"required"`
-		JSONMapField    map[string]string `json:"JSONMapField,omitempty"    validate:"required"`
-		JSONListField   []string          `json:"JSONListField,omitempty"   validate:"required"`
-		JSONNotSet      string            `json:"JSONNotSet,omitempty"`
+		JSONStringField string            `json:"jsonStringField,omitempty" validate:"required"`
+		JSONIntField    int               `json:"jsonIntField,omitempty"    validate:"required"`
+		JSONFloatField  float64           `json:"jsonFloatField,omitempty"  validate:"required"`
+		JSONBoolField   bool              `json:"jsonBoolField,omitempty"   validate:"required"`
+		JSONStructField internalStruct    `json:"jsonStructField"           validate:"required"`
+		JSONMapField    map[string]string `json:"jsonMapField,omitempty"    validate:"required"`
+		JSONListField   []string          `json:"jsonListField,omitempty"   validate:"required"`
+		JSONNotSet      string            `json:"jsonNotSet,omitempty"`
 
-		JSONPtrStringField *string            `json:"JSONPtrStringField" validate:"required"`
-		JSONPtrIntField    *int               `json:"JSONPtrIntField"    validate:"required"`
-		JSONPtrFloatField  *float64           `json:"JSONPtrFloatField"  validate:"required"`
-		JSONPtrBoolField   *bool              `json:"JSONPtrBoolField"   validate:"required"`
-		JSONPtrStructField *internalStruct    `json:"JSONPtrStructField" validate:"required"`
-		JSONPtrMapField    *map[string]string `json:"JSONPtrMapField"    validate:"required"`
-		JSONPtrListField   *[]string          `json:"JSONPtrListField"   validate:"required"`
+		JSONPtrStringField *string            `json:"jsonPtrStringField" validate:"required"`
+		JSONPtrIntField    *int               `json:"jsonPtrIntField"    validate:"required"`
+		JSONPtrFloatField  *float64           `json:"jsonPtrFloatField"  validate:"required"`
+		JSONPtrBoolField   *bool              `json:"jsonPtrBoolField"   validate:"required"`
+		JSONPtrStructField *internalStruct    `json:"jsonPtrStructField" validate:"required"`
+		JSONPtrMapField    *map[string]string `json:"jsonPtrMapField"    validate:"required"`
+		JSONPtrListField   *[]string          `json:"jsonPtrListField"   validate:"required"`
 	}
 
 	params := &parameterFields{}

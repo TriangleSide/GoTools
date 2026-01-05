@@ -379,14 +379,17 @@ func validateStructInternal(val reflect.Value, depth int) ([]*FieldError, error)
 // In the case that the variable has tag field errors, the field errors are joined with errors.Join.
 func Var[T any](val T, validatorInstructions string) error {
 	reflectValue := reflect.ValueOf(val)
+
 	fieldErrors, err := checkValidatorsAgainstValue(false, reflect.Value{}, "", reflectValue, validatorInstructions)
 	if err != nil {
 		return err
 	}
+
 	recursiveFieldErrors, err := validateRecursively(0, reflectValue)
 	if err != nil {
 		return err
 	}
+
 	fieldErrors = append(fieldErrors, recursiveFieldErrors...)
 	return fieldErrorsToError(fieldErrors)
 }

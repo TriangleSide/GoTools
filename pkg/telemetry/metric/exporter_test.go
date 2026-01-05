@@ -1,7 +1,6 @@
 package metric_test
 
 import (
-	"context"
 	"sync"
 	"testing"
 
@@ -31,7 +30,7 @@ func (m *mockExporterForExporterTest) Points() []*metric.Point {
 func TestSetExporter_WithValidExporter_ExporterIsStoredInContext(t *testing.T) {
 	t.Parallel()
 	exp := &mockExporterForExporterTest{}
-	ctx := metric.SetExporter(context.Background(), exp)
+	ctx := metric.SetExporter(t.Context(), exp)
 	assert.NotNil(t, ctx)
 	dim := metric.New("test")
 	dim.Record(ctx, 1.0)
@@ -44,7 +43,7 @@ func TestSetExporter_OverwriteExporter_UsesNewExporter(t *testing.T) {
 	exp1 := &mockExporterForExporterTest{}
 	exp2 := &mockExporterForExporterTest{}
 
-	ctx := metric.SetExporter(context.Background(), exp1)
+	ctx := metric.SetExporter(t.Context(), exp1)
 	dim := metric.New("test")
 	dim.Record(ctx, 1.0)
 

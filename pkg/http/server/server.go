@@ -119,14 +119,16 @@ func (server *Server) Shutdown(ctx context.Context) error {
 // configureServeMux creates and configures an HTTP request multiplexer with configured endpoints.
 func configureServeMux(srvOpts *serverOptions) *http.ServeMux {
 	builder := endpoints.NewBuilder()
-	for _, registrar := range srvOpts.registrars {
-		registrar.RegisterEndpoints(builder)
+	for _, endpointHandler := range srvOpts.endpointHandlers {
+		endpointHandler.RegisterEndpoints(builder)
 	}
 
 	serveMux := http.NewServeMux()
+
 	for endpointPath, methodToHandlerMap := range builder.API() {
 		methodHandlers := make(map[string]http.HandlerFunc, len(methodToHandlerMap))
 		allowedMethods := make([]string, 0, len(methodToHandlerMap))
+
 		for method, handler := range methodToHandlerMap {
 			endpointMw := make([]middleware.Middleware, 0, len(srvOpts.commonMiddleware)+len(handler.Middleware))
 			endpointMw = append(endpointMw, srvOpts.commonMiddleware...)
@@ -135,8 +137,10 @@ func configureServeMux(srvOpts *serverOptions) *http.ServeMux {
 			methodHandlers[string(method)] = handlerChain
 			allowedMethods = append(allowedMethods, string(method))
 		}
+
 		sort.Strings(allowedMethods)
 		path := string(endpointPath)
+
 		serveMux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			handler, ok := methodHandlers[request.Method]
 			if !ok {
@@ -147,6 +151,7 @@ func configureServeMux(srvOpts *serverOptions) *http.ServeMux {
 			handler(writer, request)
 		})
 	}
+
 	return serveMux
 }
 

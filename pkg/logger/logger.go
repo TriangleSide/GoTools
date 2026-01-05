@@ -58,10 +58,12 @@ func FromContext(ctx context.Context) (context.Context, *slog.Logger) {
 // If no logger exists in the context, a new one is created.
 func WithAttrs(ctx context.Context, attrs ...slog.Attr) (context.Context, *slog.Logger) {
 	ctx, logger := FromContext(ctx)
+
 	args := make([]any, len(attrs))
 	for i, attr := range attrs {
 		args[i] = attr
 	}
+
 	loggerWithAttrs := logger.With(args...)
 	return context.WithValue(ctx, ctxKeyInstance, loggerWithAttrs), loggerWithAttrs
 }
