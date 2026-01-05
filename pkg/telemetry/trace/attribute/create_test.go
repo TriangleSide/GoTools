@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/attribute"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
 )
 
 func TestString_ValidInput_CreatesStringAttribute(t *testing.T) {

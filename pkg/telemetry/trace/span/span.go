@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/trace/attribute"
-	"github.com/TriangleSide/GoTools/pkg/trace/event"
-	"github.com/TriangleSide/GoTools/pkg/trace/status"
+	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/attribute"
+	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/event"
+	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/status"
 )
 
 const (
