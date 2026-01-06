@@ -293,6 +293,7 @@ func TestDecode_ContentTypeCaseInsensitive_ShouldDecodeJson(t *testing.T) {
 
 func TestDecode_StructWithManyDifferentFields_ShouldSucceed(t *testing.T) {
 	t.Parallel()
+
 	type embeddedStruct struct {
 		HeaderEmbeddedField string `httpHeader:"Header-Embedded-Field" json:"-" validate:"required"`
 	}

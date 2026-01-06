@@ -123,171 +123,347 @@ func TestAssignToField_TimeField_SetsValue(t *testing.T) {
 	assert.Equals(t, expectedTime, *values.TimePtrValue)
 }
 
-func TestAssignToField_ValidValues_AssignsCorrectly(t *testing.T) {
+func TestAssignToField_EmbeddedValue_AssignsCorrectly(t *testing.T) {
 	t.Parallel()
-	subTests := []struct {
-		name      string
-		fieldName string
-		strValue  string
-		value     func(values *testStruct) any
-		expected  any
-	}{
-		{"EmbeddedValue", "EmbeddedValue", "embedded",
-			func(ts *testStruct) any { return ts.EmbeddedValue },
-			"embedded"},
-		{"DeepEmbeddedValue", "DeepEmbeddedValue", "deepEmbedded",
-			func(ts *testStruct) any { return *ts.DeepEmbeddedValue },
-			"deepEmbedded"},
-		{"StringValue", "StringValue", "str",
-			func(ts *testStruct) any { return ts.StringValue },
-			"str"},
-		{"StringPtrValue", "StringPtrValue", "strPtr",
-			func(ts *testStruct) any { return *ts.StringPtrValue },
-			"strPtr"},
-		{"IntValue", "IntValue", "123",
-			func(ts *testStruct) any { return ts.IntValue },
-			123},
-		{"IntPtrValue", "IntPtrValue", "123",
-			func(ts *testStruct) any { return *ts.IntPtrValue },
-			123},
-		{"Int8Value", "Int8Value", "-32",
-			func(ts *testStruct) any { return ts.Int8Value },
-			int8(-32)},
-		{"Int8PtrValue", "Int8PtrValue", "-32",
-			func(ts *testStruct) any { return *ts.Int8PtrValue },
-			int8(-32)},
-		{"Int16Value", "Int16Value", "-1000",
-			func(ts *testStruct) any { return ts.Int16Value },
-			int16(-1000)},
-		{"Int16PtrValue", "Int16PtrValue", "-1000",
-			func(ts *testStruct) any { return *ts.Int16PtrValue },
-			int16(-1000)},
-		{"Int32Value", "Int32Value", "-100000",
-			func(ts *testStruct) any { return ts.Int32Value },
-			int32(-100000)},
-		{"Int32PtrValue", "Int32PtrValue", "-100000",
-			func(ts *testStruct) any { return *ts.Int32PtrValue },
-			int32(-100000)},
-		{"Int64Value", "Int64Value", "-9223372036854775808",
-			func(ts *testStruct) any { return ts.Int64Value },
-			int64(-9223372036854775808)},
-		{"Int64PtrValue", "Int64PtrValue", "-9223372036854775808",
-			func(ts *testStruct) any { return *ts.Int64PtrValue },
-			int64(-9223372036854775808)},
-		{"UintValue", "UintValue", "456",
-			func(ts *testStruct) any { return ts.UintValue },
-			uint(456)},
-		{"UintPtrValue", "UintPtrValue", "456",
-			func(ts *testStruct) any { return *ts.UintPtrValue },
-			uint(456)},
-		{"Uint8Value", "Uint8Value", "99",
-			func(ts *testStruct) any { return ts.Uint8Value },
-			uint8(99)},
-		{"Uint8PtrValue", "Uint8PtrValue", "99",
-			func(ts *testStruct) any { return *ts.Uint8PtrValue },
-			uint8(99)},
-		{"Uint16Value", "Uint16Value", "65535",
-			func(ts *testStruct) any { return ts.Uint16Value },
-			uint16(65535)},
-		{"Uint16PtrValue", "Uint16PtrValue", "65535",
-			func(ts *testStruct) any { return *ts.Uint16PtrValue },
-			uint16(65535)},
-		{"Uint32Value", "Uint32Value", "4294967295",
-			func(ts *testStruct) any { return ts.Uint32Value },
-			uint32(4294967295)},
-		{"Uint32PtrValue", "Uint32PtrValue", "4294967295",
-			func(ts *testStruct) any { return *ts.Uint32PtrValue },
-			uint32(4294967295)},
-		{"Uint64Value", "Uint64Value", "18446744073709551615",
-			func(ts *testStruct) any { return ts.Uint64Value },
-			uint64(18446744073709551615)},
-		{"Uint64PtrValue", "Uint64PtrValue", "18446744073709551615",
-			func(ts *testStruct) any { return *ts.Uint64PtrValue },
-			uint64(18446744073709551615)},
-		{"Float32Value", "Float32Value", "123.45",
-			func(ts *testStruct) any { return ts.Float32Value },
-			float32(123.45)},
-		{"Float32PtrValue", "Float32PtrValue", "123.45",
-			func(ts *testStruct) any { return *ts.Float32PtrValue },
-			float32(123.45)},
-		{"FloatValue", "FloatValue", "678.90",
-			func(ts *testStruct) any { return ts.FloatValue },
-			float64(678.90)},
-		{"FloatPtrValue", "FloatPtrValue", "678.90",
-			func(ts *testStruct) any { return *ts.FloatPtrValue },
-			float64(678.90)},
-		{"BoolValueTrue", "BoolValue", "true",
-			func(ts *testStruct) any { return ts.BoolValue },
-			true},
-		{"BoolValueFalse", "BoolValue", "false",
-			func(ts *testStruct) any { return ts.BoolValue },
-			false},
-		{"BoolValue1", "BoolValue", "1",
-			func(ts *testStruct) any { return ts.BoolValue },
-			true},
-		{"BoolValue0", "BoolValue", "0",
-			func(ts *testStruct) any { return ts.BoolValue },
-			false},
-		{"BoolPtrValue", "BoolPtrValue", "true",
-			func(ts *testStruct) any { return *ts.BoolPtrValue },
-			true},
-		{"StructValue", "StructValue", `{"value":"nested"}`,
-			func(ts *testStruct) any { return ts.StructValue },
-			testInternalStruct{Value: "nested"}},
-		{"StructPtrValue", "StructPtrValue", `{"value":"nestedPtr"}`,
-			func(ts *testStruct) any { return *ts.StructPtrValue },
-			testInternalStruct{Value: "nestedPtr"}},
-		{"MapValue", "MapValue", `{"key1":{"value":"value1"}}`,
-			func(ts *testStruct) any { return ts.MapValue },
-			map[string]testInternalStruct{"key1": {Value: "value1"}}},
-		{"MapPtrValue", "MapPtrValue", `{"key1":{"value":"valuePtr"}}`,
-			func(ts *testStruct) any { return *ts.MapPtrValue },
-			map[string]testInternalStruct{"key1": {Value: "valuePtr"}}},
-		{"UnmarshallValue", "UnmarshallValue", "custom text",
-			func(ts *testStruct) any { return ts.UnmarshallValue },
-			unmarshallTestStruct{Value: "custom text"}},
-		{"UnmarshallPtrValue", "UnmarshallPtrValue", "custom text ptr",
-			func(ts *testStruct) any { return *ts.UnmarshallPtrValue },
-			unmarshallTestStruct{Value: "custom text ptr"}},
-		{"ListStringValue", "ListStringValue", `["one", "two", "three"]`,
-			func(ts *testStruct) any { return ts.ListStringValue },
-			[]string{"one", "two", "three"}},
-		{"ListStringPtrValue", "ListStringPtrValue", `["one", "two", "three"]`,
-			func(ts *testStruct) any { return ts.ListStringPtrValue },
-			[]*string{ptr.Of("one"), ptr.Of("two"), ptr.Of("three")}},
-		{"ListIntValue", "ListIntValue", `[1, 2, 3]`,
-			func(ts *testStruct) any { return ts.ListIntValue },
-			[]int{1, 2, 3}},
-		{"ListIntPtrValue", "ListIntPtrValue", `[1, 2, 3]`,
-			func(ts *testStruct) any { return ts.ListIntPtrValue },
-			[]*int{ptr.Of(1), ptr.Of(2), ptr.Of(3)}},
-		{"ListFloatValue", "ListFloatValue", `[1.1, 2.2, 3.3]`,
-			func(ts *testStruct) any { return ts.ListFloatValue },
-			[]float64{1.1, 2.2, 3.3}},
-		{"ListFloatPtrValue", "ListFloatPtrValue", `[1.1, 2.2, 3.3]`,
-			func(ts *testStruct) any { return ts.ListFloatPtrValue },
-			[]*float64{ptr.Of(1.1), ptr.Of(2.2), ptr.Of(3.3)}},
-		{"ListBoolValue", "ListBoolValue", `[true, false, true]`,
-			func(ts *testStruct) any { return ts.ListBoolValue },
-			[]bool{true, false, true}},
-		{"ListBoolPtrValue", "ListBoolPtrValue", `[true, false, true]`,
-			func(ts *testStruct) any { return ts.ListBoolPtrValue },
-			[]*bool{ptr.Of(true), ptr.Of(false), ptr.Of(true)}},
-		{"ListStructValue", "ListStructValue", `[{"value":"nested1"}, {"value":"nested2"}]`,
-			func(ts *testStruct) any { return ts.ListStructValue },
-			[]testInternalStruct{{Value: "nested1"}, {Value: "nested2"}}},
-		{"ListStructPtrValue", "ListStructPtrValue", `[{"value":"nested1"}]`,
-			func(ts *testStruct) any { return ts.ListStructPtrValue },
-			[]*testInternalStruct{ptr.Of(testInternalStruct{Value: "nested1"})}},
-	}
-	for _, subTest := range subTests {
-		t.Run(subTest.name, func(t *testing.T) {
-			t.Parallel()
-			values := &testStruct{}
-			assert.NoError(t, structs.AssignToField(values, subTest.fieldName, subTest.strValue))
-			assert.Equals(t, subTest.expected, subTest.value(values))
-		})
-	}
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "EmbeddedValue", "embedded"))
+	assert.Equals(t, "embedded", values.EmbeddedValue)
+}
+
+func TestAssignToField_DeepEmbeddedValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "DeepEmbeddedValue", "deepEmbedded"))
+	assert.Equals(t, "deepEmbedded", *values.DeepEmbeddedValue)
+}
+
+func TestAssignToField_StringValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "StringValue", "str"))
+	assert.Equals(t, "str", values.StringValue)
+}
+
+func TestAssignToField_StringPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "StringPtrValue", "strPtr"))
+	assert.Equals(t, "strPtr", *values.StringPtrValue)
+}
+
+func TestAssignToField_IntValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "IntValue", "123"))
+	assert.Equals(t, 123, values.IntValue)
+}
+
+func TestAssignToField_IntPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "IntPtrValue", "123"))
+	assert.Equals(t, 123, *values.IntPtrValue)
+}
+
+func TestAssignToField_Int8Value_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Int8Value", "-32"))
+	assert.Equals(t, int8(-32), values.Int8Value)
+}
+
+func TestAssignToField_Int8PtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Int8PtrValue", "-32"))
+	assert.Equals(t, int8(-32), *values.Int8PtrValue)
+}
+
+func TestAssignToField_Int16Value_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Int16Value", "-1000"))
+	assert.Equals(t, int16(-1000), values.Int16Value)
+}
+
+func TestAssignToField_Int16PtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Int16PtrValue", "-1000"))
+	assert.Equals(t, int16(-1000), *values.Int16PtrValue)
+}
+
+func TestAssignToField_Int32Value_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Int32Value", "-100000"))
+	assert.Equals(t, int32(-100000), values.Int32Value)
+}
+
+func TestAssignToField_Int32PtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Int32PtrValue", "-100000"))
+	assert.Equals(t, int32(-100000), *values.Int32PtrValue)
+}
+
+func TestAssignToField_Int64Value_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Int64Value", "-9223372036854775808"))
+	assert.Equals(t, int64(-9223372036854775808), values.Int64Value)
+}
+
+func TestAssignToField_Int64PtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Int64PtrValue", "-9223372036854775808"))
+	assert.Equals(t, int64(-9223372036854775808), *values.Int64PtrValue)
+}
+
+func TestAssignToField_UintValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "UintValue", "456"))
+	assert.Equals(t, uint(456), values.UintValue)
+}
+
+func TestAssignToField_UintPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "UintPtrValue", "456"))
+	assert.Equals(t, uint(456), *values.UintPtrValue)
+}
+
+func TestAssignToField_Uint8Value_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Uint8Value", "99"))
+	assert.Equals(t, uint8(99), values.Uint8Value)
+}
+
+func TestAssignToField_Uint8PtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Uint8PtrValue", "99"))
+	assert.Equals(t, uint8(99), *values.Uint8PtrValue)
+}
+
+func TestAssignToField_Uint16Value_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Uint16Value", "65535"))
+	assert.Equals(t, uint16(65535), values.Uint16Value)
+}
+
+func TestAssignToField_Uint16PtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Uint16PtrValue", "65535"))
+	assert.Equals(t, uint16(65535), *values.Uint16PtrValue)
+}
+
+func TestAssignToField_Uint32Value_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Uint32Value", "4294967295"))
+	assert.Equals(t, uint32(4294967295), values.Uint32Value)
+}
+
+func TestAssignToField_Uint32PtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Uint32PtrValue", "4294967295"))
+	assert.Equals(t, uint32(4294967295), *values.Uint32PtrValue)
+}
+
+func TestAssignToField_Uint64Value_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Uint64Value", "18446744073709551615"))
+	assert.Equals(t, uint64(18446744073709551615), values.Uint64Value)
+}
+
+func TestAssignToField_Uint64PtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Uint64PtrValue", "18446744073709551615"))
+	assert.Equals(t, uint64(18446744073709551615), *values.Uint64PtrValue)
+}
+
+func TestAssignToField_Float32Value_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Float32Value", "123.45"))
+	assert.Equals(t, float32(123.45), values.Float32Value)
+}
+
+func TestAssignToField_Float32PtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "Float32PtrValue", "123.45"))
+	assert.Equals(t, float32(123.45), *values.Float32PtrValue)
+}
+
+func TestAssignToField_FloatValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "FloatValue", "678.90"))
+	assert.Equals(t, float64(678.90), values.FloatValue)
+}
+
+func TestAssignToField_FloatPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "FloatPtrValue", "678.90"))
+	assert.Equals(t, float64(678.90), *values.FloatPtrValue)
+}
+
+func TestAssignToField_BoolValueTrue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "BoolValue", "true"))
+	assert.Equals(t, true, values.BoolValue)
+}
+
+func TestAssignToField_BoolValueFalse_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "BoolValue", "false"))
+	assert.Equals(t, false, values.BoolValue)
+}
+
+func TestAssignToField_BoolValue1_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "BoolValue", "1"))
+	assert.Equals(t, true, values.BoolValue)
+}
+
+func TestAssignToField_BoolValue0_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "BoolValue", "0"))
+	assert.Equals(t, false, values.BoolValue)
+}
+
+func TestAssignToField_BoolPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "BoolPtrValue", "true"))
+	assert.Equals(t, true, *values.BoolPtrValue)
+}
+
+func TestAssignToField_StructValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "StructValue", `{"value":"nested"}`))
+	assert.Equals(t, testInternalStruct{Value: "nested"}, values.StructValue)
+}
+
+func TestAssignToField_StructPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "StructPtrValue", `{"value":"nestedPtr"}`))
+	assert.Equals(t, testInternalStruct{Value: "nestedPtr"}, *values.StructPtrValue)
+}
+
+func TestAssignToField_MapValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "MapValue", `{"key1":{"value":"value1"}}`))
+	assert.Equals(t, map[string]testInternalStruct{"key1": {Value: "value1"}}, values.MapValue)
+}
+
+func TestAssignToField_MapPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "MapPtrValue", `{"key1":{"value":"valuePtr"}}`))
+	assert.Equals(t, map[string]testInternalStruct{"key1": {Value: "valuePtr"}}, *values.MapPtrValue)
+}
+
+func TestAssignToField_UnmarshallValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "UnmarshallValue", "custom text"))
+	assert.Equals(t, unmarshallTestStruct{Value: "custom text"}, values.UnmarshallValue)
+}
+
+func TestAssignToField_UnmarshallPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "UnmarshallPtrValue", "custom text ptr"))
+	assert.Equals(t, unmarshallTestStruct{Value: "custom text ptr"}, *values.UnmarshallPtrValue)
+}
+
+func TestAssignToField_ListStringValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListStringValue", `["one", "two", "three"]`))
+	assert.Equals(t, []string{"one", "two", "three"}, values.ListStringValue)
+}
+
+func TestAssignToField_ListStringPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListStringPtrValue", `["one", "two", "three"]`))
+	assert.Equals(t, []*string{ptr.Of("one"), ptr.Of("two"), ptr.Of("three")}, values.ListStringPtrValue)
+}
+
+func TestAssignToField_ListIntValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListIntValue", `[1, 2, 3]`))
+	assert.Equals(t, []int{1, 2, 3}, values.ListIntValue)
+}
+
+func TestAssignToField_ListIntPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListIntPtrValue", `[1, 2, 3]`))
+	assert.Equals(t, []*int{ptr.Of(1), ptr.Of(2), ptr.Of(3)}, values.ListIntPtrValue)
+}
+
+func TestAssignToField_ListFloatValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListFloatValue", `[1.1, 2.2, 3.3]`))
+	assert.Equals(t, []float64{1.1, 2.2, 3.3}, values.ListFloatValue)
+}
+
+func TestAssignToField_ListFloatPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListFloatPtrValue", `[1.1, 2.2, 3.3]`))
+	assert.Equals(t, []*float64{ptr.Of(1.1), ptr.Of(2.2), ptr.Of(3.3)}, values.ListFloatPtrValue)
+}
+
+func TestAssignToField_ListBoolValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListBoolValue", `[true, false, true]`))
+	assert.Equals(t, []bool{true, false, true}, values.ListBoolValue)
+}
+
+func TestAssignToField_ListBoolPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListBoolPtrValue", `[true, false, true]`))
+	assert.Equals(t, []*bool{ptr.Of(true), ptr.Of(false), ptr.Of(true)}, values.ListBoolPtrValue)
+}
+
+func TestAssignToField_ListStructValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListStructValue", `[{"value":"nested1"}, {"value":"nested2"}]`))
+	assert.Equals(t, []testInternalStruct{{Value: "nested1"}, {Value: "nested2"}}, values.ListStructValue)
+}
+
+func TestAssignToField_ListStructPtrValue_AssignsCorrectly(t *testing.T) {
+	t.Parallel()
+	values := &testStruct{}
+	assert.NoError(t, structs.AssignToField(values, "ListStructPtrValue", `[{"value":"nested1"}]`))
+	assert.Equals(t, []*testInternalStruct{ptr.Of(testInternalStruct{Value: "nested1"})}, values.ListStructPtrValue)
 }
 
 func TestAssignToField_InvalidValues_ReturnsError(t *testing.T) {
