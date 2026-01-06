@@ -69,134 +69,105 @@ func TestStruct_NonStructParameter_ReturnsError(t *testing.T) {
 	assert.ErrorPart(t, err, "validation parameter must be a struct")
 }
 
-func TestStruct_EmbeddedFields_ValidatesAllFields(t *testing.T) {
+func TestStruct_DeepEmbeddedFieldZeroValue_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	type deepEmbedded struct {
 		DeepEmbeddedField string `validate:"required"`
 	}
+	type embedded struct {
+		deepEmbedded
+	}
+	type testStruct struct {
+		embedded
+	}
 
+	instance := &testStruct{}
+	err := validation.Struct(instance)
+	assert.ErrorPart(t, err, "validation failed on field 'DeepEmbeddedField' "+
+		"with validator 'required' because the value is the zero-value")
+}
+
+func TestStruct_EmbeddedFieldZeroValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	type embedded struct {
+		EmbeddedField string `validate:"required"`
+	}
+	type testStruct struct {
+		embedded
+	}
+
+	instance := &testStruct{}
+	err := validation.Struct(instance)
+	assert.ErrorPart(t, err, "validation failed on field 'EmbeddedField' "+
+		"with validator 'required' because the value is the zero-value")
+}
+
+func TestStruct_NestedStructFieldZeroValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	type nested struct {
+		StructField string `validate:"required"`
+	}
+	type testStruct struct {
+		Nested nested
+	}
+
+	instance := &testStruct{}
+	err := validation.Struct(instance)
+	assert.ErrorPart(t, err, "validation failed on field 'StructField' with validator 'required'"+
+		" because the value is the zero-value")
+}
+
+func TestStruct_TopLevelFieldZeroValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+
+	type testStruct struct {
+		Value string `validate:"required"`
+	}
+
+	instance := &testStruct{}
+	err := validation.Struct(instance)
+	assert.ErrorPart(t, err, "validation failed on field 'Value' with validator 'required'"+
+		" because the value is the zero-value")
+}
+
+func TestStruct_AllFieldsValid_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+
+	type deepEmbedded struct {
+		DeepEmbeddedField string `validate:"required"`
+	}
 	type embedded struct {
 		deepEmbedded
 
 		EmbeddedField string `validate:"required"`
 	}
-
-	type structValue struct {
+	type nested struct {
 		StructField string `validate:"required"`
 	}
-
 	type testStruct struct {
 		embedded
 
-		StructValue structValue
-		Value       string `validate:"required"`
+		Nested nested
+		Value  string `validate:"required"`
 	}
 
-	type testCase struct {
-		name              string
-		instance          *testStruct
-		expectedErrorPart string
+	instance := &testStruct{
+		embedded: embedded{
+			deepEmbedded: deepEmbedded{
+				DeepEmbeddedField: "DeepEmbeddedField",
+			},
+			EmbeddedField: "EmbeddedField",
+		},
+		Nested: nested{
+			StructField: "StructField",
+		},
+		Value: "Value",
 	}
-
-	testCases := []testCase{
-		{
-			name: "deep_embedded_field_is_zero_value",
-			instance: &testStruct{
-				embedded: embedded{
-					deepEmbedded: deepEmbedded{
-						DeepEmbeddedField: "",
-					},
-					EmbeddedField: "EmbeddedField",
-				},
-				StructValue: structValue{
-					StructField: "StructField",
-				},
-				Value: "Value",
-			},
-			expectedErrorPart: "validation failed on field 'DeepEmbeddedField' " +
-				"with validator 'required' because the value is the zero-value",
-		},
-		{
-			name: "embedded_field_is_zero_value",
-			instance: &testStruct{
-				embedded: embedded{
-					deepEmbedded: deepEmbedded{
-						DeepEmbeddedField: "DeepEmbeddedField",
-					},
-					EmbeddedField: "",
-				},
-				StructValue: structValue{
-					StructField: "StructField",
-				},
-				Value: "Value",
-			},
-			expectedErrorPart: "validation failed on field 'EmbeddedField' " +
-				"with validator 'required' because the value is the zero-value",
-		},
-		{
-			name: "struct_field_is_zero_value",
-			instance: &testStruct{
-				embedded: embedded{
-					deepEmbedded: deepEmbedded{
-						DeepEmbeddedField: "DeepEmbeddedField",
-					},
-					EmbeddedField: "EmbeddedField",
-				},
-				StructValue: structValue{
-					StructField: "",
-				},
-				Value: "Value",
-			},
-			expectedErrorPart: "validation failed on field 'StructField' with validator 'required'" +
-				" because the value is the zero-value",
-		},
-		{
-			name: "value_is_zero_value",
-			instance: &testStruct{
-				embedded: embedded{
-					deepEmbedded: deepEmbedded{
-						DeepEmbeddedField: "DeepEmbeddedField",
-					},
-					EmbeddedField: "EmbeddedField",
-				},
-				StructValue: structValue{
-					StructField: "StructField",
-				},
-				Value: "",
-			},
-			expectedErrorPart: "validation failed on field 'Value' with validator 'required'" +
-				" because the value is the zero-value",
-		},
-		{
-			name: "all_fields_set",
-			instance: &testStruct{
-				embedded: embedded{
-					deepEmbedded: deepEmbedded{
-						DeepEmbeddedField: "DeepEmbeddedField",
-					},
-					EmbeddedField: "EmbeddedField",
-				},
-				StructValue: structValue{
-					StructField: "StructField",
-				},
-				Value: "Value",
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			err := validation.Struct(testCase.instance)
-			if testCase.expectedErrorPart == "" {
-				assert.NoError(t, err)
-				return
-			}
-			assert.ErrorPart(t, err, testCase.expectedErrorPart)
-		})
-	}
+	err := validation.Struct(instance)
+	assert.NoError(t, err)
 }
 
 func TestStruct_InvalidNestedStructFieldInstruction_ReturnsError(t *testing.T) {

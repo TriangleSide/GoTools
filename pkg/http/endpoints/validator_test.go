@@ -8,124 +8,104 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestPathValidation_VariousPaths_ValidatesCorrectly(t *testing.T) {
+func TestPathValidation_Root_Succeeds(t *testing.T) {
 	t.Parallel()
+	assertRoutePathValidation(t, "/", "")
+}
 
-	type testCase struct {
-		name             string
-		path             string
-		expectedErrorMsg string
-	}
+func TestPathValidation_MultiPart_Succeeds(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/b/c/1/2/3", "")
+}
 
-	testCases := []testCase{
-		{
-			name:             "Root_Succeeds",
-			path:             "/",
-			expectedErrorMsg: "",
-		},
-		{
-			name:             "MultiPart_Succeeds",
-			path:             "/a/b/c/1/2/3",
-			expectedErrorMsg: "",
-		},
-		{
-			name:             "WithParameterPart_Succeeds",
-			path:             "/a/{b}/c",
-			expectedErrorMsg: "",
-		},
-		{
-			name:             "Empty_Fails",
-			path:             "",
-			expectedErrorMsg: "path cannot be empty",
-		},
-		{
-			name:             "InvalidCharactersPlus_Fails",
-			path:             "/+",
-			expectedErrorMsg: "path contains invalid characters",
-		},
-		{
-			name:             "InvalidCharactersLeadingSpace_Fails",
-			path:             " /a",
-			expectedErrorMsg: "path contains invalid characters",
-		},
-		{
-			name:             "InvalidCharactersTrailingSpace_Fails",
-			path:             "/a ",
-			expectedErrorMsg: "path contains invalid characters",
-		},
-		{
-			name:             "TrailingSlash_Fails",
-			path:             "/a/",
-			expectedErrorMsg: "path cannot end with '/'",
-		},
-		{
-			name:             "MissingLeadingSlashWithParts_Fails",
-			path:             "a/b",
-			expectedErrorMsg: "path must start with '/'",
-		},
-		{
-			name:             "MissingLeadingSlashSinglePart_Fails",
-			path:             "a",
-			expectedErrorMsg: "path must start with '/'",
-		},
-		{
-			name:             "EmptyPartInMiddle_Fails",
-			path:             "/a//b",
-			expectedErrorMsg: "path parts cannot be empty",
-		},
-		{
-			name:             "EmptyPartAtStart_Fails",
-			path:             "//a",
-			expectedErrorMsg: "path parts cannot be empty",
-		},
-		{
-			name:             "ParameterMissingClosingBrace_Fails",
-			path:             "/a/{b",
-			expectedErrorMsg: "path parameters must start with '{' and end with '}'",
-		},
-		{
-			name:             "ParameterMissingOpeningBrace_Fails",
-			path:             "/a/b}",
-			expectedErrorMsg: "path parameters must start with '{' and end with '}'",
-		},
-		{
-			name:             "ParameterHasExtraOpeningBrace_Fails",
-			path:             "/a/{{b}",
-			expectedErrorMsg: "path parameters must have only one '{' and '}'",
-		},
-		{
-			name:             "ParameterHasExtraClosingBrace_Fails",
-			path:             "/a/{b}}",
-			expectedErrorMsg: "path parameters must have only one '{' and '}'",
-		},
-		{
-			name:             "EmptyParameter_Fails",
-			path:             "/a/{}",
-			expectedErrorMsg: "path parameters cannot be empty",
-		},
-		{
-			name:             "DuplicateParameterPart_Fails",
-			path:             "/a/{b}/{b}",
-			expectedErrorMsg: "path parts must be unique",
-		},
-		{
-			name:             "DuplicateLiteralPartTwo_Fails",
-			path:             "/a/a",
-			expectedErrorMsg: "path parts must be unique",
-		},
-		{
-			name:             "DuplicateLiteralPartThree_Fails",
-			path:             "/a/b/a",
-			expectedErrorMsg: "path parts must be unique",
-		},
-	}
+func TestPathValidation_WithParameterPart_Succeeds(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/{b}/c", "")
+}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			assertRoutePathValidation(t, tc.path, tc.expectedErrorMsg)
-		})
-	}
+func TestPathValidation_Empty_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "", "path cannot be empty")
+}
+
+func TestPathValidation_InvalidCharactersPlus_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/+", "path contains invalid characters")
+}
+
+func TestPathValidation_InvalidCharactersLeadingSpace_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, " /a", "path contains invalid characters")
+}
+
+func TestPathValidation_InvalidCharactersTrailingSpace_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a ", "path contains invalid characters")
+}
+
+func TestPathValidation_TrailingSlash_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/", "path cannot end with '/'")
+}
+
+func TestPathValidation_MissingLeadingSlashWithParts_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "a/b", "path must start with '/'")
+}
+
+func TestPathValidation_MissingLeadingSlashSinglePart_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "a", "path must start with '/'")
+}
+
+func TestPathValidation_EmptyPartInMiddle_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a//b", "path parts cannot be empty")
+}
+
+func TestPathValidation_EmptyPartAtStart_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "//a", "path parts cannot be empty")
+}
+
+func TestPathValidation_ParameterMissingClosingBrace_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/{b", "path parameters must start with '{' and end with '}'")
+}
+
+func TestPathValidation_ParameterMissingOpeningBrace_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/b}", "path parameters must start with '{' and end with '}'")
+}
+
+func TestPathValidation_ParameterHasExtraOpeningBrace_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/{{b}", "path parameters must have only one '{' and '}'")
+}
+
+func TestPathValidation_ParameterHasExtraClosingBrace_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/{b}}", "path parameters must have only one '{' and '}'")
+}
+
+func TestPathValidation_EmptyParameter_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/{}", "path parameters cannot be empty")
+}
+
+func TestPathValidation_DuplicateParameterPart_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/{b}/{b}", "path parts must be unique")
+}
+
+func TestPathValidation_DuplicateLiteralPartTwo_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/a", "path parts must be unique")
+}
+
+func TestPathValidation_DuplicateLiteralPartThree_ReturnsError(t *testing.T) {
+	t.Parallel()
+	assertRoutePathValidation(t, "/a/b/a", "path parts must be unique")
 }
 
 func TestPathValidation_NonStringReferenceField_ReturnsError(t *testing.T) {

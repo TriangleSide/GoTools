@@ -289,83 +289,62 @@ func TestCompareAndPop_WhenCalledOnEmptyHeap_ShouldReturnZeroValueAndFalse(t *te
 	assert.False(t, found)
 }
 
-func TestCompareAndPop_WhenCalled_ShouldBehaveCorrectly(t *testing.T) {
+func TestCompareAndPop_WhenConditionMetOnMaxHeap_ShouldPop(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		name          string
-		isMaxHeap     bool
-		pushValues    []int
-		condition     func(int) bool
-		shouldPop     bool
-		expectedValue int
-		expectedSize  int
-		expectedPeek  int
-	}{
-		{
-			name:          "when condition is met on max heap it should pop",
-			isMaxHeap:     true,
-			pushValues:    []int{10, 20, 5},
-			condition:     func(v int) bool { return v == 20 },
-			shouldPop:     true,
-			expectedValue: 20,
-			expectedSize:  2,
-			expectedPeek:  10,
-		},
-		{
-			name:          "when condition is not met on max heap it should not pop",
-			isMaxHeap:     true,
-			pushValues:    []int{10, 20, 5},
-			condition:     func(v int) bool { return v == 15 },
-			shouldPop:     false,
-			expectedValue: 0,
-			expectedSize:  3,
-			expectedPeek:  20,
-		},
-		{
-			name:          "when condition is met on min heap it should pop",
-			isMaxHeap:     false,
-			pushValues:    []int{10, 20, 5},
-			condition:     func(v int) bool { return v == 5 },
-			shouldPop:     true,
-			expectedValue: 5,
-			expectedSize:  2,
-			expectedPeek:  10,
-		},
-		{
-			name:          "when condition is not met on min heap it should not pop",
-			isMaxHeap:     false,
-			pushValues:    []int{10, 20, 5},
-			condition:     func(v int) bool { return v == 15 },
-			shouldPop:     false,
-			expectedValue: 0,
-			expectedSize:  3,
-			expectedPeek:  5,
-		},
-	}
+	maxHeap := heap.New(func(a, b int) bool { return a > b })
+	maxHeap.Push(50)
+	maxHeap.Push(100)
+	maxHeap.Push(25)
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
+	value, found := maxHeap.CompareAndPop(func(v int) bool { return v == 100 })
+	assert.True(t, found)
+	assert.Equals(t, 100, value)
+	assert.Equals(t, 2, maxHeap.Size())
+	assert.Equals(t, 50, maxHeap.Peek())
+}
 
-			var testHeap *heap.Heap[int]
-			if testCase.isMaxHeap {
-				testHeap = heap.New(func(a, b int) bool { return a > b })
-			} else {
-				testHeap = heap.New(func(a, b int) bool { return a < b })
-			}
+func TestCompareAndPop_WhenConditionNotMetOnMaxHeap_ShouldNotPop(t *testing.T) {
+	t.Parallel()
 
-			for _, v := range testCase.pushValues {
-				testHeap.Push(v)
-			}
+	maxHeap := heap.New(func(a, b int) bool { return a > b })
+	maxHeap.Push(30)
+	maxHeap.Push(60)
 
-			value, found := testHeap.CompareAndPop(testCase.condition)
-			assert.Equals(t, testCase.shouldPop, found)
-			assert.Equals(t, testCase.expectedValue, value)
-			assert.Equals(t, testCase.expectedSize, testHeap.Size())
-			assert.Equals(t, testCase.expectedPeek, testHeap.Peek())
-		})
-	}
+	value, found := maxHeap.CompareAndPop(func(v int) bool { return v == 45 })
+	assert.False(t, found)
+	assert.Equals(t, 0, value)
+	assert.Equals(t, 2, maxHeap.Size())
+	assert.Equals(t, 60, maxHeap.Peek())
+}
+
+func TestCompareAndPop_WhenConditionMetOnMinHeap_ShouldPop(t *testing.T) {
+	t.Parallel()
+
+	minHeap := heap.New(func(a, b int) bool { return a < b })
+	minHeap.Push(15)
+	minHeap.Push(3)
+	minHeap.Push(40)
+	minHeap.Push(8)
+
+	value, found := minHeap.CompareAndPop(func(v int) bool { return v == 3 })
+	assert.True(t, found)
+	assert.Equals(t, 3, value)
+	assert.Equals(t, 3, minHeap.Size())
+	assert.Equals(t, 8, minHeap.Peek())
+}
+
+func TestCompareAndPop_WhenConditionNotMetOnMinHeap_ShouldNotPop(t *testing.T) {
+	t.Parallel()
+
+	minHeap := heap.New(func(a, b int) bool { return a < b })
+	minHeap.Push(7)
+
+	value, found := minHeap.CompareAndPop(func(v int) bool { return v == 99 })
+	assert.False(t, found)
+	assert.Equals(t, 0, value)
+	assert.Equals(t, 1, minHeap.Size())
+	assert.Equals(t, 7, minHeap.Peek())
 }
 
 func TestCompareAndPop_WhenCalled_ShouldMaintainHeapProperty(t *testing.T) {
