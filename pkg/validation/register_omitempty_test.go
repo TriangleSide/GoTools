@@ -8,382 +8,342 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestOmitemptyValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
+func TestOmitemptyValidator_StrEmpty_SkipsRequired(t *testing.T) {
 	t.Parallel()
+	err := validation.Var("", "omitempty,required")
+	assert.NoError(t, err)
+}
 
-	type testCase struct {
-		name          string
-		value         any
-		validation    string
-		expectedError string
-	}
+func TestOmitemptyValidator_StrSet_RunsLenEquals4(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("test", "omitempty,len=4")
+	assert.NoError(t, err)
+}
 
-	testCases := []testCase{
-		{
-			name:          "str empty: omitempty skips required",
-			value:         "",
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "str set: omitempty runs len=4",
-			value:         "test",
-			validation:    "omitempty,len=4",
-			expectedError: "",
-		},
-		{
-			name:          "str set: len=5 error",
-			value:         "test",
-			validation:    "omitempty,len=5",
-			expectedError: "length 4 must be exactly 5",
-		},
-		{
-			name:          "int 0: omitempty skips gt",
-			value:         0,
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "int 5: gt ok",
-			value:         5,
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "int -1: gt error",
-			value:         -1,
-			validation:    "omitempty,gt=0",
-			expectedError: "value -1 must be greater than 0",
-		},
-		{
-			name:          "dive []int{}: ok",
-			value:         []int{},
-			validation:    "dive,omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "dive []int{0,0}: ok",
-			value:         []int{0, 0},
-			validation:    "dive,omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "dive []int{1,2,3}: ok",
-			value:         []int{1, 2, 3},
-			validation:    "dive,omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "dive []int{1,-1,3}: error",
-			value:         []int{1, -1, 3},
-			validation:    "dive,omitempty,gt=0",
-			expectedError: "value -1 must be greater than 0",
-		},
-		{
-			name:          "dive []int{0,-1,2}: error",
-			value:         []int{0, -1, 2},
-			validation:    "dive,omitempty,gt=0",
-			expectedError: "value -1 must be greater than 0",
-		},
-		{
-			name:          "nil: omitempty required ok",
-			value:         nil,
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "int 1: required ok",
-			value:         1,
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "int 0: required ok",
-			value:         0,
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "[]int{}: required ok",
-			value:         []int{},
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "dive []*int{nil,nil}: ok",
-			value:         []*int{nil, nil},
-			validation:    "dive,omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name: "dive []*int{-1,nil,1}: error",
-			value: []*int{
-				ptr.Of(-1),
-				nil,
-				ptr.Of(1),
-			},
-			validation:    "dive,omitempty,gt=0",
-			expectedError: "value -1 must be greater than 0",
-		},
-		{
-			name:          "str hello: len=5 ok",
-			value:         "hello",
-			validation:    "omitempty,len=5",
-			expectedError: "",
-		},
-		{
-			name:          "str hello: len=4 error",
-			value:         "hello",
-			validation:    "omitempty,len=4",
-			expectedError: "length 5 must be exactly 4",
-		},
-		{
-			name:          "map empty: required ok",
-			value:         map[string]int{},
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "map set: required ok",
-			value:         map[string]int{"a": 1},
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "map nil: required ok",
-			value:         (map[string]int)(nil),
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "bool false: required ok",
-			value:         false,
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "bool true: required ok",
-			value:         true,
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "float 0: omitempty skips gt",
-			value:         0.0,
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "float 1.5: gt ok",
-			value:         1.5,
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "float -1.5: gt error",
-			value:         -1.5,
-			validation:    "omitempty,gt=0",
-			expectedError: "value -1.5 must be greater than 0",
-		},
-		{
-			name:          "chan nil: required ok",
-			value:         (chan int)(nil),
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "chan set: required ok",
-			value:         make(chan int),
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "func nil: required ok",
-			value:         (func())(nil),
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "func set: required ok",
-			value:         func() {},
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "struct zero: required ok",
-			value:         struct{ A int }{},
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "struct set: required ok",
-			value:         struct{ A int }{A: 1},
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "**int nil: required ok",
-			value:         (**int)(nil),
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name: "**int -> 0: omitempty skips gt",
-			value: func() **int {
-				i := 0
-				p := &i
-				return &p
-			}(),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name: "**int -> 5: gt ok",
-			value: func() **int {
-				i := 5
-				p := &i
-				return &p
-			}(),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "complex 0: required ok",
-			value:         complex(0, 0),
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "complex set: required ok",
-			value:         complex(1, 1),
-			validation:    "omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "omitempty only: empty str ok",
-			value:         "",
-			validation:    "omitempty",
-			expectedError: "",
-		},
-		{
-			name:          "omitempty only: str ok",
-			value:         "hello",
-			validation:    "omitempty",
-			expectedError: "",
-		},
-		{
-			name:          "omitempty only: int 0 ok",
-			value:         0,
-			validation:    "omitempty",
-			expectedError: "",
-		},
-		{
-			name:          "omitempty only: int 42 ok",
-			value:         42,
-			validation:    "omitempty",
-			expectedError: "",
-		},
-		{
-			name:          "*str empty: omitempty skips len",
-			value:         ptr.Of(""),
-			validation:    "omitempty,len=5",
-			expectedError: "",
-		},
-		{
-			name:          "*str hello: len=5 ok",
-			value:         ptr.Of("hello"),
-			validation:    "omitempty,len=5",
-			expectedError: "",
-		},
-		{
-			name:          "*str hello: len=4 error",
-			value:         ptr.Of("hello"),
-			validation:    "omitempty,len=4",
-			expectedError: "length 5 must be exactly 4",
-		},
-		{
-			name:          "*int 0: omitempty skips gt",
-			value:         ptr.Of(0),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "*int 5: gt ok",
-			value:         ptr.Of(5),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "*int -5: gt error",
-			value:         ptr.Of(-5),
-			validation:    "omitempty,gt=0",
-			expectedError: "value -5 must be greater than 0",
-		},
-		{
-			name: "dive []struct{A=0}: ok",
-			value: []struct{ A int }{
-				{A: 0},
-				{A: 0},
-			},
-			validation:    "dive,omitempty,required",
-			expectedError: "",
-		},
-		{
-			name: "dive []struct{A>0}: required ok",
-			value: []struct{ A int }{
-				{A: 1},
-				{A: 2},
-			},
-			validation:    "dive,omitempty,required",
-			expectedError: "",
-		},
-		{
-			name:          "uint 0: omitempty skips gt",
-			value:         uint(0),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "uint 5: gt ok",
-			value:         uint(5),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "int8 0: omitempty skips gt",
-			value:         int8(0),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "int8 5: gt ok",
-			value:         int8(5),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "float32 0: omitempty skips gt",
-			value:         float32(0),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-		{
-			name:          "float32 1.5: gt ok",
-			value:         float32(1.5),
-			validation:    "omitempty,gt=0",
-			expectedError: "",
-		},
-	}
+func TestOmitemptyValidator_StrSet_LenEquals5Error(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("test", "omitempty,len=5")
+	assert.ErrorPart(t, err, "length 4 must be exactly 5")
+}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			err := validation.Var(tc.value, tc.validation)
-			if tc.expectedError != "" {
-				assert.ErrorPart(t, err, tc.expectedError)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
+func TestOmitemptyValidator_IntZero_SkipsGt(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(0, "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_IntFive_GtOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5, "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_IntNegative_GtError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-1, "omitempty,gt=0")
+	assert.ErrorPart(t, err, "value -1 must be greater than 0")
+}
+
+func TestOmitemptyValidator_DiveEmptySlice_Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{}, "dive,omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_DiveSliceWithZeros_Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{0, 0}, "dive,omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_DiveSliceWithPositives_Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{1, 2, 3}, "dive,omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_DiveSliceWithNegative_Error(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{1, -1, 3}, "dive,omitempty,gt=0")
+	assert.ErrorPart(t, err, "value -1 must be greater than 0")
+}
+
+func TestOmitemptyValidator_DiveSliceZeroAndNegative_Error(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{0, -1, 2}, "dive,omitempty,gt=0")
+	assert.ErrorPart(t, err, "value -1 must be greater than 0")
+}
+
+func TestOmitemptyValidator_NilPointer_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((*int)(nil), "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_IntOne_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(1, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_IntZeroValue_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(0, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_EmptyIntSlice_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{}, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_DiveNilPointers_Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]*int{nil, nil}, "dive,omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_DiveMixedPointers_Error(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]*int{ptr.Of(-1), nil, ptr.Of(1)}, "dive,omitempty,gt=0")
+	assert.ErrorPart(t, err, "value -1 must be greater than 0")
+}
+
+func TestOmitemptyValidator_StrHello_LenEquals5Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("hello", "omitempty,len=5")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_StrHello_LenEquals4Error(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("hello", "omitempty,len=4")
+	assert.ErrorPart(t, err, "length 5 must be exactly 4")
+}
+
+func TestOmitemptyValidator_MapEmpty_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(map[string]int{}, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_MapSet_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(map[string]int{"a": 1}, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_MapNil_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((map[string]int)(nil), "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_BoolFalse_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(false, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_BoolTrue_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(true, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_FloatZero_SkipsGt(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(0.0, "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_FloatPositive_GtOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(1.5, "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_FloatNegative_GtError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-1.5, "omitempty,gt=0")
+	assert.ErrorPart(t, err, "value -1.5 must be greater than 0")
+}
+
+func TestOmitemptyValidator_ChanNil_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((chan int)(nil), "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_ChanSet_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(make(chan int), "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_FuncNil_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((func())(nil), "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_FuncSet_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(func() {}, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_StructZero_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(struct{ A int }{}, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_StructSet_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(struct{ A int }{A: 1}, "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_DoublePointerNil_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((**int)(nil), "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_DoublePointerToZero_SkipsGt(t *testing.T) {
+	t.Parallel()
+	i := 0
+	p := &i
+	err := validation.Var(&p, "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_DoublePointerToFive_GtOk(t *testing.T) {
+	t.Parallel()
+	i := 5
+	p := &i
+	err := validation.Var(&p, "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_ComplexZero_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(complex(0, 0), "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_ComplexSet_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(complex(1, 1), "omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_OnlyEmptyStr_Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("", "omitempty")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_OnlyStrValue_Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("hello", "omitempty")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_OnlyIntZero_Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(0, "omitempty")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_OnlyIntValue_Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(42, "omitempty")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_StrPointerEmpty_SkipsLen(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(""), "omitempty,len=5")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_StrPointerHello_LenEquals5Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of("hello"), "omitempty,len=5")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_StrPointerHello_LenEquals4Error(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of("hello"), "omitempty,len=4")
+	assert.ErrorPart(t, err, "length 5 must be exactly 4")
+}
+
+func TestOmitemptyValidator_IntPointerZero_SkipsGt(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(0), "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_IntPointerFive_GtOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(5), "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_IntPointerNegative_GtError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(-5), "omitempty,gt=0")
+	assert.ErrorPart(t, err, "value -5 must be greater than 0")
+}
+
+func TestOmitemptyValidator_DiveStructSliceZero_Ok(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]struct{ A int }{{A: 0}, {A: 0}}, "dive,omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_DiveStructSliceSet_RequiredOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]struct{ A int }{{A: 1}, {A: 2}}, "dive,omitempty,required")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_UintZero_SkipsGt(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint(0), "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_UintFive_GtOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint(5), "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_Int8Zero_SkipsGt(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(int8(0), "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_Int8Five_GtOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(int8(5), "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_Float32Zero_SkipsGt(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(0), "omitempty,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestOmitemptyValidator_Float32Positive_GtOk(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(1.5), "omitempty,gt=0")
+	assert.NoError(t, err)
 }

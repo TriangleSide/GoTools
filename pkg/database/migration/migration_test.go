@@ -124,6 +124,47 @@ func standardRegisteredMigration(manager *managerRecorder, order migration.Order
 	}
 }
 
+func heartbeatTestMigration(manager *managerRecorder, heartbeatCount int) *migration.Registration {
+	return &migration.Registration{
+		Order: 1,
+		Migrate: func(ctx context.Context, _ migration.Status) error {
+			heartbeatDone := make(chan struct{})
+			go func() {
+				count := 0
+				doneClosed := false
+				closeDone := func() {
+					if !doneClosed {
+						close(heartbeatDone)
+						doneClosed = true
+					}
+				}
+				for {
+					select {
+					case <-ctx.Done():
+						closeDone()
+						return
+					case <-manager.Heartbeat:
+						if count < heartbeatCount {
+							count++
+							if count == heartbeatCount {
+								closeDone()
+							}
+						}
+					}
+				}
+			}()
+			select {
+			case <-heartbeatDone:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
+			return ctx.Err()
+		},
+		Enabled: true,
+	}
+}
+
 func TestMigrate_ConfigProviderFails_ReturnsError(t *testing.T) {
 	t.Parallel()
 	manager := &managerRecorder{}
@@ -686,51 +727,49 @@ func TestMigrate_HeartbeatSucceeds_DoesNotPreventProgress(t *testing.T) {
 	assert.True(t, manager.HeartbeatCount > 0)
 }
 
-func TestMigrate_HeartbeatRecoversAfterError_ResetsSuccessiveFailures(t *testing.T) {
+func TestMigrate_HeartbeatRecoversAfterError_ContinuesMigration(t *testing.T) {
+	t.Parallel()
+	manager := &managerRecorder{
+		Heartbeat:       make(chan struct{}),
+		HeartbeatErrors: []error{errors.New("heartbeat error"), nil},
+	}
+	reg := migration.NewRegistry()
+	reg.MustRegister(heartbeatTestMigration(manager, 2))
+	opts := []migration.Option{
+		migration.WithConfigProvider(func() (*migration.Config, error) {
+			cfg, _ := config.Process[migration.Config]()
+			cfg.MigrationHeartbeatIntervalMillis = 1
+			cfg.MigrationHeartbeatFailureRetryCount = 1
+			return cfg, nil
+		}),
+		migration.WithRegistry(reg),
+	}
+	err := migration.Migrate(t.Context(), manager, opts...)
+	assert.NoError(t, err)
+	expectedOps := []string{
+		"AcquireDBLock()",
+		"EnsureDataStores()",
+		"ReleaseDBLock()",
+		"AcquireMigrationLock()",
+		"ListStatuses()",
+		"PersistStatus(order=1, status=PENDING)",
+		"PersistStatus(order=1, status=STARTED)",
+		"Migration1.Migrate()",
+		"PersistStatus(order=1, status=COMPLETED)",
+	}
+	assert.Equals(t, expectedOps, manager.Operations)
+	assert.True(t, manager.HeartbeatCount >= 2)
+	assert.Equals(t, manager.MigrationUnlockCount, 1)
+}
+
+func TestMigrate_HeartbeatSuccessAfterError_ResetsSuccessiveFailures(t *testing.T) {
 	t.Parallel()
 	manager := &managerRecorder{
 		Heartbeat:       make(chan struct{}),
 		HeartbeatErrors: []error{errors.New("heartbeat error"), nil, errors.New("heartbeat error")},
 	}
 	reg := migration.NewRegistry()
-	reg.MustRegister(&migration.Registration{
-		Order: 1,
-		Migrate: func(ctx context.Context, _ migration.Status) error {
-			heartbeatDone := make(chan struct{})
-			go func() {
-				count := 0
-				doneClosed := false
-				closeDone := func() {
-					if !doneClosed {
-						close(heartbeatDone)
-						doneClosed = true
-					}
-				}
-				for {
-					select {
-					case <-ctx.Done():
-						closeDone()
-						return
-					case <-manager.Heartbeat:
-						if count < 3 {
-							count++
-							if count == 3 {
-								closeDone()
-							}
-						}
-					}
-				}
-			}()
-			select {
-			case <-heartbeatDone:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-			manager.Operations = append(manager.Operations, "Migration1.Migrate()")
-			return ctx.Err()
-		},
-		Enabled: true,
-	})
+	reg.MustRegister(heartbeatTestMigration(manager, 3))
 	opts := []migration.Option{
 		migration.WithConfigProvider(func() (*migration.Config, error) {
 			cfg, _ := config.Process[migration.Config]()

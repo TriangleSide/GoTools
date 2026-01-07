@@ -1,7 +1,6 @@
 package validation_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/TriangleSide/GoTools/pkg/ptr"
@@ -9,544 +8,518 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestGtGteLtLteValidators_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
+func TestGtValidator_IntValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
 	t.Parallel()
+	err := validation.Var(10, "gt=5")
+	assert.NoError(t, err)
+}
 
-	type testCaseDefinition struct {
-		Name             string
-		Value            any
-		Validation       string
-		ExpectedErrorMsg string
-	}
+func TestGtValidator_IntValueEqualToThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5, "gt=5")
+	assert.ErrorPart(t, err, "value 5 must be greater than 5")
+}
 
-	testCases := []testCaseDefinition{
-		{
-			Name:             "int value greater than threshold",
-			Value:            10,
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int value equal to threshold",
-			Value:            5,
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "value 5 must be greater than 5",
-		},
-		{
-			Name:             "int value less than threshold",
-			Value:            4,
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "value 4 must be greater than 5",
-		},
-		{
-			Name:             "uint value greater than threshold",
-			Value:            uint(10),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "uint value equal to threshold",
-			Value:            uint(5),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "value 5 must be greater than 5",
-		},
-		{
-			Name:             "float32 value greater than threshold",
-			Value:            float32(5.1),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "float32 value equal to threshold",
-			Value:            float32(5.0),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "value 5 must be greater than 5",
-		},
-		{
-			Name:             "float64 value greater than threshold",
-			Value:            float64(5.1),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "pointer to int greater than threshold",
-			Value:            ptr.Of(10),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "pointer to int equal to threshold",
-			Value:            ptr.Of(5),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "value 5 must be greater than 5",
-		},
-		{
-			Name:             "nil pointer to int",
-			Value:            (*int)(nil),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "invalid threshold parameter",
-			Value:            10,
-			Validation:       "gt=abc",
-			ExpectedErrorMsg: "invalid parameters 'abc' for gt: strconv.ParseFloat: parsing \"abc\": invalid syntax",
-		},
-		{
-			Name:             "unsupported kind string",
-			Value:            "test",
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "gt validation not supported for kind string",
-		},
-		{
-			Name:             "int value greater than threshold",
-			Value:            10,
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int value equal to threshold",
-			Value:            5,
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int value less than threshold",
-			Value:            4,
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "value 4 must be greater than or equal to 5",
-		},
-		{
-			Name:             "float32 value equal to threshold",
-			Value:            float32(5.0),
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "float32 value less than threshold",
-			Value:            float32(4.9),
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "must be greater than or equal to 5",
-		},
-		{
-			Name:             "pointer to int equal to threshold",
-			Value:            ptr.Of(5),
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "nil pointer to int",
-			Value:            (*int)(nil),
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "invalid threshold parameter",
-			Value:            10,
-			Validation:       "gte=abc",
-			ExpectedErrorMsg: "invalid parameters 'abc' for gte: strconv.ParseFloat: parsing \"abc\": invalid syntax",
-		},
-		{
-			Name:             "unsupported kind string",
-			Value:            "test",
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "gte validation not supported for kind string",
-		},
-		{
-			Name:             "int value less than threshold",
-			Value:            4,
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int value equal to threshold",
-			Value:            5,
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "value 5 must be less than 5",
-		},
-		{
-			Name:             "int value greater than threshold",
-			Value:            6,
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "value 6 must be less than 5",
-		},
-		{
-			Name:             "float32 value less than threshold",
-			Value:            float32(4.9),
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "float32 value equal to threshold",
-			Value:            float32(5.0),
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "value 5 must be less than 5",
-		},
-		{
-			Name:             "pointer to int less than threshold",
-			Value:            ptr.Of(4),
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "nil pointer to int",
-			Value:            (*int)(nil),
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "invalid threshold parameter",
-			Value:            10,
-			Validation:       "lt=abc",
-			ExpectedErrorMsg: "invalid parameters 'abc' for lt: strconv.ParseFloat: parsing \"abc\": invalid syntax",
-		},
-		{
-			Name:             "unsupported kind string",
-			Value:            "test",
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "lt validation not supported for kind string",
-		},
-		{
-			Name:             "int value less than threshold",
-			Value:            4,
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int value equal to threshold",
-			Value:            5,
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int value greater than threshold",
-			Value:            6,
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "value 6 must be less than or equal to 5",
-		},
-		{
-			Name:             "float32 value equal to threshold",
-			Value:            float32(5.0),
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "float32 value greater than threshold",
-			Value:            float32(5.1),
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "must be less than or equal to 5",
-		},
-		{
-			Name:             "pointer to int equal to threshold",
-			Value:            ptr.Of(5),
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "nil pointer to int",
-			Value:            (*int)(nil),
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "invalid threshold parameter",
-			Value:            10,
-			Validation:       "lte=abc",
-			ExpectedErrorMsg: "invalid parameters 'abc' for lte: strconv.ParseFloat: parsing \"abc\": invalid syntax",
-		},
-		{
-			Name:             "unsupported kind string",
-			Value:            "test",
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "lte validation not supported for kind string",
-		},
-		{
-			Name:             "gt with negative threshold and positive value",
-			Value:            5,
-			Validation:       "gt=-10",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "gt with negative threshold and negative value above",
-			Value:            -5,
-			Validation:       "gt=-10",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "gt with negative threshold and negative value below",
-			Value:            -15,
-			Validation:       "gt=-10",
-			ExpectedErrorMsg: "value -15 must be greater than -10",
-		},
-		{
-			Name:             "gt with negative threshold and equal value",
-			Value:            -10,
-			Validation:       "gt=-10",
-			ExpectedErrorMsg: "value -10 must be greater than -10",
-		},
-		{
-			Name:             "gte with negative threshold and equal value",
-			Value:            -10,
-			Validation:       "gte=-10",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "lt with negative threshold and value below",
-			Value:            -15,
-			Validation:       "lt=-10",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "lt with negative threshold and value above",
-			Value:            -5,
-			Validation:       "lt=-10",
-			ExpectedErrorMsg: "value -5 must be less than -10",
-		},
-		{
-			Name:             "lte with negative threshold and equal value",
-			Value:            -10,
-			Validation:       "lte=-10",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "gt with zero threshold and positive value",
-			Value:            1,
-			Validation:       "gt=0",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "gt with zero threshold and zero value",
-			Value:            0,
-			Validation:       "gt=0",
-			ExpectedErrorMsg: "value 0 must be greater than 0",
-		},
-		{
-			Name:             "gt with zero threshold and negative value",
-			Value:            -1,
-			Validation:       "gt=0",
-			ExpectedErrorMsg: "value -1 must be greater than 0",
-		},
-		{
-			Name:             "gte with zero threshold and zero value",
-			Value:            0,
-			Validation:       "gte=0",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "lt with zero threshold and negative value",
-			Value:            -1,
-			Validation:       "lt=0",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "lt with zero threshold and zero value",
-			Value:            0,
-			Validation:       "lt=0",
-			ExpectedErrorMsg: "value 0 must be less than 0",
-		},
-		{
-			Name:             "lte with zero threshold and zero value",
-			Value:            0,
-			Validation:       "lte=0",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "gt with float threshold and value above",
-			Value:            5.6,
-			Validation:       "gt=5.5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "gt with float threshold and value equal",
-			Value:            5.5,
-			Validation:       "gt=5.5",
-			ExpectedErrorMsg: "value 5.5 must be greater than 5.5",
-		},
-		{
-			Name:             "gt with float threshold and value below",
-			Value:            5.4,
-			Validation:       "gt=5.5",
-			ExpectedErrorMsg: "value 5.4 must be greater than 5.5",
-		},
-		{
-			Name:             "gte with float threshold and value equal",
-			Value:            5.5,
-			Validation:       "gte=5.5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "lt with float threshold and value below",
-			Value:            5.4,
-			Validation:       "lt=5.5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "lt with float threshold and value equal",
-			Value:            5.5,
-			Validation:       "lt=5.5",
-			ExpectedErrorMsg: "value 5.5 must be less than 5.5",
-		},
-		{
-			Name:             "lte with float threshold and value equal",
-			Value:            5.5,
-			Validation:       "lte=5.5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int8 value greater than threshold",
-			Value:            int8(10),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int8 value less than threshold",
-			Value:            int8(4),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "value 4 must be greater than 5",
-		},
-		{
-			Name:             "int16 value greater than threshold",
-			Value:            int16(1000),
-			Validation:       "gt=500",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int32 value greater than threshold",
-			Value:            int32(100000),
-			Validation:       "gt=50000",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "int64 value greater than threshold",
-			Value:            int64(1000000000),
-			Validation:       "gt=500000000",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "uint8 value greater than threshold",
-			Value:            uint8(200),
-			Validation:       "gt=100",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "uint16 value greater than threshold",
-			Value:            uint16(60000),
-			Validation:       "gt=50000",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "uint32 value greater than threshold",
-			Value:            uint32(4000000000),
-			Validation:       "gt=3000000000",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "uint64 value greater than threshold",
-			Value:            uint64(10000000000),
-			Validation:       "gt=5000000000",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "float64 value equal to threshold for gte",
-			Value:            float64(5.0),
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "float64 value less than threshold for lt",
-			Value:            float64(4.9),
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "float64 value equal to threshold for lte",
-			Value:            float64(5.0),
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "pointer to float32 greater than threshold",
-			Value:            ptr.Of(float32(10.5)),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "pointer to float64 greater than threshold",
-			Value:            ptr.Of(float64(10.5)),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "nil pointer to float32",
-			Value:            (*float32)(nil),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "nil pointer to float64",
-			Value:            (*float64)(nil),
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "unsupported kind bool",
-			Value:            true,
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "gt validation not supported for kind bool",
-		},
-		{
-			Name:             "unsupported kind slice",
-			Value:            []int{1, 2, 3},
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "gt validation not supported for kind slice",
-		},
-		{
-			Name:             "unsupported kind map",
-			Value:            map[string]int{"a": 1},
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "gt validation not supported for kind map",
-		},
-		{
-			Name:             "unsupported kind struct",
-			Value:            struct{ X int }{X: 5},
-			Validation:       "gt=5",
-			ExpectedErrorMsg: "gt validation not supported for kind struct",
-		},
-		{
-			Name:             "gt with empty parameter",
-			Value:            10,
-			Validation:       "gt=",
-			ExpectedErrorMsg: "invalid parameters '' for gt",
-		},
-		{
-			Name:             "uint value equal to threshold for gte",
-			Value:            uint(5),
-			Validation:       "gte=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "uint value less than threshold for lt",
-			Value:            uint(4),
-			Validation:       "lt=5",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "uint value equal to threshold for lte",
-			Value:            uint(5),
-			Validation:       "lte=5",
-			ExpectedErrorMsg: "",
-		},
-	}
+func TestGtValidator_IntValueLessThanThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(4, "gt=5")
+	assert.ErrorPart(t, err, "value 4 must be greater than 5")
+}
 
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%s (%s)", tc.Name, tc.Validation), func(t *testing.T) {
-			t.Parallel()
-			err := validation.Var(tc.Value, tc.Validation)
-			if tc.ExpectedErrorMsg != "" {
-				assert.ErrorPart(t, err, tc.ExpectedErrorMsg)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
+func TestGtValidator_UintValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint(10), "gt=5")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_UintValueEqualToThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint(5), "gt=5")
+	assert.ErrorPart(t, err, "value 5 must be greater than 5")
+}
+
+func TestGtValidator_Float32ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(5.1), "gt=5")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_Float32ValueEqualToThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(5.0), "gt=5")
+	assert.ErrorPart(t, err, "value 5 must be greater than 5")
+}
+
+func TestGtValidator_Float64ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float64(5.1), "gt=5")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_PointerToIntGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(10), "gt=5")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_PointerToIntEqualToThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(5), "gt=5")
+	assert.ErrorPart(t, err, "value 5 must be greater than 5")
+}
+
+func TestGtValidator_NilPointerToInt_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((*int)(nil), "gt=5")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestGtValidator_InvalidThresholdParameter_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(10, "gt=abc")
+	assert.ErrorPart(t, err, "invalid parameters 'abc' for gt: strconv.ParseFloat: parsing \"abc\": invalid syntax")
+}
+
+func TestGtValidator_UnsupportedKindString_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("test", "gt=5")
+	assert.ErrorPart(t, err, "gt validation not supported for kind string")
+}
+
+func TestGtValidator_NegativeThresholdPositiveValue_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5, "gt=-10")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_NegativeThresholdNegativeValueAbove_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-5, "gt=-10")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_NegativeThresholdNegativeValueBelow_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-15, "gt=-10")
+	assert.ErrorPart(t, err, "value -15 must be greater than -10")
+}
+
+func TestGtValidator_NegativeThresholdEqualValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-10, "gt=-10")
+	assert.ErrorPart(t, err, "value -10 must be greater than -10")
+}
+
+func TestGtValidator_ZeroThresholdPositiveValue_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(1, "gt=0")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_ZeroThresholdZeroValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(0, "gt=0")
+	assert.ErrorPart(t, err, "value 0 must be greater than 0")
+}
+
+func TestGtValidator_ZeroThresholdNegativeValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-1, "gt=0")
+	assert.ErrorPart(t, err, "value -1 must be greater than 0")
+}
+
+func TestGtValidator_FloatThresholdValueAbove_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5.6, "gt=5.5")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_FloatThresholdValueEqual_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5.5, "gt=5.5")
+	assert.ErrorPart(t, err, "value 5.5 must be greater than 5.5")
+}
+
+func TestGtValidator_FloatThresholdValueBelow_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5.4, "gt=5.5")
+	assert.ErrorPart(t, err, "value 5.4 must be greater than 5.5")
+}
+
+func TestGtValidator_Int8ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(int8(10), "gt=5")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_Int8ValueLessThanThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(int8(4), "gt=5")
+	assert.ErrorPart(t, err, "value 4 must be greater than 5")
+}
+
+func TestGtValidator_Int16ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(int16(1000), "gt=500")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_Int32ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(int32(100000), "gt=50000")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_Int64ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(int64(1000000000), "gt=500000000")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_Uint8ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint8(200), "gt=100")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_Uint16ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint16(60000), "gt=50000")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_Uint32ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint32(4000000000), "gt=3000000000")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_Uint64ValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint64(10000000000), "gt=5000000000")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_PointerToFloat32GreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(float32(10.5)), "gt=5")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_PointerToFloat64GreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(float64(10.5)), "gt=5")
+	assert.NoError(t, err)
+}
+
+func TestGtValidator_NilPointerToFloat32_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((*float32)(nil), "gt=5")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestGtValidator_NilPointerToFloat64_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((*float64)(nil), "gt=5")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestGtValidator_UnsupportedKindBool_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(true, "gt=5")
+	assert.ErrorPart(t, err, "gt validation not supported for kind bool")
+}
+
+func TestGtValidator_UnsupportedKindSlice_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{1, 2, 3}, "gt=5")
+	assert.ErrorPart(t, err, "gt validation not supported for kind slice")
+}
+
+func TestGtValidator_UnsupportedKindMap_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(map[string]int{"a": 1}, "gt=5")
+	assert.ErrorPart(t, err, "gt validation not supported for kind map")
+}
+
+func TestGtValidator_UnsupportedKindStruct_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(struct{ X int }{X: 5}, "gt=5")
+	assert.ErrorPart(t, err, "gt validation not supported for kind struct")
+}
+
+func TestGtValidator_EmptyParameter_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(10, "gt=")
+	assert.ErrorPart(t, err, "invalid parameters '' for gt")
+}
+
+func TestGteValidator_IntValueGreaterThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(10, "gte=5")
+	assert.NoError(t, err)
+}
+
+func TestGteValidator_IntValueEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5, "gte=5")
+	assert.NoError(t, err)
+}
+
+func TestGteValidator_IntValueLessThanThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(4, "gte=5")
+	assert.ErrorPart(t, err, "value 4 must be greater than or equal to 5")
+}
+
+func TestGteValidator_Float32ValueEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(5.0), "gte=5")
+	assert.NoError(t, err)
+}
+
+func TestGteValidator_Float32ValueLessThanThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(4.9), "gte=5")
+	assert.ErrorPart(t, err, "must be greater than or equal to 5")
+}
+
+func TestGteValidator_PointerToIntEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(5), "gte=5")
+	assert.NoError(t, err)
+}
+
+func TestGteValidator_NilPointerToInt_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((*int)(nil), "gte=5")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestGteValidator_InvalidThresholdParameter_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(10, "gte=abc")
+	assert.ErrorPart(t, err, "invalid parameters 'abc' for gte: strconv.ParseFloat: parsing \"abc\": invalid syntax")
+}
+
+func TestGteValidator_UnsupportedKindString_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("test", "gte=5")
+	assert.ErrorPart(t, err, "gte validation not supported for kind string")
+}
+
+func TestGteValidator_NegativeThresholdEqualValue_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-10, "gte=-10")
+	assert.NoError(t, err)
+}
+
+func TestGteValidator_ZeroThresholdZeroValue_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(0, "gte=0")
+	assert.NoError(t, err)
+}
+
+func TestGteValidator_FloatThresholdValueEqual_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5.5, "gte=5.5")
+	assert.NoError(t, err)
+}
+
+func TestGteValidator_Float64ValueEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float64(5.0), "gte=5")
+	assert.NoError(t, err)
+}
+
+func TestGteValidator_UintValueEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint(5), "gte=5")
+	assert.NoError(t, err)
+}
+
+func TestLtValidator_IntValueLessThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(4, "lt=5")
+	assert.NoError(t, err)
+}
+
+func TestLtValidator_IntValueEqualToThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5, "lt=5")
+	assert.ErrorPart(t, err, "value 5 must be less than 5")
+}
+
+func TestLtValidator_IntValueGreaterThanThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(6, "lt=5")
+	assert.ErrorPart(t, err, "value 6 must be less than 5")
+}
+
+func TestLtValidator_Float32ValueLessThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(4.9), "lt=5")
+	assert.NoError(t, err)
+}
+
+func TestLtValidator_Float32ValueEqualToThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(5.0), "lt=5")
+	assert.ErrorPart(t, err, "value 5 must be less than 5")
+}
+
+func TestLtValidator_PointerToIntLessThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(4), "lt=5")
+	assert.NoError(t, err)
+}
+
+func TestLtValidator_NilPointerToInt_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((*int)(nil), "lt=5")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestLtValidator_InvalidThresholdParameter_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(10, "lt=abc")
+	assert.ErrorPart(t, err, "invalid parameters 'abc' for lt: strconv.ParseFloat: parsing \"abc\": invalid syntax")
+}
+
+func TestLtValidator_UnsupportedKindString_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("test", "lt=5")
+	assert.ErrorPart(t, err, "lt validation not supported for kind string")
+}
+
+func TestLtValidator_NegativeThresholdValueBelow_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-15, "lt=-10")
+	assert.NoError(t, err)
+}
+
+func TestLtValidator_NegativeThresholdValueAbove_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-5, "lt=-10")
+	assert.ErrorPart(t, err, "value -5 must be less than -10")
+}
+
+func TestLtValidator_ZeroThresholdNegativeValue_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-1, "lt=0")
+	assert.NoError(t, err)
+}
+
+func TestLtValidator_ZeroThresholdZeroValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(0, "lt=0")
+	assert.ErrorPart(t, err, "value 0 must be less than 0")
+}
+
+func TestLtValidator_FloatThresholdValueBelow_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5.4, "lt=5.5")
+	assert.NoError(t, err)
+}
+
+func TestLtValidator_FloatThresholdValueEqual_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5.5, "lt=5.5")
+	assert.ErrorPart(t, err, "value 5.5 must be less than 5.5")
+}
+
+func TestLtValidator_Float64ValueLessThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float64(4.9), "lt=5")
+	assert.NoError(t, err)
+}
+
+func TestLtValidator_UintValueLessThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint(4), "lt=5")
+	assert.NoError(t, err)
+}
+
+func TestLteValidator_IntValueLessThanThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(4, "lte=5")
+	assert.NoError(t, err)
+}
+
+func TestLteValidator_IntValueEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5, "lte=5")
+	assert.NoError(t, err)
+}
+
+func TestLteValidator_IntValueGreaterThanThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(6, "lte=5")
+	assert.ErrorPart(t, err, "value 6 must be less than or equal to 5")
+}
+
+func TestLteValidator_Float32ValueEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(5.0), "lte=5")
+	assert.NoError(t, err)
+}
+
+func TestLteValidator_Float32ValueGreaterThanThreshold_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float32(5.1), "lte=5")
+	assert.ErrorPart(t, err, "must be less than or equal to 5")
+}
+
+func TestLteValidator_PointerToIntEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(ptr.Of(5), "lte=5")
+	assert.NoError(t, err)
+}
+
+func TestLteValidator_NilPointerToInt_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var((*int)(nil), "lte=5")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestLteValidator_InvalidThresholdParameter_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(10, "lte=abc")
+	assert.ErrorPart(t, err, "invalid parameters 'abc' for lte: strconv.ParseFloat: parsing \"abc\": invalid syntax")
+}
+
+func TestLteValidator_UnsupportedKindString_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var("test", "lte=5")
+	assert.ErrorPart(t, err, "lte validation not supported for kind string")
+}
+
+func TestLteValidator_NegativeThresholdEqualValue_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(-10, "lte=-10")
+	assert.NoError(t, err)
+}
+
+func TestLteValidator_ZeroThresholdZeroValue_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(0, "lte=0")
+	assert.NoError(t, err)
+}
+
+func TestLteValidator_FloatThresholdValueEqual_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(5.5, "lte=5.5")
+	assert.NoError(t, err)
+}
+
+func TestLteValidator_Float64ValueEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(float64(5.0), "lte=5")
+	assert.NoError(t, err)
+}
+
+func TestLteValidator_UintValueEqualToThreshold_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(uint(5), "lte=5")
+	assert.NoError(t, err)
 }

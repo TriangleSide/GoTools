@@ -8,136 +8,110 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/validation"
 )
 
-func TestDiveValidator_VariousInputs_ReturnsExpectedErrors(t *testing.T) {
+func TestDiveValidator_NilValue_ReturnsNilError(t *testing.T) {
 	t.Parallel()
+	err := validation.Var(([]any)(nil), "dive")
+	assert.ErrorPart(t, err, "value is nil")
+}
 
-	type testCaseDefinition struct {
-		Name             string
-		Value            any
-		Validation       string
-		ExpectedErrorMsg string
-	}
+func TestDiveValidator_SliceOfIntAllGreaterThanZero_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{1, 2, 3}, "dive,gt=0")
+	assert.NoError(t, err)
+}
 
-	testCases := []testCaseDefinition{
-		{
-			Name:             "dive is used on a nil value",
-			Value:            nil,
-			Validation:       "dive",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "slice of int values all greater than 0",
-			Value:            []int{1, 2, 3},
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "slice of int values with one less than or equal to 0",
-			Value:            []int{1, 0, 3},
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "value 0 must be greater than 0",
-		},
-		{
-			Name:             "slice of uint values all greater than 0",
-			Value:            []uint{1, 2, 3},
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "slice of float32 values all greater than 0",
-			Value:            []float32{1.1, 2.2, 3.3},
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "slice of float32 with a value less than or equal to 0",
-			Value:            []float32{1.1, -1.0, 3.3},
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "value -1 must be greater than 0",
-		},
-		{
-			Name:             "slice of pointer to int values all greater than 0",
-			Value:            []*int{ptr.Of(1), ptr.Of(2)},
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "slice of pointer to int with one less than or equal to 0",
-			Value:            []*int{ptr.Of(1), ptr.Of(0)},
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "value 0 must be greater than 0",
-		},
-		{
-			Name:             "slice of int values all required",
-			Value:            []int{1, 2, 3},
-			Validation:       "dive,required",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "slice of pointer to int with nil value",
-			Value:            []*int{ptr.Of(1), nil},
-			Validation:       "dive,required",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "slice of strings with empty string",
-			Value:            []string{"a", "", "c"},
-			Validation:       "dive,required",
-			ExpectedErrorMsg: "the value is the zero-value",
-		},
-		{
-			Name:             "dive is called twice with an empty string",
-			Value:            [][]string{{"a"}, {""}},
-			Validation:       "dive,dive,required",
-			ExpectedErrorMsg: "the value is the zero-value",
-		},
-		{
-			Name:             "dive is called twice with a nil slice value",
-			Value:            [][]string{{"a"}, nil},
-			Validation:       "dive,dive,required",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "dive is the only argument",
-			Value:            []string{"a", "b"},
-			Validation:       "dive",
-			ExpectedErrorMsg: "empty validate instructions",
-		},
-		{
-			Name:             "slice of non-zero int values",
-			Value:            []int{1, 2, 3},
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "",
-		},
-		{
-			Name:             "nil slice of integers",
-			Value:            ([]int)(nil),
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "value is nil",
-		},
-		{
-			Name:             "non-slice value with dive",
-			Value:            10,
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "dive validator only accepts slice values",
-		},
-		{
-			Name:             "slice with one invalid type",
-			Value:            []any{1, "test"},
-			Validation:       "dive,gt=0",
-			ExpectedErrorMsg: "gt validation not supported for kind string",
-		},
-	}
+func TestDiveValidator_SliceOfIntWithOneLessThanOrEqualToZero_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{1, 0, 3}, "dive,gt=0")
+	assert.ErrorPart(t, err, "value 0 must be greater than 0")
+}
 
-	for _, tc := range testCases {
-		t.Run(tc.Name, func(t *testing.T) {
-			t.Parallel()
-			err := validation.Var(tc.Value, tc.Validation)
-			if tc.ExpectedErrorMsg != "" {
-				assert.ErrorPart(t, err, tc.ExpectedErrorMsg)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
+func TestDiveValidator_SliceOfUintAllGreaterThanZero_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]uint{1, 2, 3}, "dive,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestDiveValidator_SliceOfFloat32AllGreaterThanZero_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]float32{1.1, 2.2, 3.3}, "dive,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestDiveValidator_SliceOfFloat32WithValueLessThanOrEqualToZero_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]float32{1.1, -1.0, 3.3}, "dive,gt=0")
+	assert.ErrorPart(t, err, "value -1 must be greater than 0")
+}
+
+func TestDiveValidator_SliceOfPointerToIntAllGreaterThanZero_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]*int{ptr.Of(1), ptr.Of(2)}, "dive,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestDiveValidator_SliceOfPointerToIntWithOneLessThanOrEqualToZero_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]*int{ptr.Of(1), ptr.Of(0)}, "dive,gt=0")
+	assert.ErrorPart(t, err, "value 0 must be greater than 0")
+}
+
+func TestDiveValidator_SliceOfIntAllRequired_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{1, 2, 3}, "dive,required")
+	assert.NoError(t, err)
+}
+
+func TestDiveValidator_SliceOfPointerToIntWithNilValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]*int{ptr.Of(1), nil}, "dive,required")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestDiveValidator_SliceOfStringsWithEmptyString_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]string{"a", "", "c"}, "dive,required")
+	assert.ErrorPart(t, err, "the value is the zero-value")
+}
+
+func TestDiveValidator_NestedDiveWithEmptyString_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([][]string{{"a"}, {""}}, "dive,dive,required")
+	assert.ErrorPart(t, err, "the value is the zero-value")
+}
+
+func TestDiveValidator_NestedDiveWithNilSlice_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([][]string{{"a"}, nil}, "dive,dive,required")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestDiveValidator_DiveAsOnlyArgument_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]string{"a", "b"}, "dive")
+	assert.ErrorPart(t, err, "empty validate instructions")
+}
+
+func TestDiveValidator_SliceOfNonZeroIntValues_ReturnsNoError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]int{1, 2, 3}, "dive,gt=0")
+	assert.NoError(t, err)
+}
+
+func TestDiveValidator_NilSliceOfIntegers_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(([]int)(nil), "dive,gt=0")
+	assert.ErrorPart(t, err, "value is nil")
+}
+
+func TestDiveValidator_NonSliceValue_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var(10, "dive,gt=0")
+	assert.ErrorPart(t, err, "dive validator only accepts slice values")
+}
+
+func TestDiveValidator_SliceWithInvalidType_ReturnsError(t *testing.T) {
+	t.Parallel()
+	err := validation.Var([]any{1, "test"}, "dive,gt=0")
+	assert.ErrorPart(t, err, "gt validation not supported for kind string")
 }

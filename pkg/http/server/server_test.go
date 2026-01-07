@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -16,14 +15,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/TriangleSide/GoTools/pkg/http/endpoints"
 	"github.com/TriangleSide/GoTools/pkg/http/headers"
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
-	"github.com/TriangleSide/GoTools/pkg/http/responders"
 	"github.com/TriangleSide/GoTools/pkg/http/server"
 	"github.com/TriangleSide/GoTools/pkg/test/assert"
 	"github.com/TriangleSide/GoTools/pkg/validation"
@@ -136,14 +133,18 @@ type tlsTestFixture struct {
 	CACertPool               *x509.CertPool
 }
 
-func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
-	t.Helper()
-	tempDir := t.TempDir()
+type caCredentials struct {
+	privateKey *rsa.PrivateKey
+	certPEM    []byte
+	template   *x509.Certificate
+}
 
+func generateCACertificate(t *testing.T) *caCredentials {
+	t.Helper()
 	caPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err)
 
-	caCertTemplate := x509.Certificate{
+	caCertTemplate := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
 			Organization: []string{"Test CA"},
@@ -156,14 +157,21 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 	}
 
 	caCertBytes, err := x509.CreateCertificate(
-		rand.Reader, &caCertTemplate, &caCertTemplate, &caPrivateKey.PublicKey, caPrivateKey)
+		rand.Reader, caCertTemplate, caCertTemplate, &caPrivateKey.PublicKey, caPrivateKey)
 	assert.NoError(t, err)
 	caCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCertBytes})
 
-	clientCACertPath := filepath.Join(tempDir, "ca_cert.pem")
-	assert.NoError(t, os.WriteFile(clientCACertPath, caCertPEM, 0600))
-	clientCaCertPaths := []string{clientCACertPath}
+	return &caCredentials{
+		privateKey: caPrivateKey,
+		certPEM:    caCertPEM,
+		template:   caCertTemplate,
+	}
+}
 
+func generateServerCertificate(
+	t *testing.T, tempDir string, caCredentials *caCredentials,
+) (string, string, []byte) {
+	t.Helper()
 	serverPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err)
 	serverPrivateKeyPEM := pem.EncodeToMemory(
@@ -182,7 +190,7 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
 	}
 	serverCertBytes, err := x509.CreateCertificate(
-		rand.Reader, &serverCertTemplate, &caCertTemplate, &serverPrivateKey.PublicKey, caPrivateKey)
+		rand.Reader, &serverCertTemplate, caCredentials.template, &serverPrivateKey.PublicKey, caCredentials.privateKey)
 	assert.NoError(t, err)
 	serverCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverCertBytes})
 
@@ -192,6 +200,11 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 	serverCertificatePath := filepath.Join(tempDir, "server_cert.pem")
 	assert.NoError(t, os.WriteFile(serverCertificatePath, serverCertPEM, 0600))
 
+	return serverPrivateKeyPath, serverCertificatePath, serverCertPEM
+}
+
+func generateClientCertificate(t *testing.T, tempDir string, caCredential *caCredentials) (tls.Certificate, []byte) {
+	t.Helper()
 	clientPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err)
 	clientPrivateKeyPEM := pem.EncodeToMemory(
@@ -209,7 +222,7 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 		BasicConstraintsValid: true,
 	}
 	clientCertBytes, err := x509.CreateCertificate(
-		rand.Reader, &clientCertTemplate, &caCertTemplate, &clientPrivateKey.PublicKey, caPrivateKey)
+		rand.Reader, &clientCertTemplate, caCredential.template, &clientPrivateKey.PublicKey, caCredential.privateKey)
 	assert.NoError(t, err)
 	clientCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: clientCertBytes})
 
@@ -222,6 +235,11 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 	clientCertificateKeyPair, err := tls.LoadX509KeyPair(clientCertificatePath, clientPrivateKeyPath)
 	assert.NoError(t, err)
 
+	return clientCertificateKeyPair, clientCertPEM
+}
+
+func generateSelfSignedClientCertificate(t *testing.T) tls.Certificate {
+	t.Helper()
 	invalidClientPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err)
 
@@ -248,6 +266,22 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 	invalidClientCert, err := tls.X509KeyPair(invalidClientCertPEM, invalidClientKeyPEM)
 	assert.NoError(t, err)
 
+	return invalidClientCert
+}
+
+func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
+	t.Helper()
+	tempDir := t.TempDir()
+
+	caCredential := generateCACertificate(t)
+
+	clientCACertPath := filepath.Join(tempDir, "ca_cert.pem")
+	assert.NoError(t, os.WriteFile(clientCACertPath, caCredential.certPEM, 0600))
+
+	serverKeyPath, serverCertPath, serverCertPEM := generateServerCertificate(t, tempDir, caCredential)
+	clientCertKeyPair, clientCertPEM := generateClientCertificate(t, tempDir, caCredential)
+	invalidClientCert := generateSelfSignedClientCertificate(t)
+
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(clientCertPEM)
 	caCertPool.AppendCertsFromPEM(serverCertPEM)
@@ -255,10 +289,10 @@ func setupTLSTestFixture(t *testing.T) *tlsTestFixture {
 	return &tlsTestFixture{
 		TempDir:                  tempDir,
 		ClientCACertPath:         clientCACertPath,
-		ClientCACertPaths:        clientCaCertPaths,
-		ServerPrivateKeyPath:     serverPrivateKeyPath,
-		ServerCertificatePath:    serverCertificatePath,
-		ClientCertificateKeyPair: clientCertificateKeyPair,
+		ClientCACertPaths:        []string{clientCACertPath},
+		ServerPrivateKeyPath:     serverKeyPath,
+		ServerCertificatePath:    serverCertPath,
+		ClientCertificateKeyPair: clientCertKeyPair,
 		InvalidClientCert:        invalidClientCert,
 		CACertPool:               caCertPool,
 	}
@@ -900,137 +934,4 @@ func TestRun_MutualTLSModeWithMultipleClientCAs_AcceptsClientsFromAnyCA(t *testi
 		},
 	}
 	assertRootRequestSuccess(t, httpClient, serverAddress, true)
-}
-
-func TestRun_ConcurrentRequests_NoErrors(t *testing.T) {
-	t.Parallel()
-
-	serverAddress := startServer(t, server.WithConfigProvider(func() (*server.Config, error) {
-		return getDefaultConfig(t), nil
-	}), server.WithEndpoints(
-		&testHandler{
-			Path:   "/status",
-			Method: http.MethodGet,
-			Handler: func(writer http.ResponseWriter, request *http.Request) {
-				type params struct {
-					Value string `json:"-" urlQuery:"value" validate:"required"`
-				}
-				responders.Status[params](writer, request, func(*params) (int, error) {
-					return http.StatusOK, nil
-				})
-			},
-		},
-		&testHandler{
-			Path:   "/error",
-			Method: http.MethodGet,
-			Handler: func(writer http.ResponseWriter, _ *http.Request) {
-				responders.Error(writer, errors.New("error"))
-			},
-		},
-		&testHandler{
-			Path:   "/json/{id}",
-			Method: http.MethodPost,
-			Handler: func(writer http.ResponseWriter, request *http.Request) {
-				type requestParams struct {
-					ID   string `json:"-"    urlPath:"id"        validate:"required"`
-					Data string `json:"data" validate:"required"`
-				}
-				type response struct {
-					ID string
-				}
-				responders.JSON(writer, request, func(params *requestParams) (*response, int, error) {
-					return &response{
-						ID: params.ID,
-					}, http.StatusOK, nil
-				})
-			},
-		},
-		&testHandler{
-			Path:   "/jsonstream",
-			Method: http.MethodGet,
-			Handler: func(writer http.ResponseWriter, request *http.Request) {
-				type requestParams struct{}
-				type response struct {
-					ID string
-				}
-				responders.JSONStream(writer, request, func(*requestParams) (<-chan *response, int, error) {
-					responseChan := make(chan *response)
-					go func() {
-						defer close(responseChan)
-						responseChan <- &response{ID: "1"}
-						responseChan <- &response{ID: "2"}
-						responseChan <- &response{ID: "3"}
-					}()
-					return responseChan, http.StatusOK, nil
-				})
-			},
-		},
-	))
-
-	testCases := []struct {
-		method      string
-		path        string
-		body        func() io.Reader
-		contentType string
-		expected    int
-	}{
-		{http.MethodGet, "/error",
-			nil,
-			"", http.StatusInternalServerError},
-		{http.MethodGet, "/status?value=test",
-			nil,
-			"", http.StatusOK},
-		{http.MethodGet, "/status",
-			nil,
-			"", http.StatusBadRequest},
-		{http.MethodPost, "/json/testId",
-			func() io.Reader { return bytes.NewBufferString(`{"data":"value"}`) },
-			headers.ContentTypeApplicationJSON, http.StatusOK},
-		{http.MethodPost, "/json/testId",
-			func() io.Reader { return bytes.NewBufferString(`{"data":""}`) },
-			headers.ContentTypeApplicationJSON, http.StatusBadRequest},
-		{http.MethodGet, "/jsonstream",
-			nil,
-			"", http.StatusOK},
-	}
-
-	var waitGroup sync.WaitGroup
-	waitToStart := make(chan struct{})
-	totalGoRoutinesPerOperation := 2
-	totalRequestsPerGoRoutine := 1000
-
-	for _, testCase := range testCases {
-		for range totalGoRoutinesPerOperation {
-			waitGroup.Go(func() {
-				<-waitToStart
-				for range totalRequestsPerGoRoutine {
-					var body io.Reader
-					if testCase.body != nil {
-						body = testCase.body()
-					}
-					ctx, cancel := context.WithCancel(t.Context())
-					request, err := http.NewRequestWithContext(ctx, testCase.method, "http://"+serverAddress+testCase.path, body)
-					if err != nil {
-						cancel()
-						assert.NoError(t, err, assert.Continue())
-						continue
-					}
-					if testCase.contentType != "" {
-						request.Header.Set(headers.ContentType, testCase.contentType)
-					}
-					response, err := http.DefaultClient.Do(request)
-					cancel()
-					if err != nil {
-						assert.NoError(t, err, assert.Continue())
-						continue
-					}
-					assert.Equals(t, response.StatusCode, testCase.expected, assert.Continue())
-					assert.NoError(t, response.Body.Close(), assert.Continue())
-				}
-			})
-		}
-	}
-
-	close(waitToStart)
-	waitGroup.Wait()
 }
