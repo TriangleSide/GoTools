@@ -25,6 +25,7 @@ linters:
     - errorlint
     - exhaustive
     - funcorder
+    - funlen
     - inamedparam
     - gochecksumtype
     - goconst

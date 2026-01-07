@@ -17,13 +17,19 @@ var (
 	}
 )
 
+// Nillable returns true if the kind supports the IsNil function.
+func Nillable(kind reflect.Kind) bool {
+	_, ok := valueSupportedNilKinds[kind]
+	return ok
+}
+
 // IsNil returns true if the value is nil.
 func IsNil(value reflect.Value) bool {
 	if !value.IsValid() {
 		return true
 	}
 
-	if _, ok := valueSupportedNilKinds[value.Kind()]; !ok {
+	if !Nillable(value.Kind()) {
 		return false
 	}
 

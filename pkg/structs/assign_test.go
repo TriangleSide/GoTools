@@ -490,7 +490,7 @@ func TestAssignToField_InvalidValues_ReturnsError(t *testing.T) {
 		{"TimeValueInvalid", "TimeValue", "this is not a time string", "parsing time"},
 		{"TimePtrValueInvalid", "TimePtrValue", "this is not a time string", "parsing time"},
 		{"TextUnmarshalerError", "FailingUnmarshallValue", "any value", "text unmarshal error"},
-		{"UnhandledValueUnsupported", "UnhandledValue", "unhandled", "unsupported field type"},
+		{"UnhandledValueUnsupported", "UnhandledValue", "unhandled", "unsupported type"},
 	}
 	for _, subTest := range subTests {
 		t.Run(subTest.name, func(t *testing.T) {
