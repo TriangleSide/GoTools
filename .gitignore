@@ -40,4 +40,4 @@ Temporary Items
 .apdisk
 
 # AI
-.claude
+.claude/settings.local.json

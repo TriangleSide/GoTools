@@ -170,7 +170,7 @@ func TestRun_PortAlreadyInUse_ReturnsError(t *testing.T) {
 	assert.ErrorPart(t, err, "address already in use")
 }
 
-func TestRun_CalledTwice_Panics(t *testing.T) {
+func TestRun_CalledTwice_ReturnsError(t *testing.T) {
 	t.Parallel()
 	waitUntilReady := make(chan bool)
 	srv, err := server.New(server.WithBoundCallback(func(*net.TCPAddr) {
@@ -186,9 +186,8 @@ func TestRun_CalledTwice_Panics(t *testing.T) {
 	}()
 	<-waitUntilReady
 
-	assert.PanicPart(t, func() {
-		_ = srv.Run()
-	}, "http server can only be run once per instance")
+	runErr := srv.Run()
+	assert.ErrorPart(t, runErr, "http server can only be run once per instance")
 
 	shutdownErr := srv.Shutdown(t.Context())
 	assert.NoError(t, shutdownErr)

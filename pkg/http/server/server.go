@@ -21,6 +21,11 @@ import (
 	"github.com/TriangleSide/GoTools/pkg/http/middleware"
 )
 
+const (
+	// minTLSVersion is the minimum TLS version the server will accept.
+	minTLSVersion = tls.VersionTLS13
+)
+
 // Server handles requests via the Hypertext Transfer Protocol (HTTP) and sends back responses.
 // The Server must be allocated using New since the zero value for Server is not valid configuration.
 type Server struct {
@@ -73,7 +78,7 @@ func New(opts ...Option) (*Server, error) {
 // This function blocks as long as its serving HTTP requests.
 func (server *Server) Run() error {
 	if server.ran.Swap(true) {
-		panic(errors.New("http server can only be run once per instance"))
+		return errors.New("http server can only be run once per instance")
 	}
 	server.wg.Add(1)
 	defer server.wg.Done()
@@ -164,7 +169,7 @@ func configureTLS(envConfig *Config) (*tls.Config, error) {
 			return nil, fmt.Errorf("failed to load the server certificates: %w", err)
 		}
 		return &tls.Config{
-			MinVersion:   tls.VersionTLS13,
+			MinVersion:   minTLSVersion,
 			Certificates: []tls.Certificate{serverCert},
 		}, nil
 	case TLSModeMutualTLS:
@@ -180,7 +185,7 @@ func configureTLS(envConfig *Config) (*tls.Config, error) {
 			return nil, fmt.Errorf("failed to load client CA certificates: %w", err)
 		}
 		return &tls.Config{
-			MinVersion:   tls.VersionTLS13,
+			MinVersion:   minTLSVersion,
 			Certificates: []tls.Certificate{serverCert},
 			ClientAuth:   tls.RequireAndVerifyClientCert,
 			ClientCAs:    clientCAs,
