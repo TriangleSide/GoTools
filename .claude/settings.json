@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": [
+      "Bash(make test:*)",
+      "Bash(make lint:*)",
       "Bash(go test:*)",
       "Bash(go fmt:*)",
       "Bash(gh pr create:*)",
