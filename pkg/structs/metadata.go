@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
+	"github.com/TriangleSide/GoTools/pkg/reflection"
 )
 
 var (
@@ -36,9 +37,7 @@ func MetadataFromType(reflectType reflect.Type) map[string]*FieldMetadata {
 // If the struct contains an embedded anonymous struct, it appends its name to the anonymous name chain.
 // If a field name is not unique, a panic occurs. This includes field names of the anonymous structs.
 func processType(reflectType reflect.Type, fieldsToMetadata map[string]*FieldMetadata, anonymousChain []string) {
-	if reflectType.Kind() == reflect.Ptr {
-		reflectType = reflectType.Elem()
-	}
+	reflectType = reflection.DereferenceType(reflectType)
 	if reflectType.Kind() != reflect.Struct {
 		panic(fmt.Errorf("type must be a struct or a pointer to a struct, got %s", reflectType.Kind().String()))
 	}

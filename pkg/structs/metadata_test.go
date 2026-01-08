@@ -253,6 +253,17 @@ func TestMetadataFromType_PointerToStruct_ReturnsMetadata(t *testing.T) {
 	assert.True(t, hasValue)
 }
 
+func TestMetadataFromType_DoublePointerToStruct_ReturnsMetadata(t *testing.T) {
+	t.Parallel()
+	type testStruct struct {
+		Value int
+	}
+	metadata := structs.MetadataFromType(reflect.TypeFor[**testStruct]())
+	assert.Equals(t, len(metadata), 1)
+	_, hasValue := metadata["Value"]
+	assert.True(t, hasValue)
+}
+
 func TestMetadata_ConcurrentAccess_NoErrors(t *testing.T) {
 	t.Parallel()
 
