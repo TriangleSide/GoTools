@@ -11,7 +11,8 @@ var (
 	registeredSingleInvocations sync.Map
 )
 
-// Do executes the callback once per test or subtest.
+// Do executes the callback exactly once per test or subtest.
+// Using `go test -count=N` will cause the callback to be executed only once across all N runs.
 func Do(t *testing.T, callback func()) {
 	t.Helper()
 
