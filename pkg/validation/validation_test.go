@@ -5,9 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/test/once"
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/test/once"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 func TestVar_UnknownValidator_ReturnsError(t *testing.T) {

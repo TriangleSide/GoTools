@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/http/middleware"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/http/middleware"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestCreateChain_NilMiddlewareList_OnlyCallsHandler(t *testing.T) {

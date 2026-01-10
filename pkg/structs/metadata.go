@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
-	"github.com/TriangleSide/GoTools/pkg/reflection"
+	"github.com/TriangleSide/go-toolkit/pkg/datastructures/cache"
+	"github.com/TriangleSide/go-toolkit/pkg/reflection"
 )
 
 var (

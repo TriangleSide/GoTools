@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 func TestNewFieldError_StructValidationWithParameters_ReturnsFormattedMessage(t *testing.T) {

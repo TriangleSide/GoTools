@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/http/server"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/http/server"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestNew_MutualTLSModeWithMissingClientCA_ReturnsError(t *testing.T) {

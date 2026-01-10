@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/datastructures/heap"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/datastructures/heap"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func getRandomInt(t *testing.T, maxValue int) int {

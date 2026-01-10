@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/attribute"
-	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/event"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/telemetry/trace/attribute"
+	"github.com/TriangleSide/go-toolkit/pkg/telemetry/trace/event"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestNew_WithName_RecordsName(t *testing.T) {

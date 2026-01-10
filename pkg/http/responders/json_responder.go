@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/TriangleSide/GoTools/pkg/http/headers"
-	"github.com/TriangleSide/GoTools/pkg/http/parameters"
+	"github.com/TriangleSide/go-toolkit/pkg/http/headers"
+	"github.com/TriangleSide/go-toolkit/pkg/http/parameters"
 )
 
 // JSON responds to an HTTP request by encoding the response as JSON.

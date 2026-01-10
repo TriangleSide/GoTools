@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/TriangleSide/GoTools/pkg/config"
+	"github.com/TriangleSide/go-toolkit/pkg/config"
 )
 
 // ctxKey is the type used for storing the logger in context.

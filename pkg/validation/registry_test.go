@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/test/once"
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/test/once"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 func TestMustRegisterValidator_RegisteredValidator_CanBeUsedInVar(t *testing.T) {

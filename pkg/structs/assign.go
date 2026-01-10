@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/TriangleSide/GoTools/pkg/reflection"
+	"github.com/TriangleSide/go-toolkit/pkg/reflection"
 )
 
 // getStructFieldValue retrieves the reflect.Value of a field, accounting for embedded anonymous structs.

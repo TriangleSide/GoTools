@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/TriangleSide/GoTools/pkg/reflection"
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/reflection"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 // StandardErrorResponse is the standard JSON response an API endpoint makes

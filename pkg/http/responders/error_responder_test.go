@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/http/responders"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/http/responders"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 type testError struct{}

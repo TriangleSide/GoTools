@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/structs"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/structs"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestMetadata_NonStructType_Panics(t *testing.T) {

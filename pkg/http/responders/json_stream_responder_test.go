@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/http/headers"
-	"github.com/TriangleSide/GoTools/pkg/http/responders"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/http/headers"
+	"github.com/TriangleSide/go-toolkit/pkg/http/responders"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 type jsonStreamRequestParams struct {

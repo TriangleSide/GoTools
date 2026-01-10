@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/TriangleSide/GoTools/pkg/datastructures/cache"
-	"github.com/TriangleSide/GoTools/pkg/structs"
+	"github.com/TriangleSide/go-toolkit/pkg/datastructures/cache"
+	"github.com/TriangleSide/go-toolkit/pkg/structs"
 )
 
 // Tag is a string of metadata associated at compile time with a field of a struct.

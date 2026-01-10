@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/ptr"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/ptr"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 func createTempFile(t *testing.T) string {

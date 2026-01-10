@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/logger"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/logger"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestFromContext_EmptyContext_ReturnsNewLogger(t *testing.T) {

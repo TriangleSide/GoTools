@@ -5,7 +5,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/TriangleSide/GoTools/pkg/reflection"
+	"github.com/TriangleSide/go-toolkit/pkg/reflection"
 )
 
 const (

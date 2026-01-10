@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/telemetry/trace"
-	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/attribute"
-	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/event"
-	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/span"
-	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/status"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/telemetry/trace"
+	"github.com/TriangleSide/go-toolkit/pkg/telemetry/trace/attribute"
+	"github.com/TriangleSide/go-toolkit/pkg/telemetry/trace/event"
+	"github.com/TriangleSide/go-toolkit/pkg/telemetry/trace/span"
+	"github.com/TriangleSide/go-toolkit/pkg/telemetry/trace/status"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 type mockExporter struct {
