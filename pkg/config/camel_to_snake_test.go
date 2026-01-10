@@ -3,8 +3,8 @@ package config_test
 import (
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/config"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/config"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestCamelToSnake_StandardCamelCase_MapsToSnakeCase(t *testing.T) {

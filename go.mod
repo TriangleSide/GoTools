@@ -1,3 +1,3 @@
-module github.com/TriangleSide/GoTools
+module github.com/TriangleSide/go-toolkit
 
 go 1.25

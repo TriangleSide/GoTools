@@ -1,7 +1,7 @@
 package migration
 
 import (
-	"github.com/TriangleSide/GoTools/pkg/config"
+	"github.com/TriangleSide/go-toolkit/pkg/config"
 )
 
 // migrateConfig is configured by the Option type.

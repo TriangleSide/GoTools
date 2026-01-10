@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/http/responders"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/http/responders"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestMustRegisterErrorResponse_RegisteredTwice_Panics(t *testing.T) {

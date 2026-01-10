@@ -3,9 +3,9 @@ package parameters_test
 import (
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/http/headers"
-	"github.com/TriangleSide/GoTools/pkg/http/parameters"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/http/headers"
+	"github.com/TriangleSide/go-toolkit/pkg/http/parameters"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestTagLookupKeyFollowsNamingConvention_TableDriven_ReturnsExpected(t *testing.T) {

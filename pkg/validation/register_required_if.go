@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/TriangleSide/GoTools/pkg/reflection"
-	"github.com/TriangleSide/GoTools/pkg/structs"
+	"github.com/TriangleSide/go-toolkit/pkg/reflection"
+	"github.com/TriangleSide/go-toolkit/pkg/structs"
 )
 
 const (

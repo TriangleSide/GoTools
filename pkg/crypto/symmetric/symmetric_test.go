@@ -11,8 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/crypto/symmetric"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/crypto/symmetric"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 type invalidSizeBlock struct{}

@@ -1,6 +1,6 @@
 package validation
 
-import "github.com/TriangleSide/GoTools/pkg/reflection"
+import "github.com/TriangleSide/go-toolkit/pkg/reflection"
 
 const (
 	// OmitemptyValidatorName is the name of the validator that skips subsequent validators if the value is empty.

@@ -3,8 +3,8 @@ package structs_test
 import (
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/structs"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/structs"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestValueFromName_NilStructInstance_ReturnsError(t *testing.T) {

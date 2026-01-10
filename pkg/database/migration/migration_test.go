@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/config"
-	"github.com/TriangleSide/GoTools/pkg/database/migration"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/config"
+	"github.com/TriangleSide/go-toolkit/pkg/database/migration"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 type managerRecorder struct {

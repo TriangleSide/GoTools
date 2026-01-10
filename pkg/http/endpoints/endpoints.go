@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/TriangleSide/GoTools/pkg/http/middleware"
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/http/middleware"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 // Method is a command used by a client to indicate the desired action to be performed

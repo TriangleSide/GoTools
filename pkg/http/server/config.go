@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 const (

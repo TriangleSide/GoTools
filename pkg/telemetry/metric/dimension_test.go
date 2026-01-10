@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/telemetry/metric"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/telemetry/metric"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 type mockExporter struct {

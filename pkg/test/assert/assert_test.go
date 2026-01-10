@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 type testRecorder struct {

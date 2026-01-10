@@ -5,9 +5,9 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/TriangleSide/GoTools/pkg/config"
-	"github.com/TriangleSide/GoTools/pkg/http/endpoints"
-	"github.com/TriangleSide/GoTools/pkg/http/middleware"
+	"github.com/TriangleSide/go-toolkit/pkg/config"
+	"github.com/TriangleSide/go-toolkit/pkg/http/endpoints"
+	"github.com/TriangleSide/go-toolkit/pkg/http/middleware"
 )
 
 // serverOptions is configured by the caller with the Option functions.

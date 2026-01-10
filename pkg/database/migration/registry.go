@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 // Order represents the sequence in which migrations are meant to be run.

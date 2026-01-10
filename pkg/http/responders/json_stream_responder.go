@@ -6,8 +6,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/TriangleSide/GoTools/pkg/http/headers"
-	"github.com/TriangleSide/GoTools/pkg/http/parameters"
+	"github.com/TriangleSide/go-toolkit/pkg/http/headers"
+	"github.com/TriangleSide/go-toolkit/pkg/http/parameters"
 )
 
 // JSONStream responds to an HTTP request by streaming responses as JSON objects.

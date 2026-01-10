@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/TriangleSide/GoTools/pkg/structs"
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	"github.com/TriangleSide/go-toolkit/pkg/structs"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 const (

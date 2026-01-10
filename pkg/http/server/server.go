@@ -16,9 +16,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/http/endpoints"
-	"github.com/TriangleSide/GoTools/pkg/http/headers"
-	"github.com/TriangleSide/GoTools/pkg/http/middleware"
+	"github.com/TriangleSide/go-toolkit/pkg/http/endpoints"
+	"github.com/TriangleSide/go-toolkit/pkg/http/headers"
+	"github.com/TriangleSide/go-toolkit/pkg/http/middleware"
 )
 
 const (

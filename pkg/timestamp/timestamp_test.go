@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/timestamp"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/timestamp"
 )
 
 func TestIsZero_WhenTimestampIsZero_ReturnsTrue(t *testing.T) {

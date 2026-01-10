@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/database/migration"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/database/migration"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
 )
 
 func TestMustRegister_DuplicateOrder_Panics(t *testing.T) {

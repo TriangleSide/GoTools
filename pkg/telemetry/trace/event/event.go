@@ -3,7 +3,7 @@ package event
 import (
 	"time"
 
-	"github.com/TriangleSide/GoTools/pkg/telemetry/trace/attribute"
+	"github.com/TriangleSide/go-toolkit/pkg/telemetry/trace/attribute"
 )
 
 // Event represents a timestamped occurrence within a span.

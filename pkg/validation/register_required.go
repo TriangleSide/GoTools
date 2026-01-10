@@ -3,7 +3,7 @@ package validation
 import (
 	"errors"
 
-	"github.com/TriangleSide/GoTools/pkg/reflection"
+	"github.com/TriangleSide/go-toolkit/pkg/reflection"
 )
 
 const (

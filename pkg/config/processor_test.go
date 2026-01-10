@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/TriangleSide/GoTools/pkg/config"
-	"github.com/TriangleSide/GoTools/pkg/structs"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/test/once"
+	"github.com/TriangleSide/go-toolkit/pkg/config"
+	"github.com/TriangleSide/go-toolkit/pkg/structs"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/test/once"
 )
 
 func TestProcessAndValidate_DefaultValueCannotBeAssigned_ReturnsError(t *testing.T) {

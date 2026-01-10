@@ -3,9 +3,9 @@ package endpoints_test
 import (
 	"testing"
 
-	_ "github.com/TriangleSide/GoTools/pkg/http/endpoints"
-	"github.com/TriangleSide/GoTools/pkg/test/assert"
-	"github.com/TriangleSide/GoTools/pkg/validation"
+	_ "github.com/TriangleSide/go-toolkit/pkg/http/endpoints"
+	"github.com/TriangleSide/go-toolkit/pkg/test/assert"
+	"github.com/TriangleSide/go-toolkit/pkg/validation"
 )
 
 func TestPathValidation_Root_Succeeds(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/TriangleSide/GoTools/pkg/structs"
+	"github.com/TriangleSide/go-toolkit/pkg/structs"
 )
 
 var (
